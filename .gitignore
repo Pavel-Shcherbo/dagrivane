@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+.local/
+**/.local/
+.venv/
+output/
+.playwright-cli/
+*.egg-info/
+build/
+dist/
+.DS_Store
