@@ -62,3 +62,27 @@ def validate(spec):
     return ordered
 
 
+def execute(command, cwd, timeout):
+    with subprocess.Popen(
+        command,
+        cwd=cwd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        start_new_session=(os.name == "posix"),
+    ) as process:
+        try:
+            stdout, stderr = process.communicate(timeout=timeout)
+            return process.returncode == 0, stdout + stderr
+        except subprocess.TimeoutExpired:
+            try:
+                if os.name == "posix":
+                    os.killpg(process.pid, signal.SIGKILL)
+                else:
+                    process.kill()
+            except ProcessLookupError:
+                pass
+            stdout, stderr = process.communicate()
+            return False, (stdout + stderr + f"\nTask exceeded {timeout} seconds")
+
+
