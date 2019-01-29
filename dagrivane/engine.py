@@ -86,3 +86,86 @@ def execute(command, cwd, timeout):
             return False, (stdout + stderr + f"\nTask exceeded {timeout} seconds")
 
 
+def run(spec, state_path, run_id, cwd=None):
+    tasks = validate(spec)
+    cwd = str(Path(cwd or ".").resolve())
+    verify_inputs(spec, cwd)
+    fingerprint = hashlib.sha256(
+        json.dumps({"spec": spec, "cwd": cwd}, sort_keys=True).encode()
+    ).hexdigest()
+    Path(state_path).parent.mkdir(parents=True, exist_ok=True)
+    with sqlite3.connect(state_path) as db:
+        db.execute(
+            "CREATE TABLE IF NOT EXISTS runs (id TEXT PRIMARY KEY, fingerprint TEXT NOT NULL)"
+        )
+        db.execute("""CREATE TABLE IF NOT EXISTS tasks (
+            run_id TEXT, id TEXT, status TEXT NOT NULL, attempts INTEGER NOT NULL,
+            output TEXT NOT NULL, PRIMARY KEY (run_id, id))""")
+        previous = db.execute(
+            "SELECT fingerprint FROM runs WHERE id=?", (run_id,)
+        ).fetchone()
+        if previous and previous[0] != fingerprint:
+            raise ValueError(
+                "run ID belongs to a different specification or working directory"
+            )
+        db.execute("INSERT OR IGNORE INTO runs VALUES (?, ?)", (run_id, fingerprint))
+        db.commit()
+        records = {
+            row[0]: row[1]
+            for row in db.execute(
+                "SELECT id,status FROM tasks WHERE run_id=?", (run_id,)
+            )
+        }
+        if "running" in records.values():
+            raise ValueError(
+                "interrupted task has an unknown outcome; inspect effects and use a new run ID"
+            )
+        for task in tasks:
+            name = task["id"]
+            if records.get(name) == "succeeded":
+                continue
+            if any(records.get(dep) != "succeeded" for dep in task.get("needs", [])):
+                db.execute(
+                    "INSERT OR REPLACE INTO tasks VALUES (?,?,?,0,?)",
+                    (run_id, name, "blocked", "dependency failed"),
+                )
+                db.commit()
+                records[name] = "blocked"
+                continue
+            for _ in range(task.get("retries", 0) + 1):
+                attempts = db.execute(
+                    "SELECT attempts FROM tasks WHERE run_id=? AND id=?", (run_id, name)
+                ).fetchone()
+                count = (attempts[0] if attempts else 0) + 1
+                db.execute(
+                    "INSERT OR REPLACE INTO tasks VALUES (?,?,?,?,?)",
+                    (run_id, name, "running", count, ""),
+                )
+                db.commit()
+                try:
+                    succeeded, output = execute(
+                        task["command"], cwd, task.get("timeout", 30)
+                    )
+                    status = "succeeded" if succeeded else "failed"
+                except OSError as error:
+                    status, output = "failed", str(error)
+                db.execute(
+                    "UPDATE tasks SET status=?,output=? WHERE run_id=? AND id=?",
+                    (status, output[-16384:], run_id, name),
+                )
+                db.commit()
+                records[name] = status
+                if status == "succeeded":
+                    break
+        saved = {
+            row[0]: {
+                "id": row[0],
+                "status": row[1],
+                "attempts": row[2],
+                "output": row[3],
+            }
+            for row in db.execute(
+                "SELECT id,status,attempts,output FROM tasks WHERE run_id=?", (run_id,)
+            )
+        }
+        return [saved[task["id"]] for task in tasks]
