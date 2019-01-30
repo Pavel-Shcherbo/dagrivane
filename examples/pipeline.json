@@ -1,0 +1,55 @@
+{
+  "tasks": [
+    {
+      "id": "extract",
+      "command": [
+        "python3",
+        "tasks.py",
+        "extract"
+      ]
+    },
+    {
+      "id": "quality",
+      "needs": [
+        "extract"
+      ],
+      "command": [
+        "python3",
+        "tasks.py",
+        "quality"
+      ]
+    },
+    {
+      "id": "aggregate",
+      "needs": [
+        "quality"
+      ],
+      "command": [
+        "python3",
+        "tasks.py",
+        "aggregate"
+      ]
+    },
+    {
+      "id": "release-check",
+      "needs": [
+        "aggregate"
+      ],
+      "command": [
+        "python3",
+        "tasks.py",
+        "release-check"
+      ]
+    }
+  ],
+  "inputs": [
+    {
+      "path": "orders.csv",
+      "sha256": "06b879f46634bef0f6b5e5a63a4cf379b459c91eae5e37c44da3aaecce07c2ad"
+    },
+    {
+      "path": "tasks.py",
+      "sha256": "abdc438ad08cf3cca6d457074adfe9ae61d0bf3a094e6f243c31e1218192a175"
+    }
+  ]
+}
