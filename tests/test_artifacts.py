@@ -36,3 +36,16 @@ class ArtifactTests(unittest.TestCase):
             result = run(spec, root / "runs.db", "two", root)
             self.assertEqual(result[0]["output"].strip(), "changed")
 
+    def test_missing_duplicate_and_escaping_inputs(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            (root / "input").write_text("value")
+            declaration = {"path": "input", "sha256": file_digest(root / "input")}
+            for declarations in [
+                [declaration, declaration],
+                [{"path": "../outside", "sha256": "a" * 64}],
+                [{"path": "missing", "sha256": "a" * 64}],
+                [{"path": "input", "sha256": "bad"}],
+            ]:
+                with self.assertRaises(ValueError):
+                    verify_inputs({"inputs": declarations}, root)
