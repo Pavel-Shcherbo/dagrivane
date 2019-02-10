@@ -23,3 +23,25 @@ class EngineTests(unittest.TestCase):
             result = run(spec, Path(folder) / "state.db", "ordered")
         self.assertEqual([task["id"] for task in result], ["z-parent", "a-child"])
 
+    def test_failed_dependency_does_not_block_independent_branch(self):
+        spec = {
+            "tasks": [
+                {
+                    "id": "bad",
+                    "command": [sys.executable, "-c", "raise SystemExit(1)"],
+                    "retries": 1,
+                },
+                {
+                    "id": "child",
+                    "needs": ["bad"],
+                    "command": [sys.executable, "-c", "print('must not run')"],
+                },
+                {"id": "other", "command": [sys.executable, "-c", "print('ok')"]},
+            ]
+        }
+        with tempfile.TemporaryDirectory() as folder:
+            result = {x["id"]: x for x in run(spec, Path(folder) / "state.db", "test")}
+        self.assertEqual(result["bad"]["attempts"], 2)
+        self.assertEqual(result["child"]["status"], "blocked")
+        self.assertEqual(result["other"]["status"], "succeeded")
+
