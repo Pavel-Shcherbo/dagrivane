@@ -45,3 +45,33 @@ class EngineTests(unittest.TestCase):
         self.assertEqual(result["child"]["status"], "blocked")
         self.assertEqual(result["other"]["status"], "succeeded")
 
+    def test_resume_does_not_repeat_successful_side_effect(self):
+        with tempfile.TemporaryDirectory() as folder:
+            spec = {
+                "tasks": [
+                    {
+                        "id": "write",
+                        "command": [
+                            sys.executable,
+                            "-c",
+                            "from pathlib import Path; p=Path('count'); p.write_text(p.read_text()+'x' if p.exists() else 'x')",
+                        ],
+                    }
+                ]
+            }
+            state = Path(folder) / "state.db"
+            run(spec, state, "one", folder)
+            run(spec, state, "one", folder)
+            self.assertEqual((Path(folder) / "count").read_text(), "x")
+            with self.assertRaises(ValueError):
+                run(
+                    {"tasks": [{"id": "other", "command": ["echo", "different"]}]},
+                    state,
+                    "one",
+                    folder,
+                )
+            with sqlite3.connect(state) as db:
+                db.execute("UPDATE tasks SET status='running'")
+            with self.assertRaisesRegex(ValueError, "unknown outcome"):
+                run(spec, state, "one", folder)
+
