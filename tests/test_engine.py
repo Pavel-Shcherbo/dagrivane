@@ -75,3 +75,12 @@ class EngineTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "unknown outcome"):
                 run(spec, state, "one", folder)
 
+    def test_graph_validation(self):
+        for tasks in [
+            [{"id": "a", "command": ["echo"], "needs": ["missing"]}],
+            [{"id": "a", "command": ["echo"], "needs": ["a"]}],
+            [{"id": "a", "command": "echo unsafe"}],
+        ]:
+            with self.assertRaises(ValueError):
+                validate({"tasks": tasks})
+
