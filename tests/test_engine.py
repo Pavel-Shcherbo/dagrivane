@@ -84,3 +84,22 @@ class EngineTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 validate({"tasks": tasks})
 
+    def test_timeout_is_a_failed_attempt_and_blocks_children(self):
+        spec = {
+            "tasks": [
+                {
+                    "id": "slow",
+                    "command": [sys.executable, "-c", "import time; time.sleep(10)"],
+                    "timeout": 0.1,
+                },
+                {
+                    "id": "after",
+                    "needs": ["slow"],
+                    "command": [sys.executable, "-c", "pass"],
+                },
+            ]
+        }
+        with tempfile.TemporaryDirectory() as folder:
+            result = run(spec, Path(folder) / "state.db", "timeout")
+        self.assertEqual([item["status"] for item in result], ["failed", "blocked"])
+        self.assertIn("exceeded", result[0]["output"])
