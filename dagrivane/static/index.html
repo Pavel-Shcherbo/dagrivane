@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="description" content="Workflow execution and release gates" />
+    <title>Dagrivane workbench</title>
+    <link rel="stylesheet" href="/style.css" />
+    <script src="/app.js" defer></script>
+  </head>
+  <body class="">
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand">Dagrivane</div>
+        <p class="caption">Workflow execution and release gates</p>
+        <nav aria-label="Workspace">
+          <a href="#workflow">Workflow</a><a href="#tasks">Task results</a
+          ><a href="#contract">Execution contract</a>
+        </nav>
+        <footer>Local workbench<br />Development build</footer>
+      </aside>
+      <main class="workspace">
+        <div class="topline">
+          <span>Workflow execution and release gates</span
+          ><span class="context">Local environment</span>
+        </div>
+        <div id="error" class="error" role="alert" hidden></div>
+        <header class="pagehead" id="workflow">
+          <div>
+            <h1>Order summary release</h1>
+            <p>A four-step control pipeline with a checked aggregate</p>
+          </div>
+          <button id="run" class="primary">Run pipeline</button>
+        </header>
+        <section class="panel">
+          <div class="panelhead">
+            <h2>Dependency graph</h2>
+            <span id="runstate" class="status">Not started</span>
+          </div>
+          <div class="graphwrap">
+            <svg
+              id="graph"
+              viewBox="0 0 940 220"
+              role="img"
+              aria-label="Extract, quality, aggregate and release check dependency graph"
+            ></svg>
+          </div>
+          <div class="controls">
+            <label
+              ><input type="checkbox" id="fail" /> Inject a quality-check
+              failure</label
+            ><span class="notice"
+              >Synthetic orders · Expected total USD 112.00</span
+            >
+          </div>
+        </section>
+        <section class="section resultslayout" id="tasks">
+          <div class="panel">
+            <div class="panelhead">
+              <h2>Task results</h2>
+              <span id="count" class="muted">4 tasks</span>
+            </div>
+            <div class="tablewrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Task</th>
+                    <th>State</th>
+                    <th class="number">Attempts</th>
+                  </tr>
+                </thead>
+                <tbody id="rows"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panelhead"><h2 id="logtitle">Task output</h2></div>
+            <div class="panelbody">
+              <pre id="logs">
+Run the pipeline, then select a task to inspect its output</pre>
+            </div>
+          </div>
+        </section>
+        <section class="section" id="contract">
+          <h2>Execution contract</h2>
+          <p class="secondary">
+            Commands run locally without a shell. A failed prerequisite blocks
+            dependent tasks. Successful checkpoints are retained for an
+            unchanged run specification. An interrupted task with an unknown
+            external outcome requires reconciliation.
+          </p>
+          <p class="notice">
+            This workbench runs the bundled control pipeline. It does not accept
+            arbitrary remote commands or perform a production release.
+          </p>
+          <p id="runid" class="mono notice"></p>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>
