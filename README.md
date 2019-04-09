@@ -14,6 +14,10 @@ Open http://127.0.0.1:8411. No third-party runtime packages are required.
 The workbench is a local development application, not a hosted multi-user service.
 Run it from the checkout: bundled examples are not yet distributed in an installed package.
 
+## Workbench preview
+
+![Local workbench](docs/workbench.png)
+
 ## Command line
 
 ```sh
