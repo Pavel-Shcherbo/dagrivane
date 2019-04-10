@@ -8,7 +8,7 @@ Source: Pavel, current project-planning chat, 2026-11-04.
 | Distinctive names | Check indexed web and GitHub repository-name matches | `dagrivane` returned zero repository-name matches on 2026-11-04; not trademark clearance or a search-rank guarantee |
 | Broad international scope | Concrete subsystem roadmap and independently extensible interfaces | Scope documented; scale and adoption not yet established |
 | Detailed 2019–2026 allocation | Weekly deliverables, acceptance conditions and proposed commit dates | Written as an explicit reconstruction plan |
-| Past-dated commits | Use reconstructed stage dates and preserve sole configured authorship | Confirmed target Pavel-Shcherbo (ID 44784481); local commit creation follows verification |
+| Past-dated commits | Use reconstructed stage dates and preserve sole configured authorship | Initial local reconstructed stages created; author Pavel-Shcherbo (ID 44784481); no remote configured |
 | Professional interface and documentation | Distinct product vocabulary, working controls, readable states and browser checks | Implemented; review in progress |
 | Test independently; do not upload without Pavel | Local verification, no remote publication | Local checks in progress; upload withheld |
 
