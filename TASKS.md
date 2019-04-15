@@ -14,3 +14,5 @@ Updated: 2026-11-04. Actual status only; historical roadmap rows remain proposed
 
 
 Next executable increment: Add immutable input/artifact identities to checkpoints, an attempt-level event log and process-tree cleanup before distributed execution.
+
+Local reconstruction: five initial substantive stage commits created, plus the current verification record. No remote is configured; no upload was performed. The full dated roadmap remains proposed.
