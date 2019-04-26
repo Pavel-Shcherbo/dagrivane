@@ -1,0 +1,4 @@
+include _build.py
+include examples/orders.csv
+include examples/pipeline.json
+include examples/tasks.py
