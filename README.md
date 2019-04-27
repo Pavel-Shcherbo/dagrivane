@@ -12,7 +12,7 @@ python3 -m dagrivane.web
 
 Open http://127.0.0.1:8411. No third-party runtime packages are required.
 The workbench is a local development application, not a hosted multi-user service.
-Run it from the checkout: bundled examples are not yet distributed in an installed package.
+Bundled examples are included in the wheel. Runtime state is stored outside the installed package.
 
 ## Workbench preview
 
@@ -31,7 +31,20 @@ Validates command graphs before execution, runs dependency-ordered tasks, persis
 
 ## Boundaries
 
-The runner is local and sequential. Commands are trusted local programs, not sandboxed workloads. Captured output is not a secret store. A process crash may leave external effects with an unknown outcome; the runner refuses to silently retry a task marked running. Concurrent workers, scheduling, connector SDKs, CI promotion and tenant isolation are planned, not implemented.
+Task execution within each workflow run is local and sequential. Commands are trusted local programs, not sandboxed workloads. Captured output is not a secret store. A process crash may leave external effects with an unknown outcome; the runner refuses to silently retry a task marked running. The durable control plane supports versioned workflow registration, idempotent submission, worker leases, cancellation, event cursors and pinned interval schedules through the operator CLI. Tasks within each run remain sequential. Remote executors, connector SDKs, CI promotion and authenticated multi-user operation remain planned.
+
+
+## Durable execution
+
+`python3 -m dagrivane.manage --help` exposes local workspaces, version registration, submission, worker execution, cancellation, explicit retry and interval scheduling. See [operator guide](docs/OPERATIONS.md) for a complete sequence. An expired lease becomes orphaned; the operator must review effects before explicitly retrying. Workspace IDs scope records but are not an authentication boundary.
+
+## Installed examples
+
+```sh
+python3 -m dagrivane.resources ./demo
+```
+
+This exports the reviewed examples to a new directory without overwriting an existing destination. Use the exported paths with the CLI.
 
 ## Development scope
 
