@@ -19,3 +19,5 @@ Requests from Julius or other team members: none in this project's current scope
 Each product must contain at least 20,000 useful production SLOC, excluding tests, documentation, fixtures, dependencies and generated outputs. Current implementations are far below this target. Broad implementation and independent verification remain in progress.
 
 The contribution-date proposal allows 0–4 commits per day, rest days and breaks. It is a reconstruction plan, not completed historical work. The GitHub target is Pavel-Shcherbo; retain the existing author configuration. No upload without Pavel.
+
+Implemented increment: 26 current tests passed; CLI and installed workbench entry points checked in a disposable clean environment. Current project-specific production source: 1883 SLOC, below 20,000. No publication.
