@@ -41,3 +41,7 @@ STATES = {
 TERMINAL = {"cancelled", "succeeded", "failed", "orphaned"}
 
 
+def canonical(value):
+    return json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False)
+
+
