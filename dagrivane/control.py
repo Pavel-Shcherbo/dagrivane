@@ -45,3 +45,10 @@ def canonical(value):
     return json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False)
 
 
+def timestamp(now):
+    value = time.time() if now is None else now
+    if type(value) not in (int, float) or not math.isfinite(value) or value < 0:
+        raise ValueError("timestamp must be a finite nonnegative number")
+    return value
+
+
