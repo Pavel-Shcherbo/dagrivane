@@ -52,3 +52,9 @@ def timestamp(now):
     return value
 
 
+def text(value, field, maximum=200):
+    if not isinstance(value, str) or not value.strip() or len(value) > maximum:
+        raise ValueError(f"{field} must contain 1 to {maximum} characters")
+    return value
+
+
