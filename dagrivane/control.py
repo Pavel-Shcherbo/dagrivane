@@ -58,3 +58,77 @@ def text(value, field, maximum=200):
     return value
 
 
+def limit_value(value):
+    if type(value) is not int or not 1 <= value <= 500:
+        raise ValueError("limit must be between 1 and 500")
+    return value
+
+
+SCHEMA = """
+CREATE TABLE cp_workspaces (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    concurrency INTEGER NOT NULL CHECK (concurrency > 0),
+    created REAL NOT NULL
+);
+CREATE TABLE cp_workflows (
+    id TEXT PRIMARY KEY,
+    workspace_id TEXT NOT NULL REFERENCES cp_workspaces(id),
+    name TEXT NOT NULL,
+    created REAL NOT NULL,
+    UNIQUE (workspace_id, name)
+);
+CREATE TABLE cp_versions (
+    workflow_id TEXT NOT NULL REFERENCES cp_workflows(id),
+    version INTEGER NOT NULL,
+    specification TEXT NOT NULL,
+    fingerprint TEXT NOT NULL,
+    directory TEXT NOT NULL,
+    created REAL NOT NULL,
+    PRIMARY KEY (workflow_id, version)
+);
+CREATE TABLE cp_runs (
+    id TEXT PRIMARY KEY,
+    workspace_id TEXT NOT NULL REFERENCES cp_workspaces(id),
+    workflow_id TEXT NOT NULL,
+    version INTEGER NOT NULL,
+    event_key TEXT NOT NULL,
+    submission_hash TEXT NOT NULL,
+    status TEXT NOT NULL,
+    priority INTEGER NOT NULL,
+    created REAL NOT NULL,
+    started REAL,
+    finished REAL,
+    worker TEXT,
+    lease_token TEXT,
+    lease_until REAL,
+    result TEXT,
+    retry_of TEXT REFERENCES cp_runs(id),
+    UNIQUE (workspace_id, event_key),
+    FOREIGN KEY (workflow_id, version) REFERENCES cp_versions(workflow_id, version)
+);
+CREATE INDEX cp_runs_queue ON cp_runs(status, priority DESC, created);
+CREATE INDEX cp_runs_workspace ON cp_runs(workspace_id, status);
+CREATE TABLE cp_events (
+    sequence INTEGER PRIMARY KEY AUTOINCREMENT,
+    run_id TEXT NOT NULL REFERENCES cp_runs(id),
+    kind TEXT NOT NULL,
+    payload TEXT NOT NULL,
+    created REAL NOT NULL
+);
+CREATE INDEX cp_events_run ON cp_events(run_id, sequence);
+CREATE TABLE cp_schedules (
+    id TEXT PRIMARY KEY,
+    workflow_id TEXT NOT NULL,
+    version INTEGER NOT NULL,
+    interval_seconds INTEGER NOT NULL,
+    next_due REAL NOT NULL,
+    enabled INTEGER NOT NULL DEFAULT 1,
+    FOREIGN KEY (workflow_id, version) REFERENCES cp_versions(workflow_id, version)
+);
+"""
+
+
+class ControlStore:
+    """SQLite control state. Workspaces partition records, not operating-system access."""
+
