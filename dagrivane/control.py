@@ -132,3 +132,33 @@ CREATE TABLE cp_schedules (
 class ControlStore:
     """SQLite control state. Workspaces partition records, not operating-system access."""
 
+    def __init__(self, path):
+        self.path = Path(path)
+        if str(self.path) == ":memory:":
+            raise ValueError("control state requires a durable database file")
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            descriptor = os.open(self.path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        except FileExistsError:
+            pass
+        else:
+            os.close(descriptor)
+        connection = self._connect()
+        try:
+            self._enable_wal(connection)
+            connection.execute("BEGIN IMMEDIATE")
+            version = connection.execute("PRAGMA user_version").fetchone()[0]
+            if version > 1:
+                raise Conflict("control database requires a newer application version")
+            if version == 0:
+                for statement in SCHEMA.split(";"):
+                    if statement.strip():
+                        connection.execute(statement)
+                connection.execute("PRAGMA user_version=1")
+            connection.commit()
+        except BaseException:
+            connection.rollback()
+            raise
+        finally:
+            connection.close()
+
