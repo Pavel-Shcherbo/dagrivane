@@ -162,3 +162,20 @@ class ControlStore:
         finally:
             connection.close()
 
+    @staticmethod
+    def _enable_wal(connection):
+        deadline = time.monotonic() + 10
+        while True:
+            try:
+                mode = connection.execute("PRAGMA journal_mode").fetchone()[0]
+                if mode != "wal":
+                    mode = connection.execute("PRAGMA journal_mode=WAL").fetchone()[0]
+                if mode != "wal":
+                    raise Conflict("control database could not enter WAL mode")
+                return
+            except sqlite3.OperationalError as error:
+                locked = "locked" in str(error).lower() or "busy" in str(error).lower()
+                if not locked or time.monotonic() >= deadline:
+                    raise
+                time.sleep(0.02)
+
