@@ -179,3 +179,10 @@ class ControlStore:
                     raise
                 time.sleep(0.02)
 
+    def _connect(self):
+        connection = sqlite3.connect(self.path, timeout=10, isolation_level=None)
+        connection.row_factory = sqlite3.Row
+        connection.execute("PRAGMA foreign_keys=ON")
+        connection.execute("PRAGMA busy_timeout=10000")
+        return connection
+
