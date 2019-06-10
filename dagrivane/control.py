@@ -186,3 +186,16 @@ class ControlStore:
         connection.execute("PRAGMA busy_timeout=10000")
         return connection
 
+    @contextmanager
+    def transaction(self):
+        connection = self._connect()
+        try:
+            connection.execute("BEGIN IMMEDIATE")
+            yield connection
+            connection.commit()
+        except BaseException:
+            connection.rollback()
+            raise
+        finally:
+            connection.close()
+
