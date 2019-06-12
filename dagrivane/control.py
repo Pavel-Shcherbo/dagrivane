@@ -199,3 +199,11 @@ class ControlStore:
         finally:
             connection.close()
 
+    @contextmanager
+    def reading(self):
+        connection = self._connect()
+        try:
+            yield connection
+        finally:
+            connection.close()
+
