@@ -207,3 +207,10 @@ class ControlStore:
         finally:
             connection.close()
 
+    @staticmethod
+    def event(connection, run_id, kind, payload, now):
+        connection.execute(
+            "INSERT INTO cp_events(run_id,kind,payload,created) VALUES (?,?,?,?)",
+            (run_id, kind, canonical(payload), now),
+        )
+
