@@ -214,3 +214,12 @@ class ControlStore:
             (run_id, kind, canonical(payload), now),
         )
 
+    @staticmethod
+    def workspace(connection, workspace_id):
+        row = connection.execute(
+            "SELECT * FROM cp_workspaces WHERE id=?", (workspace_id,)
+        ).fetchone()
+        if row is None:
+            raise NotFound("workspace not found")
+        return row
+
