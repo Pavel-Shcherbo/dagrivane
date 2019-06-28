@@ -223,3 +223,21 @@ class ControlStore:
             raise NotFound("workspace not found")
         return row
 
+    def create_workspace(self, name, concurrency=2, now=None):
+        text(name, "workspace name")
+        if type(concurrency) is not int or not 1 <= concurrency <= 100:
+            raise ValueError("workspace concurrency must be between 1 and 100")
+        now = timestamp(now)
+        workspace_id = str(uuid.uuid4())
+        with self.transaction() as connection:
+            connection.execute(
+                "INSERT INTO cp_workspaces VALUES (?,?,?,?)",
+                (workspace_id, name, concurrency, now),
+            )
+        return {
+            "id": workspace_id,
+            "name": name,
+            "concurrency": concurrency,
+            "created": now,
+        }
+
