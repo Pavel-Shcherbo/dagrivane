@@ -241,3 +241,12 @@ class ControlStore:
             "created": now,
         }
 
+    def list_workspaces(self):
+        with self.reading() as connection:
+            return [
+                dict(row)
+                for row in connection.execute(
+                    "SELECT * FROM cp_workspaces ORDER BY created,id"
+                )
+            ]
+
