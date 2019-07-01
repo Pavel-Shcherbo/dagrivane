@@ -250,3 +250,54 @@ class ControlStore:
                 )
             ]
 
+    def register_workflow(self, workspace_id, name, specification, directory, now=None):
+        text(name, "workflow name")
+        validate(specification)
+        content = canonical(specification)
+        directory = str(Path(directory).resolve())
+        if not Path(directory).is_dir():
+            raise ValueError("workflow directory must exist")
+        fingerprint = hashlib.sha256(
+            canonical({"specification": specification, "directory": directory}).encode()
+        ).hexdigest()
+        now = timestamp(now)
+        with self.transaction() as connection:
+            self.workspace(connection, workspace_id)
+            workflow = connection.execute(
+                "SELECT id FROM cp_workflows WHERE workspace_id=? AND name=?",
+                (workspace_id, name),
+            ).fetchone()
+            if workflow is None:
+                workflow_id = str(uuid.uuid4())
+                connection.execute(
+                    "INSERT INTO cp_workflows VALUES (?,?,?,?)",
+                    (workflow_id, workspace_id, name, now),
+                )
+                version = 1
+            else:
+                workflow_id = workflow["id"]
+                latest = connection.execute(
+                    "SELECT * FROM cp_versions WHERE workflow_id=? ORDER BY version DESC LIMIT 1",
+                    (workflow_id,),
+                ).fetchone()
+                if latest["fingerprint"] == fingerprint:
+                    return {
+                        "id": workflow_id,
+                        "name": name,
+                        "version": latest["version"],
+                        "fingerprint": fingerprint,
+                        "changed": False,
+                    }
+                version = latest["version"] + 1
+            connection.execute(
+                "INSERT INTO cp_versions VALUES (?,?,?,?,?,?)",
+                (workflow_id, version, content, fingerprint, directory, now),
+            )
+        return {
+            "id": workflow_id,
+            "name": name,
+            "version": version,
+            "fingerprint": fingerprint,
+            "changed": True,
+        }
+
