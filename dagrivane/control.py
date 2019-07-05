@@ -321,3 +321,14 @@ class ControlStore:
             row["specification"] = json.loads(row["specification"])
             return row
 
+    def list_workflows(self, workspace_id):
+        with self.reading() as connection:
+            self.workspace(connection, workspace_id)
+            return [
+                dict(row)
+                for row in connection.execute(
+                    "SELECT w.id,w.name,w.created,MAX(v.version) AS version FROM cp_workflows w JOIN cp_versions v ON v.workflow_id=w.id WHERE w.workspace_id=? GROUP BY w.id ORDER BY w.name,w.id",
+                    (workspace_id,),
+                )
+            ]
+
