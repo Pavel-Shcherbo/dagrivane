@@ -301,3 +301,15 @@ class ControlStore:
             "changed": True,
         }
 
+    @staticmethod
+    def version_record(connection, workspace_id, workflow_id, version):
+        if type(version) is not int or version < 1:
+            raise ValueError("workflow version must be a positive integer")
+        row = connection.execute(
+            "SELECT v.*,w.name,w.workspace_id FROM cp_versions v JOIN cp_workflows w ON w.id=v.workflow_id WHERE w.workspace_id=? AND v.workflow_id=? AND v.version=?",
+            (workspace_id, workflow_id, version),
+        ).fetchone()
+        if row is None:
+            raise NotFound("workflow version not found in this workspace")
+        return row
+
