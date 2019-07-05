@@ -313,3 +313,11 @@ class ControlStore:
             raise NotFound("workflow version not found in this workspace")
         return row
 
+    def workflow(self, workspace_id, workflow_id, version):
+        with self.reading() as connection:
+            row = dict(
+                self.version_record(connection, workspace_id, workflow_id, version)
+            )
+            row["specification"] = json.loads(row["specification"])
+            return row
+
