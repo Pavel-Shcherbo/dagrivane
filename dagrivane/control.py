@@ -332,3 +332,60 @@ class ControlStore:
                 )
             ]
 
+    def _enqueue(
+        self,
+        connection,
+        workspace_id,
+        workflow_id,
+        version,
+        event_key,
+        priority,
+        now,
+        retry_of=None,
+    ):
+        self.version_record(connection, workspace_id, workflow_id, version)
+        text(event_key, "event key", 500)
+        if type(priority) is not int or not -100 <= priority <= 100:
+            raise ValueError("priority must be an integer between -100 and 100")
+        identity = hashlib.sha256(
+            canonical(
+                {
+                    "workflow": workflow_id,
+                    "version": version,
+                    "priority": priority,
+                    "retry_of": retry_of,
+                }
+            ).encode()
+        ).hexdigest()
+        prior = connection.execute(
+            "SELECT * FROM cp_runs WHERE workspace_id=? AND event_key=?",
+            (workspace_id, event_key),
+        ).fetchone()
+        if prior is not None:
+            if prior["submission_hash"] != identity:
+                raise Conflict("event key was already used for a different submission")
+            return {"id": prior["id"], "status": prior["status"], "created": False}
+        run_id = str(uuid.uuid4())
+        connection.execute(
+            "INSERT INTO cp_runs(id,workspace_id,workflow_id,version,event_key,submission_hash,status,priority,created,retry_of) VALUES (?,?,?,?,?,?,'queued',?,?,?)",
+            (
+                run_id,
+                workspace_id,
+                workflow_id,
+                version,
+                event_key,
+                identity,
+                priority,
+                now,
+                retry_of,
+            ),
+        )
+        self.event(
+            connection,
+            run_id,
+            "submitted",
+            {"version": version, "priority": priority, "retry_of": retry_of},
+            now,
+        )
+        return {"id": run_id, "status": "queued", "created": True}
+
