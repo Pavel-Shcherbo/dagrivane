@@ -389,3 +389,12 @@ class ControlStore:
         )
         return {"id": run_id, "status": "queued", "created": True}
 
+    def enqueue(
+        self, workspace_id, workflow_id, version, event_key, priority=0, now=None
+    ):
+        now = timestamp(now)
+        with self.transaction() as connection:
+            return self._enqueue(
+                connection, workspace_id, workflow_id, version, event_key, priority, now
+            )
+
