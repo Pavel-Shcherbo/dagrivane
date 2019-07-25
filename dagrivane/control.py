@@ -398,3 +398,13 @@ class ControlStore:
                 connection, workspace_id, workflow_id, version, event_key, priority, now
             )
 
+    @staticmethod
+    def run_record(connection, workspace_id, run_id):
+        row = connection.execute(
+            "SELECT * FROM cp_runs WHERE workspace_id=? AND id=?",
+            (workspace_id, run_id),
+        ).fetchone()
+        if row is None:
+            raise NotFound("run not found in this workspace")
+        return row
+
