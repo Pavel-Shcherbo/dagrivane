@@ -417,3 +417,7 @@ class ControlStore:
             data["result"] = json.loads(data["result"])
         return data
 
+    def get_run(self, workspace_id, run_id):
+        with self.reading() as connection:
+            return self.public_run(self.run_record(connection, workspace_id, run_id))
+
