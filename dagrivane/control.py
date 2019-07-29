@@ -408,3 +408,12 @@ class ControlStore:
             raise NotFound("run not found in this workspace")
         return row
 
+    @staticmethod
+    def public_run(row):
+        data = dict(row)
+        data.pop("lease_token", None)
+        data.pop("submission_hash", None)
+        if data["result"] is not None:
+            data["result"] = json.loads(data["result"])
+        return data
+
