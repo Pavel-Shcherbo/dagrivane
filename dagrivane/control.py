@@ -449,3 +449,59 @@ class ControlStore:
             raise ValueError("lease duration must be between 5 and 3600 seconds")
         return seconds
 
+    def claim(self, worker, lease_seconds=30, now=None):
+        text(worker, "worker")
+        self.lease_duration(lease_seconds)
+        now = timestamp(now)
+        with self.transaction() as connection:
+            expired = connection.execute(
+                "SELECT id FROM cp_runs WHERE status IN ('running','cancel_requested') AND lease_until<=?",
+                (now,),
+            ).fetchall()
+            for row in expired:
+                connection.execute(
+                    "UPDATE cp_runs SET status='orphaned',finished=?,lease_token=NULL WHERE id=?",
+                    (now, row["id"]),
+                )
+                self.event(
+                    connection,
+                    row["id"],
+                    "lease_expired",
+                    {"reconciliation_required": True},
+                    now,
+                )
+            row = connection.execute(
+                """SELECT r.* FROM cp_runs r JOIN cp_workspaces w ON w.id=r.workspace_id
+                WHERE r.status='queued' AND
+                (SELECT COUNT(*) FROM cp_runs active WHERE active.workspace_id=r.workspace_id AND active.status IN ('running','cancel_requested')) < w.concurrency
+                ORDER BY r.priority DESC,r.created,r.id LIMIT 1"""
+            ).fetchone()
+            if row is None:
+                return None
+            token = str(uuid.uuid4())
+            connection.execute(
+                "UPDATE cp_runs SET status='running',started=?,worker=?,lease_token=?,lease_until=? WHERE id=?",
+                (now, worker, token, now + lease_seconds, row["id"]),
+            )
+            self.event(
+                connection,
+                row["id"],
+                "claimed",
+                {"worker": worker, "lease_until": now + lease_seconds},
+                now,
+            )
+            claimed = dict(
+                connection.execute(
+                    "SELECT * FROM cp_runs WHERE id=?", (row["id"],)
+                ).fetchone()
+            )
+            version = self.version_record(
+                connection,
+                claimed["workspace_id"],
+                claimed["workflow_id"],
+                claimed["version"],
+            )
+            claimed["specification"] = json.loads(version["specification"])
+            claimed["directory"] = version["directory"]
+            return claimed
+
