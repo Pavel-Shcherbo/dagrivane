@@ -439,3 +439,13 @@ class ControlStore:
                 )
             return [self.public_run(row) for row in rows]
 
+    @staticmethod
+    def lease_duration(seconds):
+        if (
+            type(seconds) not in (int, float)
+            or not math.isfinite(seconds)
+            or not 5 <= seconds <= 3600
+        ):
+            raise ValueError("lease duration must be between 5 and 3600 seconds")
+        return seconds
+
