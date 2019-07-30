@@ -421,3 +421,21 @@ class ControlStore:
         with self.reading() as connection:
             return self.public_run(self.run_record(connection, workspace_id, run_id))
 
+    def list_runs(self, workspace_id, status=None, limit=100):
+        limit_value(limit)
+        if status is not None and status not in STATES:
+            raise ValueError("unknown run status")
+        with self.reading() as connection:
+            self.workspace(connection, workspace_id)
+            if status is None:
+                rows = connection.execute(
+                    "SELECT * FROM cp_runs WHERE workspace_id=? ORDER BY created DESC,id DESC LIMIT ?",
+                    (workspace_id, limit),
+                )
+            else:
+                rows = connection.execute(
+                    "SELECT * FROM cp_runs WHERE workspace_id=? AND status=? ORDER BY created DESC,id DESC LIMIT ?",
+                    (workspace_id, status, limit),
+                )
+            return [self.public_run(row) for row in rows]
+
