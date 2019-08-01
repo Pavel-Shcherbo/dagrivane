@@ -505,3 +505,18 @@ class ControlStore:
             claimed["directory"] = version["directory"]
             return claimed
 
+    @staticmethod
+    def owned(connection, run_id, worker, token, now):
+        row = connection.execute(
+            "SELECT * FROM cp_runs WHERE id=?", (run_id,)
+        ).fetchone()
+        if (
+            row is None
+            or row["worker"] != worker
+            or row["lease_token"] != token
+            or row["status"] not in {"running", "cancel_requested"}
+            or row["lease_until"] <= now
+        ):
+            raise LostLease("worker no longer owns this run")
+        return row
+
