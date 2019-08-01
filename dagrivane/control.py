@@ -520,3 +520,17 @@ class ControlStore:
             raise LostLease("worker no longer owns this run")
         return row
 
+    def heartbeat(self, run_id, worker, token, lease_seconds=30, now=None):
+        self.lease_duration(lease_seconds)
+        now = timestamp(now)
+        with self.transaction() as connection:
+            row = self.owned(connection, run_id, worker, token, now)
+            connection.execute(
+                "UPDATE cp_runs SET lease_until=? WHERE id=?",
+                (now + lease_seconds, run_id),
+            )
+            return {
+                "lease_until": now + lease_seconds,
+                "cancel_requested": row["status"] == "cancel_requested",
+            }
+
