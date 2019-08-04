@@ -534,3 +534,10 @@ class ControlStore:
                 "cancel_requested": row["status"] == "cancel_requested",
             }
 
+    def append_event(self, run_id, worker, token, kind, payload, now=None):
+        text(kind, "event kind", 100)
+        now = timestamp(now)
+        with self.transaction() as connection:
+            self.owned(connection, run_id, worker, token, now)
+            self.event(connection, run_id, kind, payload, now)
+
