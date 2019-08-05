@@ -541,3 +541,20 @@ class ControlStore:
             self.owned(connection, run_id, worker, token, now)
             self.event(connection, run_id, kind, payload, now)
 
+    def finish(self, run_id, worker, token, status, result, now=None):
+        if status not in {"succeeded", "failed", "cancelled"}:
+            raise ValueError("worker may finish as succeeded, failed or cancelled")
+        payload = canonical(result)
+        now = timestamp(now)
+        with self.transaction() as connection:
+            row = self.owned(connection, run_id, worker, token, now)
+            if row["status"] == "cancel_requested" and status != "cancelled":
+                raise Conflict(
+                    "cancellation was requested; reconcile effects before finishing as cancelled"
+                )
+            connection.execute(
+                "UPDATE cp_runs SET status=?,finished=?,result=?,lease_token=NULL WHERE id=?",
+                (status, now, payload, run_id),
+            )
+            self.event(connection, run_id, "finished", {"status": status}, now)
+
