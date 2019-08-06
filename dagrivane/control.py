@@ -579,3 +579,22 @@ class ControlStore:
                 )
             return {"id": run_id, "status": status}
 
+    def retry(self, workspace_id, run_id, event_key, now=None):
+        now = timestamp(now)
+        with self.transaction() as connection:
+            row = self.run_record(connection, workspace_id, run_id)
+            if row["status"] not in {"failed", "cancelled", "orphaned"}:
+                raise Conflict(
+                    "only failed, cancelled or orphaned runs may be explicitly retried"
+                )
+            return self._enqueue(
+                connection,
+                workspace_id,
+                row["workflow_id"],
+                row["version"],
+                event_key,
+                row["priority"],
+                now,
+                retry_of=run_id,
+            )
+
