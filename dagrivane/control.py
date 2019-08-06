@@ -558,3 +558,24 @@ class ControlStore:
             )
             self.event(connection, run_id, "finished", {"status": status}, now)
 
+    def cancel(self, workspace_id, run_id, now=None):
+        now = timestamp(now)
+        with self.transaction() as connection:
+            row = self.run_record(connection, workspace_id, run_id)
+            if row["status"] in TERMINAL:
+                raise Conflict("terminal runs cannot be cancelled")
+            status = "cancelled" if row["status"] == "queued" else "cancel_requested"
+            connection.execute(
+                "UPDATE cp_runs SET status=?,finished=? WHERE id=?",
+                (status, now if status == "cancelled" else None, run_id),
+            )
+            if status != row["status"]:
+                self.event(
+                    connection,
+                    run_id,
+                    "cancelled" if status == "cancelled" else "cancellation_requested",
+                    {},
+                    now,
+                )
+            return {"id": run_id, "status": status}
+
