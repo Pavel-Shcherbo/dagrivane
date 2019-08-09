@@ -598,3 +598,19 @@ class ControlStore:
                 retry_of=run_id,
             )
 
+    def events(self, workspace_id, run_id, after=0, limit=100):
+        limit_value(limit)
+        if type(after) is not int or after < 0:
+            raise ValueError("event cursor must be a nonnegative integer")
+        with self.reading() as connection:
+            self.run_record(connection, workspace_id, run_id)
+            result = []
+            for row in connection.execute(
+                "SELECT * FROM cp_events WHERE run_id=? AND sequence>? ORDER BY sequence LIMIT ?",
+                (run_id, after, limit),
+            ):
+                event = dict(row)
+                event["payload"] = json.loads(event["payload"])
+                result.append(event)
+            return result
+
