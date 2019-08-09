@@ -614,3 +614,25 @@ class ControlStore:
                 result.append(event)
             return result
 
+    def create_schedule(
+        self, workspace_id, workflow_id, version, interval_seconds, first_due, now=None
+    ):
+        if (
+            type(interval_seconds) is not int
+            or not 60 <= interval_seconds <= 31 * 86400
+        ):
+            raise ValueError("schedule interval must be between 60 seconds and 31 days")
+        first_due = timestamp(first_due)
+        schedule_id = str(uuid.uuid4())
+        with self.transaction() as connection:
+            self.version_record(connection, workspace_id, workflow_id, version)
+            connection.execute(
+                "INSERT INTO cp_schedules VALUES (?,?,?,?,?,1)",
+                (schedule_id, workflow_id, version, interval_seconds, first_due),
+            )
+        return {
+            "id": schedule_id,
+            "next_due": first_due,
+            "interval_seconds": interval_seconds,
+        }
+
