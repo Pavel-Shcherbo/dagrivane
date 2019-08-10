@@ -651,3 +651,38 @@ class ControlStore:
                 (int(enabled), schedule_id),
             )
 
+    def tick(self, now=None, limit=100):
+        now = timestamp(now)
+        limit_value(limit)
+        submitted = []
+        with self.transaction() as connection:
+            rows = connection.execute(
+                "SELECT s.*,w.workspace_id FROM cp_schedules s JOIN cp_workflows w ON w.id=s.workflow_id WHERE s.enabled=1 AND s.next_due<=? ORDER BY s.next_due,s.id LIMIT ?",
+                (now, limit),
+            ).fetchall()
+            for row in rows:
+                missed = int((now - row["next_due"]) // row["interval_seconds"])
+                due = row["next_due"] + missed * row["interval_seconds"]
+                event_key = f"schedule:{row['id']}:{due:.6f}"
+                run = self._enqueue(
+                    connection,
+                    row["workspace_id"],
+                    row["workflow_id"],
+                    row["version"],
+                    event_key,
+                    0,
+                    now,
+                )
+                connection.execute(
+                    "UPDATE cp_schedules SET next_due=? WHERE id=?",
+                    (due + row["interval_seconds"], row["id"]),
+                )
+                self.event(
+                    connection,
+                    run["id"],
+                    "scheduled",
+                    {"schedule_id": row["id"], "due": due, "coalesced_periods": missed},
+                    now,
+                )
+                submitted.append(run)
+        return submitted
