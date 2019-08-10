@@ -636,3 +636,18 @@ class ControlStore:
             "interval_seconds": interval_seconds,
         }
 
+    def set_schedule_enabled(self, workspace_id, schedule_id, enabled):
+        if type(enabled) is not bool:
+            raise ValueError("enabled must be boolean")
+        with self.transaction() as connection:
+            row = connection.execute(
+                "SELECT s.id FROM cp_schedules s JOIN cp_workflows w ON w.id=s.workflow_id WHERE s.id=? AND w.workspace_id=?",
+                (schedule_id, workspace_id),
+            ).fetchone()
+            if row is None:
+                raise NotFound("schedule not found in this workspace")
+            connection.execute(
+                "UPDATE cp_schedules SET enabled=? WHERE id=?",
+                (int(enabled), schedule_id),
+            )
+
