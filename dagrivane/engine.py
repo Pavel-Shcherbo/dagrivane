@@ -6,6 +6,8 @@ import os
 import signal
 import sqlite3
 import subprocess
+import time
+from contextlib import closing
 from pathlib import Path
 
 from .artifacts import verify_inputs
@@ -62,7 +64,22 @@ def validate(spec):
     return ordered
 
 
-def execute(command, cwd, timeout):
+class TaskCancelled(Exception):
+    pass
+
+
+def terminate(process):
+    try:
+        if os.name == "posix":
+            os.killpg(process.pid, signal.SIGKILL)
+        else:
+            process.kill()
+    except ProcessLookupError:
+        pass
+    return process.communicate()
+
+
+def execute(command, cwd, timeout, should_cancel=None):
     with subprocess.Popen(
         command,
         cwd=cwd,
@@ -71,22 +88,32 @@ def execute(command, cwd, timeout):
         text=True,
         start_new_session=(os.name == "posix"),
     ) as process:
-        try:
-            stdout, stderr = process.communicate(timeout=timeout)
-            return process.returncode == 0, stdout + stderr
-        except subprocess.TimeoutExpired:
+        deadline = time.monotonic() + timeout
+        while True:
+            if should_cancel is not None and should_cancel():
+                stdout, stderr = terminate(process)
+                raise TaskCancelled(stdout + stderr + "\nTask cancelled")
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                stdout, stderr = terminate(process)
+                return False, stdout + stderr + f"\nTask exceeded {timeout} seconds"
             try:
-                if os.name == "posix":
-                    os.killpg(process.pid, signal.SIGKILL)
-                else:
-                    process.kill()
-            except ProcessLookupError:
-                pass
-            stdout, stderr = process.communicate()
-            return False, (stdout + stderr + f"\nTask exceeded {timeout} seconds")
+                stdout, stderr = process.communicate(timeout=min(0.1, remaining))
+                return process.returncode == 0, stdout + stderr
+            except subprocess.TimeoutExpired:
+                continue
 
 
-def run(spec, state_path, run_id, cwd=None):
+def run(spec, state_path, run_id, cwd=None, should_cancel=None, on_event=None):
+    if should_cancel is not None and not callable(should_cancel):
+        raise ValueError("should_cancel must be callable")
+    if on_event is not None and not callable(on_event):
+        raise ValueError("on_event must be callable")
+
+    def emit(kind, payload):
+        if on_event is not None:
+            on_event(kind, payload)
+
     tasks = validate(spec)
     cwd = str(Path(cwd or ".").resolve())
     verify_inputs(spec, cwd)
@@ -94,7 +121,7 @@ def run(spec, state_path, run_id, cwd=None):
         json.dumps({"spec": spec, "cwd": cwd}, sort_keys=True).encode()
     ).hexdigest()
     Path(state_path).parent.mkdir(parents=True, exist_ok=True)
-    with sqlite3.connect(state_path) as db:
+    with closing(sqlite3.connect(state_path)) as db:
         db.execute(
             "CREATE TABLE IF NOT EXISTS runs (id TEXT PRIMARY KEY, fingerprint TEXT NOT NULL)"
         )
@@ -124,6 +151,20 @@ def run(spec, state_path, run_id, cwd=None):
             name = task["id"]
             if records.get(name) == "succeeded":
                 continue
+            if should_cancel is not None and should_cancel():
+                db.execute(
+                    "INSERT OR REPLACE INTO tasks VALUES (?,?,?,0,?)",
+                    (
+                        run_id,
+                        name,
+                        "cancelled",
+                        "execution cancelled before task start",
+                    ),
+                )
+                db.commit()
+                records[name] = "cancelled"
+                emit("task_cancelled", {"task": name, "attempts": 0})
+                continue
             if any(records.get(dep) != "succeeded" for dep in task.get("needs", [])):
                 db.execute(
                     "INSERT OR REPLACE INTO tasks VALUES (?,?,?,0,?)",
@@ -131,6 +172,7 @@ def run(spec, state_path, run_id, cwd=None):
                 )
                 db.commit()
                 records[name] = "blocked"
+                emit("task_blocked", {"task": name})
                 continue
             for _ in range(task.get("retries", 0) + 1):
                 attempts = db.execute(
@@ -142,11 +184,14 @@ def run(spec, state_path, run_id, cwd=None):
                     (run_id, name, "running", count, ""),
                 )
                 db.commit()
+                emit("task_started", {"task": name, "attempt": count})
                 try:
                     succeeded, output = execute(
-                        task["command"], cwd, task.get("timeout", 30)
+                        task["command"], cwd, task.get("timeout", 30), should_cancel
                     )
                     status = "succeeded" if succeeded else "failed"
+                except TaskCancelled as error:
+                    status, output = "cancelled", str(error)
                 except OSError as error:
                     status, output = "failed", str(error)
                 db.execute(
@@ -155,7 +200,10 @@ def run(spec, state_path, run_id, cwd=None):
                 )
                 db.commit()
                 records[name] = status
-                if status == "succeeded":
+                emit(
+                    "task_finished", {"task": name, "attempt": count, "status": status}
+                )
+                if status in {"succeeded", "cancelled"}:
                     break
         saved = {
             row[0]: {
