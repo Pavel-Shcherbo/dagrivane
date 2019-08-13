@@ -77,3 +77,45 @@ def parser():
     return root
 
 
+def operate(args, store):
+    action = args.action
+    if action == "workspace-create":
+        return store.create_workspace(args.name, args.concurrency)
+    if action == "workspaces":
+        return store.list_workspaces()
+    if action == "register":
+        spec = json.loads(args.spec.read_text())
+        return store.register_workflow(
+            args.workspace, args.name, spec, args.spec.resolve().parent
+        )
+    if action == "workflows":
+        return store.list_workflows(args.workspace)
+    if action == "submit":
+        return store.enqueue(
+            args.workspace, args.workflow, args.version, args.event_key, args.priority
+        )
+    if action == "runs":
+        return store.list_runs(args.workspace, args.status, args.limit)
+    if action == "run":
+        return store.get_run(args.workspace, args.run)
+    if action == "cancel":
+        return store.cancel(args.workspace, args.run)
+    if action == "retry":
+        return store.retry(args.workspace, args.run, args.event_key)
+    if action == "events":
+        return store.events(args.workspace, args.run, args.after, args.limit)
+    if action == "worker":
+        directory = args.state_directory or args.db.resolve().parent / "task-state"
+        return Worker(store, directory, args.identity, args.lease_seconds).run_once()
+    if action == "schedule-create":
+        return store.create_schedule(
+            args.workspace, args.workflow, args.version, args.interval, args.first_due
+        )
+    if action == "schedule-set":
+        store.set_schedule_enabled(args.workspace, args.schedule, args.enabled)
+        return {"id": args.schedule, "enabled": args.enabled}
+    if action == "tick":
+        return store.tick(limit=args.limit)
+    raise ValueError("unknown management action")
+
+
