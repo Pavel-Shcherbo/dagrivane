@@ -119,3 +119,23 @@ def operate(args, store):
     raise ValueError("unknown management action")
 
 
+def main():
+    cli = parser()
+    args = cli.parse_args()
+    try:
+        store = ControlStore(args.db)
+        result = operate(args, store)
+    except (ValueError, ControlError, OSError, sqlite3.Error) as error:
+        cli.exit(2, f"{error}\n")
+    print(json.dumps(result, indent=2, allow_nan=False))
+    if (
+        args.action == "worker"
+        and result
+        and result["status"] in {"failed", "reconciliation_required"}
+    ):
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
