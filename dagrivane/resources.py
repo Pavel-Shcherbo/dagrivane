@@ -21,3 +21,17 @@ def examples_directory():
     )
 
 
+def state_directory(product):
+    if not isinstance(product, str) or not re.fullmatch(
+        r"[a-z][a-z0-9_-]{0,63}", product
+    ):
+        raise ValueError("product must be a simple lowercase identifier")
+    configured = os.environ.get(product.upper() + "_STATE_DIR")
+    path = (
+        Path(configured).expanduser() if configured else Path.cwd() / ".local" / product
+    )
+    path = path.resolve()
+    path.mkdir(mode=0o700, parents=True, exist_ok=True)
+    return path
+
+
