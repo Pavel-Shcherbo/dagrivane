@@ -35,3 +35,17 @@ def state_directory(product):
     return path
 
 
+def export_examples(destination):
+    requested = Path(destination).expanduser()
+    if requested.is_symlink():
+        raise ValueError("example destination must not be a symbolic link")
+    destination = requested.resolve()
+    destination.mkdir(mode=0o700, parents=True, exist_ok=False)
+    copied = []
+    for source in sorted(examples_directory().iterdir()):
+        if source.is_file() and source.suffix in {".py", ".csv", ".json"}:
+            copy2(source, destination / source.name)
+            copied.append(source.name)
+    return {"directory": str(destination), "files": copied}
+
+
