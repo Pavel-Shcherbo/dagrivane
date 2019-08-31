@@ -49,3 +49,18 @@ def export_examples(destination):
     return {"directory": str(destination), "files": copied}
 
 
+def main():
+    parser = argparse.ArgumentParser(
+        description="Copy bundled examples into a new writable directory"
+    )
+    parser.add_argument("destination", type=Path)
+    args = parser.parse_args()
+    try:
+        result = export_examples(args.destination)
+    except (ValueError, OSError) as error:
+        parser.exit(2, f"{error}\n")
+    print(json.dumps(result, indent=2))
+
+
+if __name__ == "__main__":
+    main()
