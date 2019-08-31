@@ -107,6 +107,7 @@ function render() {
 $("run").onclick = async () => {
   error("");
   $("run").disabled = true;
+  $("fail").disabled = true;
   $("runstate").textContent = "Running";
   try {
     const result = await evaluate({ fail_quality: $("fail").checked });
@@ -129,6 +130,7 @@ $("run").onclick = async () => {
     $("runstate").textContent = "Run could not start";
   } finally {
     $("run").disabled = false;
+    $("fail").disabled = false;
   }
 };
 fetch("/api/example")
