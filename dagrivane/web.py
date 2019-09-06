@@ -1,22 +1,22 @@
 import json
 import sys
-import threading
 import uuid
-from pathlib import Path
+from shutil import copy2
 
 from .engine import run
 from .httpapp import serve
-
-ROOT = Path(__file__).resolve().parents[1]
-RUN_LOCK = threading.Lock()
+from .resources import examples_directory, state_directory
 
 
 def example():
-    return json.loads((ROOT / "examples/pipeline.json").read_text())
+    return json.loads((examples_directory() / "pipeline.json").read_text())
 
 
 def evaluate(params):
     spec = example()
+    for task in spec["tasks"]:
+        if task["command"][0] == "python3":
+            task["command"][0] = sys.executable
     if params.get("fail_quality"):
         spec["tasks"][1]["command"] = [
             sys.executable,
@@ -24,8 +24,12 @@ def evaluate(params):
             "raise SystemExit('quality gate rejected: injected failure')",
         ]
     run_id = str(uuid.uuid4())
-    with RUN_LOCK:
-        tasks = run(spec, ROOT / ".local/runs.sqlite", run_id, ROOT / "examples")
+    state = state_directory("dagrivane")
+    inputs = state / "demo-inputs" / run_id
+    inputs.mkdir(parents=True)
+    for name in ["orders.csv", "tasks.py"]:
+        copy2(examples_directory() / name, inputs / name)
+    tasks = run(spec, state / "runs.sqlite", run_id, inputs)
     return {
         "run_id": run_id,
         "tasks": tasks,
