@@ -4,8 +4,9 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "dagrivane"
-version = "0.1.0"
+version = "0.2.0"
 description = "Inspect local command workflows and verify data release gates."
+readme = "README.md"
 requires-python = ">=3.10"
 dependencies = []
 
@@ -14,3 +15,6 @@ packages = ["dagrivane"]
 
 [tool.setuptools.package-data]
 dagrivane = ["static/*"]
+
+[tool.setuptools.cmdclass]
+build_py = "_build.PackagedExamples"
