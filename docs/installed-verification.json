@@ -1,0 +1,15 @@
+{
+  "scope": "Clean wheel installation and public entry points, not full portfolio acceptance",
+  "wheel_sha256": "69acc0a81309443d6e2ac629167d08b91e73183dec1ca953e27c493a89cd75de",
+  "examples_exported": [
+    "orders.csv",
+    "pipeline.json",
+    "tasks.py"
+  ],
+  "existing_destination_preserved": true,
+  "installed_import": true,
+  "cli_passed": true,
+  "workbench_http_passed": true,
+  "state_outside_package": true,
+  "full_portfolio_acceptance": false
+}
