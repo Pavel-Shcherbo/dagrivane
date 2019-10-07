@@ -1,19 +1,23 @@
 {
-  "verified_at": "2026-11-04T01:18:31.895624+00:00",
+  "verified_at": "2026-11-04T02:17:40.894521+00:00",
   "scope": "Current local core, not the full product scope or the 20,000-SLOC acceptance",
-  "unit_tests": 7,
+  "unit_tests": 26,
   "unit_passed": true,
   "cli_passed": true,
   "source_hashes": {
     "dagrivane/__init__.py": "0c93489487cfc00fe872dae46f2a84bd106d103ca5f477d54d6249f29509a4d1",
     "dagrivane/__main__.py": "2f4670f2d8a426acb76c032ef233964ce9b7db17ebc80168120e0abdacf1f581",
     "dagrivane/artifacts.py": "cbf7dbecd2a2e0e0dcc264217bbf73d3b1d586ab775c522b56dcbc0ab601593a",
-    "dagrivane/engine.py": "abf64294338e56ea37f20ace4b6ed9ea6c09cd3d30241623c68e3fe03a8f7b0e",
+    "dagrivane/control.py": "e0c4b20ad3118a8f8f51ad29ad8d8a1d863982218c2e613adacceb13ebd4f155",
+    "dagrivane/engine.py": "d26266675cb1b8b7f454adaf1d326529618ac7f78b461766e859be1d0d88be88",
     "dagrivane/httpapp.py": "aeae90d384d4ce2451d73504885e5d9da679f48768f34f50fda39f9ef24907a6",
-    "dagrivane/static/app.js": "c22d1add9fe84b6db97df8d8f60f7926420740064df021c421bcca8fd37c3e29",
+    "dagrivane/manage.py": "2f787f745f8d37261c16ed6049c7a3120273c5b34b4b683f13d4a170e5240de9",
+    "dagrivane/resources.py": "7b4881ac5e208822eea3c485114e2482ba81fc4336e113fdd301e87610b7d62e",
+    "dagrivane/static/app.js": "6352e0895104d78c7b61cbf85618b89cc642608b5c94aec31d862d2bc4f33295",
     "dagrivane/static/index.html": "f9f970698eae978652035898caf374bb0a19382cfbf92e23ad256ce7187b9a3e",
     "dagrivane/static/style.css": "1a76e046904e477ffe6f3c7828c0a3ba3132218641da20282c4632db9b618fa4",
-    "dagrivane/web.py": "94f05a12eefd540102acfdd1476337ca9f7b04951b386b58e1cfe79bada9b13e"
+    "dagrivane/web.py": "a60ee48170180b1b006fec1c83466f9a754b96a2033d3924cf11860963be2590",
+    "dagrivane/worker.py": "a841fc5c0932a925eb557b4162f2aa666ec4cc95c12d0d6f6e487d822d734a1b"
   },
   "full_portfolio_acceptance": false
 }
