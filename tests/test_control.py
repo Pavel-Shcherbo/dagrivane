@@ -25,3 +25,13 @@ class ControlTests(unittest.TestCase):
             self.workspace, "Control", self.spec, self.root, now=2
         )
 
+    def submit(self, key="event", **kwargs):
+        return self.store.enqueue(
+            self.workspace,
+            self.workflow["id"],
+            self.workflow["version"],
+            key,
+            now=3,
+            **kwargs,
+        )
+
