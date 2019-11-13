@@ -35,3 +35,20 @@ class ControlTests(unittest.TestCase):
             **kwargs,
         )
 
+    def test_versions_are_immutable_and_unchanged_registration_is_idempotent(self):
+        same = self.store.register_workflow(
+            self.workspace, "Control", self.spec, self.root, now=4
+        )
+        changed = {
+            "tasks": [{"id": "different", "command": [sys.executable, "-c", "pass"]}]
+        }
+        new = self.store.register_workflow(
+            self.workspace, "Control", changed, self.root, now=5
+        )
+        self.assertEqual(same["version"], 1)
+        self.assertFalse(same["changed"])
+        self.assertEqual(new["version"], 2)
+        original = self.store.workflow(self.workspace, self.workflow["id"], 1)
+        self.assertEqual(original["specification"], self.spec)
+        self.assertEqual(self.store.list_workflows(self.workspace)[0]["version"], 2)
+
