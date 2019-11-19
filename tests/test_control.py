@@ -52,3 +52,12 @@ class ControlTests(unittest.TestCase):
         self.assertEqual(original["specification"], self.spec)
         self.assertEqual(self.store.list_workflows(self.workspace)[0]["version"], 2)
 
+    def test_submission_key_deduplicates_and_rejects_different_payload(self):
+        first = self.submit()
+        again = self.submit()
+        self.assertEqual(first["id"], again["id"])
+        self.assertFalse(again["created"])
+        with self.assertRaises(Conflict):
+            self.submit(priority=10)
+        self.assertEqual(len(self.store.list_runs(self.workspace)), 1)
+
