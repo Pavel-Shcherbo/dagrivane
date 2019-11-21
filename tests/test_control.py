@@ -61,3 +61,14 @@ class ControlTests(unittest.TestCase):
             self.submit(priority=10)
         self.assertEqual(len(self.store.list_runs(self.workspace)), 1)
 
+    def test_workspace_scope_applies_to_workflows_runs_and_events(self):
+        other = self.store.create_workspace("Other")["id"]
+        run = self.submit()
+        with self.assertRaises(NotFound):
+            self.store.get_run(other, run["id"])
+        with self.assertRaises(NotFound):
+            self.store.events(other, run["id"])
+        with self.assertRaises(NotFound):
+            self.store.enqueue(other, self.workflow["id"], 1, "foreign")
+        self.assertEqual(self.store.list_runs(other), [])
+
