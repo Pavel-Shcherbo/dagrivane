@@ -86,3 +86,22 @@ class ControlTests(unittest.TestCase):
         self.assertEqual(len({claim["id"] for claim in actual}), 2)
         self.assertEqual(len(self.store.list_runs(self.workspace, status="queued")), 8)
 
+    def test_expired_ownership_is_fenced_and_requires_explicit_retry(self):
+        run = self.submit()
+        owner = self.store.claim("first", lease_seconds=5, now=10)
+        with self.assertRaises(LostLease):
+            self.store.heartbeat(run["id"], "first", owner["lease_token"], now=15)
+        self.assertIsNone(self.store.claim("next", now=16))
+        self.assertEqual(
+            self.store.get_run(self.workspace, run["id"])["status"], "orphaned"
+        )
+        with self.assertRaises(LostLease):
+            self.store.finish(
+                run["id"], "first", owner["lease_token"], "succeeded", {}, now=16
+            )
+        retry = self.store.retry(self.workspace, run["id"], "operator-retry", now=17)
+        self.assertNotEqual(run["id"], retry["id"])
+        fresh = self.store.claim("next", now=18)
+        self.assertEqual(fresh["retry_of"], run["id"])
+        self.assertNotEqual(fresh["lease_token"], owner["lease_token"])
+
