@@ -72,3 +72,17 @@ class ControlTests(unittest.TestCase):
             self.store.enqueue(other, self.workflow["id"], 1, "foreign")
         self.assertEqual(self.store.list_runs(other), [])
 
+    def test_concurrent_claims_respect_ownership_and_workspace_limit(self):
+        for i in range(10):
+            self.submit(str(i))
+
+        def claim(i):
+            return ControlStore(self.path).claim(f"worker-{i}", now=10)
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+            claims = list(executor.map(claim, range(8)))
+        actual = [claim for claim in claims if claim]
+        self.assertEqual(len(actual), 2)
+        self.assertEqual(len({claim["id"] for claim in actual}), 2)
+        self.assertEqual(len(self.store.list_runs(self.workspace, status="queued")), 8)
+
