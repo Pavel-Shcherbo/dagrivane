@@ -105,3 +105,12 @@ class ControlTests(unittest.TestCase):
         self.assertEqual(fresh["retry_of"], run["id"])
         self.assertNotEqual(fresh["lease_token"], owner["lease_token"])
 
+    def test_cancel_queued_run_never_becomes_worker_work(self):
+        run = self.submit()
+        self.assertEqual(
+            self.store.cancel(self.workspace, run["id"], now=4)["status"], "cancelled"
+        )
+        self.assertIsNone(self.store.claim("worker", now=5))
+        with self.assertRaises(Conflict):
+            self.store.cancel(self.workspace, run["id"], now=6)
+
