@@ -114,3 +114,27 @@ class ControlTests(unittest.TestCase):
         with self.assertRaises(Conflict):
             self.store.cancel(self.workspace, run["id"], now=6)
 
+    def test_running_cancellation_is_visible_and_cannot_finish_as_success(self):
+        run = self.submit()
+        owner = self.store.claim("worker", now=10)
+        self.store.cancel(self.workspace, run["id"], now=11)
+        heartbeat = self.store.heartbeat(
+            run["id"], "worker", owner["lease_token"], now=12
+        )
+        self.assertTrue(heartbeat["cancel_requested"])
+        with self.assertRaises(Conflict):
+            self.store.finish(
+                run["id"], "worker", owner["lease_token"], "succeeded", {}, now=13
+            )
+        self.store.finish(
+            run["id"],
+            "worker",
+            owner["lease_token"],
+            "cancelled",
+            {"effect_review": "no external effects"},
+            now=14,
+        )
+        self.assertEqual(
+            self.store.get_run(self.workspace, run["id"])["status"], "cancelled"
+        )
+
