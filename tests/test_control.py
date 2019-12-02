@@ -138,3 +138,35 @@ class ControlTests(unittest.TestCase):
             self.store.get_run(self.workspace, run["id"])["status"], "cancelled"
         )
 
+    def test_event_cursor_is_stable_and_public_result_omits_token(self):
+        run = self.submit()
+        owner = self.store.claim("worker", now=10)
+        self.store.append_event(
+            run["id"],
+            "worker",
+            owner["lease_token"],
+            "task_started",
+            {"task": "check"},
+            now=11,
+        )
+        self.store.finish(
+            run["id"],
+            "worker",
+            owner["lease_token"],
+            "succeeded",
+            {"passed": True},
+            now=12,
+        )
+        first = self.store.events(self.workspace, run["id"], limit=2)
+        second = self.store.events(
+            self.workspace, run["id"], after=first[-1]["sequence"]
+        )
+        self.assertEqual(
+            [row["kind"] for row in first + second],
+            ["submitted", "claimed", "task_started", "finished"],
+        )
+        self.assertEqual(len({row["sequence"] for row in first + second}), 4)
+        public = self.store.get_run(self.workspace, run["id"])
+        self.assertNotIn("lease_token", public)
+        self.assertEqual(public["result"], {"passed": True})
+
