@@ -170,3 +170,24 @@ class ControlTests(unittest.TestCase):
         self.assertNotIn("lease_token", public)
         self.assertEqual(public["result"], {"passed": True})
 
+    def test_schedule_coalesces_missed_intervals_and_pins_version(self):
+        schedule = self.store.create_schedule(
+            self.workspace, self.workflow["id"], 1, 60, 100
+        )
+        first = self.store.tick(now=100)
+        self.assertEqual(len(first), 1)
+        self.assertEqual(self.store.tick(now=100), [])
+        changed = {"tasks": [{"id": "new", "command": [sys.executable, "-c", "pass"]}]}
+        self.store.register_workflow(
+            self.workspace, "Control", changed, self.root, now=200
+        )
+        later = self.store.tick(now=1000)
+        self.assertEqual(len(later), 1)
+        self.assertEqual(
+            self.store.get_run(self.workspace, later[0]["id"])["version"], 1
+        )
+        scheduled = self.store.events(self.workspace, later[0]["id"])[-1]
+        self.assertEqual(scheduled["payload"]["coalesced_periods"], 14)
+        self.store.set_schedule_enabled(self.workspace, schedule["id"], False)
+        self.assertEqual(self.store.tick(now=2000), [])
+
