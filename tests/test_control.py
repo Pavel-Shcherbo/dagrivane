@@ -191,3 +191,11 @@ class ControlTests(unittest.TestCase):
         self.store.set_schedule_enabled(self.workspace, schedule["id"], False)
         self.assertEqual(self.store.tick(now=2000), [])
 
+    def test_schedule_isolated_from_other_workspace(self):
+        other = self.store.create_workspace("Other")["id"]
+        schedule = self.store.create_schedule(
+            self.workspace, self.workflow["id"], 1, 60, 100
+        )
+        with self.assertRaises(NotFound):
+            self.store.set_schedule_enabled(other, schedule["id"], False)
+
