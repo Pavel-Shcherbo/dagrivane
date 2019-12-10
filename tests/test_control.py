@@ -199,3 +199,11 @@ class ControlTests(unittest.TestCase):
         with self.assertRaises(NotFound):
             self.store.set_schedule_enabled(other, schedule["id"], False)
 
+    def test_reopen_preserves_runs_and_does_not_reset_database(self):
+        run = self.submit()
+        reopened = ControlStore(self.path)
+        self.assertEqual(
+            reopened.get_run(self.workspace, run["id"])["status"], "queued"
+        )
+        self.assertEqual(len(reopened.list_workflows(self.workspace)), 1)
+
