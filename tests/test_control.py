@@ -214,3 +214,13 @@ class ControlTests(unittest.TestCase):
                 stores = list(executor.map(lambda _: ControlStore(path), range(6)))
             self.assertEqual(stores[0].list_workspaces(), [])
 
+    def test_newer_schema_is_not_downgraded(self):
+        with sqlite3.connect(self.path) as connection:
+            connection.execute("PRAGMA user_version=99")
+        with self.assertRaises(Conflict):
+            ControlStore(self.path)
+        with sqlite3.connect(self.path) as connection:
+            self.assertEqual(
+                connection.execute("PRAGMA user_version").fetchone()[0], 99
+            )
+
