@@ -207,3 +207,10 @@ class ControlTests(unittest.TestCase):
         )
         self.assertEqual(len(reopened.list_workflows(self.workspace)), 1)
 
+    def test_concurrent_initialization_is_serialized(self):
+        for attempt in range(3):
+            path = self.root / f"new-{attempt}.db"
+            with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
+                stores = list(executor.map(lambda _: ControlStore(path), range(6)))
+            self.assertEqual(stores[0].list_workspaces(), [])
+
