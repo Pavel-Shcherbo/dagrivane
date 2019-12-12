@@ -224,3 +224,13 @@ class ControlTests(unittest.TestCase):
                 connection.execute("PRAGMA user_version").fetchone()[0], 99
             )
 
+    def test_invalid_parameters_rejected_before_changes(self):
+        with self.assertRaises(ValueError):
+            self.store.create_workspace("Bad", concurrency=True)
+        with self.assertRaises(ValueError):
+            self.store.claim("worker", lease_seconds=0)
+        with self.assertRaises(ValueError):
+            self.store.list_runs(self.workspace, status="unknown")
+        with self.assertRaises(ValueError):
+            self.store.workflow(self.workspace, self.workflow["id"], True)
+        self.assertEqual(self.store.list_runs(self.workspace), [])
