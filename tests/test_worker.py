@@ -22,3 +22,11 @@ class WorkerTests(unittest.TestCase):
             self.store, self.root / "tasks", "test-worker", lease_seconds=5
         )
 
+    def submit(self, tasks):
+        workflow = self.store.register_workflow(
+            self.workspace, "Example", {"tasks": tasks}, self.root
+        )
+        return self.store.enqueue(
+            self.workspace, workflow["id"], workflow["version"], "test"
+        )
+
