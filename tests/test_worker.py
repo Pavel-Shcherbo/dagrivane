@@ -30,3 +30,35 @@ class WorkerTests(unittest.TestCase):
             self.workspace, workflow["id"], workflow["version"], "test"
         )
 
+    def test_worker_executes_a_real_graph_and_records_events(self):
+        submitted = self.submit(
+            [
+                {
+                    "id": "write",
+                    "command": [
+                        sys.executable,
+                        "-c",
+                        "from pathlib import Path; Path('result').write_text('committed')",
+                    ],
+                },
+                {
+                    "id": "read",
+                    "needs": ["write"],
+                    "command": [
+                        sys.executable,
+                        "-c",
+                        "from pathlib import Path; assert Path('result').read_text()=='committed'",
+                    ],
+                },
+            ]
+        )
+        result = self.worker.run_once()
+        self.assertEqual(result["status"], "succeeded")
+        self.assertEqual((self.root / "result").read_text(), "committed")
+        saved = self.store.get_run(self.workspace, submitted["id"])
+        self.assertEqual(saved["status"], "succeeded")
+        events = self.store.events(self.workspace, submitted["id"])
+        self.assertEqual(sum(event["kind"] == "task_finished" for event in events), 2)
+        self.assertEqual(events[-1]["kind"], "finished")
+        self.assertIsNone(self.worker.run_once())
+
