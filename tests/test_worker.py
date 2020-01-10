@@ -82,3 +82,40 @@ class WorkerTests(unittest.TestCase):
         self.assertFalse((self.root / "unexpected").exists())
         self.assertEqual(result["result"]["tasks"][1]["status"], "blocked")
 
+    def test_running_cancellation_stops_command_and_pending_tasks(self):
+        submitted = self.submit(
+            [
+                {
+                    "id": "slow",
+                    "command": [
+                        sys.executable,
+                        "-c",
+                        "from pathlib import Path; import time; Path('started').touch(); time.sleep(10); Path('late').touch()",
+                    ],
+                },
+                {
+                    "id": "after",
+                    "needs": ["slow"],
+                    "command": [
+                        sys.executable,
+                        "-c",
+                        "from pathlib import Path; Path('after').touch()",
+                    ],
+                },
+            ]
+        )
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(self.worker.run_once)
+            deadline = time.monotonic() + 3
+            while not (self.root / "started").exists() and time.monotonic() < deadline:
+                time.sleep(0.02)
+            self.assertTrue((self.root / "started").exists())
+            self.store.cancel(self.workspace, submitted["id"])
+            result = future.result(timeout=5)
+        self.assertEqual(result["status"], "cancelled")
+        self.assertFalse((self.root / "late").exists())
+        self.assertFalse((self.root / "after").exists())
+        self.assertEqual(
+            self.store.get_run(self.workspace, submitted["id"])["status"], "cancelled"
+        )
+
