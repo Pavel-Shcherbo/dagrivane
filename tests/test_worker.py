@@ -62,3 +62,23 @@ class WorkerTests(unittest.TestCase):
         self.assertEqual(events[-1]["kind"], "finished")
         self.assertIsNone(self.worker.run_once())
 
+    def test_failed_task_blocks_dependent_effect(self):
+        self.submit(
+            [
+                {"id": "bad", "command": [sys.executable, "-c", "raise SystemExit(3)"]},
+                {
+                    "id": "after",
+                    "needs": ["bad"],
+                    "command": [
+                        sys.executable,
+                        "-c",
+                        "from pathlib import Path; Path('unexpected').touch()",
+                    ],
+                },
+            ]
+        )
+        result = self.worker.run_once()
+        self.assertEqual(result["status"], "failed")
+        self.assertFalse((self.root / "unexpected").exists())
+        self.assertEqual(result["result"]["tasks"][1]["status"], "blocked")
+
