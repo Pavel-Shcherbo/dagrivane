@@ -119,3 +119,19 @@ class WorkerTests(unittest.TestCase):
             self.store.get_run(self.workspace, submitted["id"])["status"], "cancelled"
         )
 
+    def test_heartbeat_keeps_longer_run_owned(self):
+        submitted = self.submit(
+            [
+                {
+                    "id": "long",
+                    "command": [sys.executable, "-c", "import time; time.sleep(5.5)"],
+                }
+            ]
+        )
+        result = self.worker.run_once()
+        self.assertTrue(result["ownership_retained"])
+        self.assertEqual(result["status"], "succeeded")
+        self.assertEqual(
+            self.store.get_run(self.workspace, submitted["id"])["status"], "succeeded"
+        )
+
