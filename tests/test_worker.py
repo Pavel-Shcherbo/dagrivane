@@ -135,3 +135,44 @@ class WorkerTests(unittest.TestCase):
             self.store.get_run(self.workspace, submitted["id"])["status"], "succeeded"
         )
 
+    def test_management_cli_completes_submission_to_inspection(self):
+        project = Path(__file__).resolve().parents[1]
+
+        def invoke(*args):
+            process = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "dagrivane.manage",
+                    "--db",
+                    str(self.root / "cli.db"),
+                    *args,
+                ],
+                cwd=project,
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            self.assertEqual(process.returncode, 0, process.stderr)
+            return json.loads(process.stdout)
+
+        workspace = invoke("workspace-create", "CLI")["id"]
+        workflow = invoke(
+            "register", workspace, "Orders", str(project / "examples/pipeline.json")
+        )
+        run = invoke(
+            "submit",
+            workspace,
+            workflow["id"],
+            "--version",
+            "1",
+            "--event-key",
+            "delivery",
+        )
+        result = invoke("worker", "--state-directory", str(self.root / "cli-tasks"))
+        self.assertEqual(result["status"], "succeeded")
+        inspected = invoke("run", workspace, run["id"])
+        self.assertEqual(inspected["status"], "succeeded")
+        self.assertNotIn("lease_token", inspected)
+        events = invoke("events", workspace, run["id"])
+        self.assertEqual(events[-1]["kind"], "finished")
