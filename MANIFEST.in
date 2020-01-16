@@ -2,3 +2,6 @@ include _build.py
 include examples/orders.csv
 include examples/pipeline.json
 include examples/tasks.py
+include examples/dataflow.json
+include examples/typed-pipeline.json
+include examples/release_typed.py
