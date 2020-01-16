@@ -29,6 +29,12 @@ python3 -m unittest discover -s tests -v
 
 Validates command graphs before execution, runs dependency-ordered tasks, persists checkpoints in SQLite, verifies declared input content hashes, retries failed tasks within a declared limit and blocks dependent work when a prerequisite fails. The bundled four-stage pipeline extracts synthetic orders, checks them, calculates an exact decimal total and verifies a release gate.
 
+## Typed data pipelines
+
+Run `python3 -m dagrivane.dataflow examples/dataflow.json` for schema-checked CSV processing, or export a fresh example directory and run `typed-pipeline.json` through the normal graph executor. The browser's **Execution** selector includes the typed data pipeline and a quality-failure control.
+
+The adapter provides typed contracts, explicit decimal calculations, filters, bounded joins, grouping, stable sorting, quality gates and create-only output bundles. See [dataflow guide](docs/DATAFLOWS.md) for commands, schemas, null semantics and resource limits.
+
 ## Boundaries
 
 Task execution within each workflow run is local and sequential. Commands are trusted local programs, not sandboxed workloads. Captured output is not a secret store. A process crash may leave external effects with an unknown outcome; the runner refuses to silently retry a task marked running. The durable control plane supports versioned workflow registration, idempotent submission, worker leases, cancellation, event cursors and pinned interval schedules through the operator CLI. Tasks within each run remain sequential. Remote executors, connector SDKs, CI promotion and authenticated multi-user operation remain planned.
