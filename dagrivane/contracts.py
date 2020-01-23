@@ -10,3 +10,11 @@ INTEGER = re.compile(r"^-?(?:0|[1-9][0-9]*)$")
 KINDS = frozenset({"string", "integer", "decimal", "boolean", "date", "timestamp"})
 
 
+def identifier(value, label="name"):
+    if not isinstance(value, str) or not NAME.fullmatch(value):
+        raise ValueError(
+            f"{label} must be an ASCII identifier of at most 64 characters"
+        )
+    return value
+
+
