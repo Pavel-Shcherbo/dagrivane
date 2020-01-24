@@ -18,3 +18,18 @@ def identifier(value, label="name"):
     return value
 
 
+def finite_decimal(value):
+    if isinstance(value, bool) or not isinstance(value, (str, int, Decimal)):
+        raise ValueError("decimal requires text, an integer or Decimal, never float")
+    try:
+        parsed = Decimal(value)
+    except (InvalidOperation, ValueError) as error:
+        raise ValueError("invalid decimal") from error
+    if not parsed.is_finite():
+        raise ValueError("decimal must be finite")
+    sign, digits, exponent = parsed.as_tuple()
+    if len(digits) > 38 or abs(exponent) > 18 or parsed.adjusted() > 37:
+        raise ValueError("decimal exceeds 38-digit / 18-scale limits")
+    return parsed
+
+
