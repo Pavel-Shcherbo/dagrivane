@@ -93,3 +93,22 @@ def convert(value, kind, from_csv=False):
     raise ValueError("unsupported column type")
 
 
+def encode(value):
+    if isinstance(value, Decimal):
+        return format(value, "f")
+    if isinstance(value, dt.datetime):
+        return value.isoformat().replace("+00:00", "Z")
+    if isinstance(value, dt.date):
+        return value.isoformat()
+    return value
+
+
+@dataclass(frozen=True)
+class Column:
+    name: str
+    kind: str
+    nullable: bool = False
+    minimum: object = None
+    maximum: object = None
+    choices: tuple = ()
+
