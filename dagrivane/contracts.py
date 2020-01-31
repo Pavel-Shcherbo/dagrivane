@@ -158,3 +158,22 @@ class Column:
             column.parse(value)
         return column
 
+    def parse(self, value, from_csv=False, null_token="\\N"):
+        if from_csv and value == null_token:
+            value = None
+        if value is None:
+            if not self.nullable:
+                raise ValueError(f"{self.name}: null is not allowed")
+            return None
+        try:
+            parsed = convert(value, self.kind, from_csv)
+            if self.minimum is not None and parsed < self.minimum:
+                raise ValueError("value is below minimum")
+            if self.maximum is not None and parsed > self.maximum:
+                raise ValueError("value is above maximum")
+            if self.choices and parsed not in self.choices:
+                raise ValueError("value is outside enum")
+            return parsed
+        except ValueError as error:
+            raise ValueError(f"{self.name}: {error}") from error
+
