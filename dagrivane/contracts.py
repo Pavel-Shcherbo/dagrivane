@@ -112,3 +112,49 @@ class Column:
     maximum: object = None
     choices: tuple = ()
 
+    @classmethod
+    def compile(cls, definition):
+        if not isinstance(definition, dict) or set(definition) - {
+            "name",
+            "type",
+            "nullable",
+            "min",
+            "max",
+            "enum",
+        }:
+            raise ValueError("column contains unsupported fields")
+        name = identifier(definition.get("name"), "column name")
+        kind = definition.get("type")
+        if not isinstance(kind, str) or kind not in KINDS:
+            raise ValueError(f"{name}: unsupported column type")
+        nullable = definition.get("nullable", False)
+        if type(nullable) is not bool:
+            raise ValueError(f"{name}: nullable must be boolean")
+        if set(definition) & {"min", "max"} and kind not in {
+            "integer",
+            "decimal",
+            "date",
+            "timestamp",
+        }:
+            raise ValueError(
+                f"{name}: range constraints require an ordered numeric or temporal type"
+            )
+        lower = convert(definition["min"], kind) if "min" in definition else None
+        upper = convert(definition["max"], kind) if "max" in definition else None
+        if lower is not None and upper is not None and lower > upper:
+            raise ValueError(f"{name}: min exceeds max")
+        choices = definition.get("enum", [])
+        if (
+            not isinstance(choices, list)
+            or len(choices) > 1000
+            or ("enum" in definition and not choices)
+        ):
+            raise ValueError(f"{name}: enum must contain 1–1000 values")
+        parsed = tuple(convert(value, kind) for value in choices)
+        if len(set(parsed)) != len(parsed):
+            raise ValueError(f"{name}: enum contains duplicate values")
+        column = cls(name, kind, nullable, lower, upper, parsed)
+        for value in parsed:
+            column.parse(value)
+        return column
+
