@@ -177,3 +177,20 @@ class Column:
         except ValueError as error:
             raise ValueError(f"{self.name}: {error}") from error
 
+    def definition(self):
+        result = {"name": self.name, "type": self.kind, "nullable": self.nullable}
+        if self.minimum is not None:
+            result["min"] = encode(self.minimum)
+        if self.maximum is not None:
+            result["max"] = encode(self.maximum)
+        if self.choices:
+            result["enum"] = [encode(value) for value in self.choices]
+        return result
+
+
+@dataclass(frozen=True)
+class Contract:
+    name: str
+    version: int
+    columns: tuple
+
