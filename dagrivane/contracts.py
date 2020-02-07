@@ -194,3 +194,23 @@ class Contract:
     version: int
     columns: tuple
 
+    @classmethod
+    def compile(cls, definition):
+        if not isinstance(definition, dict) or set(definition) - {
+            "name",
+            "version",
+            "columns",
+        }:
+            raise ValueError("contract contains unsupported fields")
+        name = identifier(definition.get("name"), "contract name")
+        version = definition.get("version")
+        if type(version) is not int or version < 1:
+            raise ValueError("contract version must be a positive integer")
+        columns = definition.get("columns")
+        if not isinstance(columns, list) or not 1 <= len(columns) <= 256:
+            raise ValueError("contract requires 1–256 columns")
+        parsed = tuple(Column.compile(item) for item in columns)
+        if len({column.name for column in parsed}) != len(parsed):
+            raise ValueError("contract column names must be unique")
+        return cls(name, version, parsed)
+
