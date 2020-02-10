@@ -214,3 +214,7 @@ class Contract:
             raise ValueError("contract column names must be unique")
         return cls(name, version, parsed)
 
+    @property
+    def names(self):
+        return tuple(column.name for column in self.columns)
+
