@@ -218,3 +218,9 @@ class Contract:
     def names(self):
         return tuple(column.name for column in self.columns)
 
+    def column(self, name):
+        for column in self.columns:
+            if column.name == name:
+                return column
+        raise ValueError(f"unknown column: {name}")
+
