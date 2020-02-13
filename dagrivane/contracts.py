@@ -224,3 +224,11 @@ class Contract:
                 return column
         raise ValueError(f"unknown column: {name}")
 
+    def parse_row(self, row, *, from_csv=False, null_token="\\N"):
+        if not isinstance(row, dict) or set(row) != set(self.names):
+            raise ValueError("row fields must match the contract exactly")
+        return {
+            column.name: column.parse(row[column.name], from_csv, null_token)
+            for column in self.columns
+        }
+
