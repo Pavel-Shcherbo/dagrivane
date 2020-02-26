@@ -232,3 +232,11 @@ class Contract:
             for column in self.columns
         }
 
+    def definition(self):
+        return {
+            "name": self.name,
+            "version": self.version,
+            "columns": [column.definition() for column in self.columns],
+        }
+
+
