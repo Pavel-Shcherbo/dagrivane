@@ -240,3 +240,43 @@ class Contract:
         }
 
 
+def compatibility(previous, current):
+    """Report whether existing rows and named-field consumers remain compatible."""
+    issues = []
+    if previous.name != current.name:
+        issues.append({"code": "contract_identity_changed"})
+    if current.version <= previous.version:
+        issues.append({"code": "version_not_increased"})
+    old = {column.name: column for column in previous.columns}
+    new = {column.name: column for column in current.columns}
+    for name, column in old.items():
+        replacement = new.get(name)
+        if replacement is None:
+            issues.append({"column": name, "code": "column_removed"})
+            continue
+        if column.kind != replacement.kind:
+            issues.append({"column": name, "code": "type_changed"})
+            continue
+        if column.nullable and not replacement.nullable:
+            issues.append({"column": name, "code": "nullability_tightened"})
+        if replacement.minimum is not None and (
+            column.minimum is None or replacement.minimum > column.minimum
+        ):
+            issues.append({"column": name, "code": "minimum_tightened"})
+        if replacement.maximum is not None and (
+            column.maximum is None or replacement.maximum < column.maximum
+        ):
+            issues.append({"column": name, "code": "maximum_tightened"})
+        if replacement.choices and (
+            not column.choices or not set(column.choices) <= set(replacement.choices)
+        ):
+            issues.append({"column": name, "code": "enum_tightened"})
+    for name in sorted(new.keys() - old.keys()):
+        # Existing rows omit the new field. Nullable additions are safe only for
+        # readers that explicitly fill absent nullable fields; report that policy.
+        issues.append({"column": name, "code": "column_added_requires_migration"})
+    return {
+        "compatible": not issues,
+        "policy": "existing rows, exact named fields, no implicit migration",
+        "issues": issues,
+    }
