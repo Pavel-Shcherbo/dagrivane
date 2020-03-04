@@ -8,3 +8,7 @@ from pathlib import Path
 from .dataflow import compile_plan
 
 
+def validate_data_task(definition):
+    compile_plan(definition)
+
+
