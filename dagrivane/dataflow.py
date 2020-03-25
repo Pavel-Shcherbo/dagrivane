@@ -126,3 +126,26 @@ class DataPlan:
         return report, table
 
 
+def publish_bundle(path, bundle):
+    encoded = json.dumps(bundle, indent=2, allow_nan=False).encode() + b"\n"
+    if len(encoded) > 64 * 1024 * 1024:
+        raise ValueError("output bundle exceeds 64 MiB")
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            dir=path.parent, prefix=".dagrivane-", delete=False
+        ) as stream:
+            temporary = Path(stream.name)
+            stream.write(encoded)
+            stream.flush()
+            os.fsync(stream.fileno())
+        # Atomic create without replacement. A failed or repeated run must not
+        # silently replace an artifact that another run already published.
+        os.link(temporary, path)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+
+
