@@ -149,3 +149,86 @@ def publish_bundle(path, bundle):
             temporary.unlink(missing_ok=True)
 
 
+def compile_plan(definition):
+    fields(
+        definition,
+        {"version", "sources", "steps", "output", "gates", "destination"},
+        ("version", "sources", "output", "gates"),
+    )
+    try:
+        serialized = json.dumps(
+            definition, sort_keys=True, allow_nan=False, separators=(",", ":")
+        ).encode()
+    except (ValueError, TypeError, RecursionError) as error:
+        raise ValueError("data plan must contain finite JSON values") from error
+    if len(serialized) > MAX_PLAN_BYTES:
+        raise ValueError("data plan exceeds 1 MiB")
+    if type(definition["version"]) is not int or definition["version"] != 1:
+        raise ValueError("only data plan version 1 is supported")
+    definitions = copy.deepcopy(definition)
+    source_specs, steps = definitions["sources"], definitions.get("steps", [])
+    if not isinstance(source_specs, list) or not 1 <= len(source_specs) <= 16:
+        raise ValueError("data plan requires 1–16 sources")
+    if not isinstance(steps, list) or len(steps) > 128:
+        raise ValueError("data plan supports at most 128 steps")
+    contracts, sources, compiled = {}, [], []
+    for source in source_specs:
+        fields(
+            source,
+            {"id", "path", "contract", "null_token", "sha256"},
+            ("id", "path", "contract"),
+        )
+        name = identifier(source["id"], "source ID")
+        if name in contracts:
+            raise ValueError("source and step IDs must be unique")
+        local_path(".", source["path"])
+        contract = Contract.compile(source["contract"])
+        token = source.get("null_token", "\\N")
+        if (
+            not isinstance(token, str)
+            or not 1 <= len(token) <= 32
+            or any(c in token for c in "\r\n\x00")
+        ):
+            raise ValueError("invalid CSV null_token")
+        if "sha256" in source and (
+            not isinstance(source["sha256"], str)
+            or len(source["sha256"]) != 64
+            or any(c not in "0123456789abcdef" for c in source["sha256"])
+        ):
+            raise ValueError("source sha256 must be lowercase SHA-256")
+        contracts[name] = contract
+        sources.append((source, contract))
+    for step in steps:
+        if not isinstance(step, dict):
+            raise ValueError("each step must be an object")
+        name = identifier(step.get("id"), "step ID")
+        if name in contracts:
+            raise ValueError("source and step IDs must be unique")
+        input_name = step.get("input")
+        if not isinstance(input_name, str) or input_name not in contracts:
+            raise ValueError("step input must reference an earlier source or step")
+        right = None
+        if step.get("op") == "join":
+            reference = step.get("right")
+            if not isinstance(reference, str) or reference not in contracts:
+                raise ValueError("join right must reference an earlier source or step")
+            right = contracts[reference]
+        operation = compile_operation(step, contracts[input_name], right)
+        contracts[name] = operation.contract
+        compiled.append((step, operation))
+    output = definitions["output"]
+    if not isinstance(output, str) or output not in contracts:
+        raise ValueError("output must name a source or step")
+    gates = compile_gates(definitions["gates"], contracts[output])
+    if "destination" in definitions:
+        local_path(".", definitions["destination"])
+    return DataPlan(
+        definitions,
+        tuple(sources),
+        tuple(compiled),
+        output,
+        gates,
+        hashlib.sha256(serialized).hexdigest(),
+    )
+
+
