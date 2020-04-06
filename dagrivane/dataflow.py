@@ -232,3 +232,7 @@ def compile_plan(definition):
     )
 
 
+def run_plan(definition, root="."):
+    return compile_plan(definition).execute(root)[0]
+
+
