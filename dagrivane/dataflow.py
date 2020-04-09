@@ -236,3 +236,22 @@ def run_plan(definition, root="."):
     return compile_plan(definition).execute(root)[0]
 
 
+def main(argv=None):
+    parser = argparse.ArgumentParser(
+        description="Run a typed local CSV dataflow and its quality gates"
+    )
+    parser.add_argument("spec", type=Path)
+    parser.add_argument("--root", type=Path)
+    args = parser.parse_args(argv)
+    try:
+        with args.spec.open("rb") as stream:
+            definition = load_plan(stream.read(MAX_PLAN_BYTES + 1))
+        report = run_plan(definition, args.root or args.spec.resolve().parent)
+    except (ValueError, OSError) as error:
+        parser.exit(2, f"{error}\n")
+    print(json.dumps(report, indent=2))
+    return 0 if report["passed"] else 3
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
