@@ -11,6 +11,7 @@ from contextlib import closing
 from pathlib import Path
 
 from .artifacts import verify_inputs
+from .data_adapter import validate_data_task, execute_data_task
 
 
 def validate(spec):
@@ -26,13 +27,18 @@ def validate(spec):
         name = task.get("id")
         if not isinstance(name, str) or not name or name in by_id:
             raise ValueError("task IDs must be unique non-empty strings")
-        command = task.get("command")
-        if (
-            not isinstance(command, list)
-            or not command
-            or not all(isinstance(x, str) and x for x in command)
-        ):
-            raise ValueError(f"{name}: command must be a non-empty argument list")
+        if ("command" in task) == ("dataflow" in task):
+            raise ValueError(f"{name}: task requires exactly one command or dataflow")
+        if "dataflow" in task:
+            validate_data_task(task["dataflow"])
+        else:
+            command = task.get("command")
+            if (
+                not isinstance(command, list)
+                or not command
+                or not all(isinstance(x, str) and x for x in command)
+            ):
+                raise ValueError(f"{name}: command must be a non-empty argument list")
         deps = task.get("needs", [])
         if not isinstance(deps, list) or not all(isinstance(x, str) for x in deps):
             raise ValueError(f"{name}: needs must be a list of IDs")
@@ -186,9 +192,18 @@ def run(spec, state_path, run_id, cwd=None, should_cancel=None, on_event=None):
                 db.commit()
                 emit("task_started", {"task": name, "attempt": count})
                 try:
-                    succeeded, output = execute(
-                        task["command"], cwd, task.get("timeout", 30), should_cancel
-                    )
+                    if "dataflow" in task:
+                        succeeded, output = execute_data_task(
+                            task["dataflow"],
+                            cwd,
+                            task.get("timeout", 30),
+                            should_cancel,
+                            execute,
+                        )
+                    else:
+                        succeeded, output = execute(
+                            task["command"], cwd, task.get("timeout", 30), should_cancel
+                        )
                     status = "succeeded" if succeeded else "failed"
                 except TaskCancelled as error:
                     status, output = "cancelled", str(error)
