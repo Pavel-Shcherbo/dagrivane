@@ -35,13 +35,18 @@ let tasks = [];
 function draw() {
   const svg = $("graph");
   clear(svg);
+  svg.setAttribute(
+    "aria-label",
+    tasks.map((task) => task.id + " " + task.status).join(", "),
+  );
   const ns = "http://www.w3.org/2000/svg";
   tasks.forEach((task, i) => {
-    const x = 20 + i * 232;
+    const gap = tasks.length > 1 ? 708 / (tasks.length - 1) : 0;
+    const x = 20 + i * gap;
     if (i) {
       const line = document.createElementNS(ns, "line");
       Object.entries({
-        x1: x - 40,
+        x1: x - gap + 192,
         y1: 110,
         x2: x,
         y2: 110,
@@ -108,9 +113,13 @@ $("run").onclick = async () => {
   error("");
   $("run").disabled = true;
   $("fail").disabled = true;
+  $("mode").disabled = true;
   $("runstate").textContent = "Running";
   try {
-    const result = await evaluate({ fail_quality: $("fail").checked });
+    const result = await evaluate({
+      fail_quality: $("fail").checked,
+      mode: $("mode").value,
+    });
     tasks = result.tasks;
     render();
     $("runstate").textContent = result.succeeded
@@ -131,8 +140,11 @@ $("run").onclick = async () => {
   } finally {
     $("run").disabled = false;
     $("fail").disabled = false;
+    $("mode").disabled = false;
   }
 };
+$("mode").disabled = true;
+$("run").disabled = true;
 fetch("/api/example")
   .then((r) => r.json())
   .then((spec) => {
@@ -144,4 +156,24 @@ fetch("/api/example")
     }));
     render();
   })
-  .catch((e) => error(e.message));
+  .catch((e) => error(e.message))
+  .finally(() => {
+    $("mode").disabled = false;
+    $("run").disabled = false;
+  });
+
+$("mode").onchange = () => {
+  const ids =
+    $("mode").value === "dataflow"
+      ? ["validate", "aggregate", "release-check"]
+      : ["extract", "quality", "aggregate", "release-check"];
+  tasks = ids.map((id) => ({ id, status: "pending", attempts: 0, output: "" }));
+  render();
+  $("count").textContent = tasks.length + " tasks";
+  $("runstate").textContent = "Not started";
+  $("runstate").className = "status";
+  $("runid").textContent = "";
+  $("logs").textContent =
+    "Run the pipeline, then select a task to inspect its output";
+  $("logtitle").textContent = "Task output";
+};
