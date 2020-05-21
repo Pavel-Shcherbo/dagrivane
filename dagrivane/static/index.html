@@ -28,7 +28,7 @@
         <header class="pagehead" id="workflow">
           <div>
             <h1>Order summary release</h1>
-            <p>A four-step control pipeline with a checked aggregate</p>
+            <p>Validated order data with a checked release total</p>
           </div>
           <button id="run" class="primary">Run pipeline</button>
         </header>
@@ -46,6 +46,11 @@
             ></svg>
           </div>
           <div class="controls">
+            <label for="mode">Execution</label>
+            <select id="mode">
+              <option value="commands">Command pipeline</option>
+              <option value="dataflow">Typed data pipeline</option>
+            </select>
             <label
               ><input type="checkbox" id="fail" /> Inject a quality-check
               failure</label
@@ -90,8 +95,9 @@ Run the pipeline, then select a task to inspect its output</pre>
             external outcome requires reconciliation.
           </p>
           <p class="notice">
-            This workbench runs the bundled control pipeline. It does not accept
-            arbitrary remote commands or perform a production release.
+            This workbench runs the bundled command and typed data pipelines. It
+            does not accept arbitrary remote commands or perform a production
+            release.
           </p>
           <p id="runid" class="mono notice"></p>
         </section>
