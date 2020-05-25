@@ -30,3 +30,36 @@ class Table:
     records: tuple
     sources: tuple = ()
 
+    def __post_init__(self):
+        if not isinstance(self.contract, Contract):
+            raise ValueError("table requires a compiled contract")
+        if not isinstance(self.records, tuple) or len(self.records) > MAX_ROWS:
+            raise ValueError("table exceeds row budget or records are not immutable")
+        if len(self.records) * len(self.contract.columns) > MAX_CELLS:
+            raise ValueError("table exceeds cell budget")
+        parsed = []
+        byte_count = 0
+        for number, values in enumerate(self.records, 1):
+            if not isinstance(values, tuple) or len(values) != len(
+                self.contract.columns
+            ):
+                raise ValueError(f"row {number}: field count differs from contract")
+            try:
+                record = tuple(
+                    column.parse(value)
+                    for column, value in zip(self.contract.columns, values)
+                )
+                byte_count += len(
+                    json.dumps([encode(value) for value in record]).encode()
+                )
+                if byte_count > MAX_BYTES:
+                    raise ValueError("table exceeds encoded byte budget")
+                parsed.append(record)
+            except ValueError as error:
+                raise ValueError(f"row {number}: {error}") from error
+        if not isinstance(self.sources, tuple) or any(
+            not isinstance(item, str) for item in self.sources
+        ):
+            raise ValueError("table sources must be immutable identity strings")
+        object.__setattr__(self, "records", tuple(parsed))
+
