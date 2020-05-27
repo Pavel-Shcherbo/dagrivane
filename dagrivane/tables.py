@@ -63,3 +63,18 @@ class Table:
             raise ValueError("table sources must be immutable identity strings")
         object.__setattr__(self, "records", tuple(parsed))
 
+    @classmethod
+    def from_rows(cls, contract, rows, sources=()):
+        records = []
+        byte_count = 0
+        for number, row in enumerate(rows, 1):
+            if number > MAX_ROWS or number * len(contract.columns) > MAX_CELLS:
+                raise ValueError("table exceeds row or cell budget")
+            parsed = contract.parse_row(row)
+            record = tuple(parsed[name] for name in contract.names)
+            byte_count += len(json.dumps([encode(value) for value in record]).encode())
+            if byte_count > MAX_BYTES:
+                raise ValueError("table exceeds encoded byte budget")
+            records.append(record)
+        return cls(contract, tuple(records), tuple(sources))
+
