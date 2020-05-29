@@ -78,3 +78,7 @@ class Table:
             records.append(record)
         return cls(contract, tuple(records), tuple(sources))
 
+    def rows(self):
+        for record in self.records:
+            yield dict(zip(self.contract.names, record))
+
