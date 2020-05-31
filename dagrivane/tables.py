@@ -87,3 +87,22 @@ class Table:
             {name: encode(value) for name, value in row.items()} for row in self.rows()
         ]
 
+    def digest(self):
+        digest = hashlib.sha256()
+        digest.update(
+            json.dumps(
+                self.contract.definition(), sort_keys=True, separators=(",", ":")
+            ).encode()
+        )
+        digest.update(b"\n")
+        for row in self.rows():
+            digest.update(
+                json.dumps(
+                    {name: encode(value) for name, value in row.items()},
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ).encode()
+            )
+            digest.update(b"\n")
+        return digest.hexdigest()
+
