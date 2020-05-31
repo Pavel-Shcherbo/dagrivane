@@ -82,3 +82,8 @@ class Table:
         for record in self.records:
             yield dict(zip(self.contract.names, record))
 
+    def json_rows(self):
+        return [
+            {name: encode(value) for name, value in row.items()} for row in self.rows()
+        ]
+
