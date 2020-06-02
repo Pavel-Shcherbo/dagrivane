@@ -106,3 +106,13 @@ class Table:
             digest.update(b"\n")
         return digest.hexdigest()
 
+    def summary(self):
+        return {
+            "rows": len(self.records),
+            "columns": len(self.contract.columns),
+            "contract": self.contract.definition(),
+            "data_sha256": self.digest(),
+            "source_sha256": list(self.sources),
+        }
+
+
