@@ -116,3 +116,52 @@ class Table:
         }
 
 
+def read_csv(path, contract, *, null_token="\\N", expected_sha256=None):
+    if (
+        not isinstance(null_token, str)
+        or not 1 <= len(null_token) <= 32
+        or any(character in null_token for character in "\r\n\x00")
+    ):
+        raise ValueError("null_token must be a single-line string of 1–32 characters")
+    if expected_sha256 is not None and (
+        not isinstance(expected_sha256, str)
+        or len(expected_sha256) != 64
+        or any(character not in "0123456789abcdef" for character in expected_sha256)
+    ):
+        raise ValueError("expected CSV hash must be lowercase SHA-256")
+    with Path(path).open("rb") as stream:
+        raw = stream.read(MAX_BYTES + 1)
+    if len(raw) > MAX_BYTES:
+        raise ValueError("CSV exceeds 16 MiB byte budget")
+    digest = hashlib.sha256(raw).hexdigest()
+    if expected_sha256 is not None and digest != expected_sha256:
+        raise ValueError("CSV content differs from its pinned hash")
+    try:
+        text = raw.decode("utf-8-sig")
+    except UnicodeDecodeError as error:
+        raise ValueError("CSV must use UTF-8") from error
+    if "\x00" in text:
+        raise ValueError("CSV cannot contain NUL")
+    reader = csv.reader(io.StringIO(text, newline=""), strict=True)
+    records = []
+    try:
+        header = next(reader, None)
+        if header is None or tuple(header) != contract.names:
+            raise ValueError("CSV header order must exactly match the contract")
+        for number, values in enumerate(reader, 1):
+            if number > MAX_ROWS or number * len(contract.columns) > MAX_CELLS:
+                raise ValueError("CSV exceeds row or cell budget")
+            if len(values) != len(header):
+                raise ValueError(
+                    f"CSV record {number}: field count differs from header"
+                )
+            try:
+                parsed = contract.parse_row(
+                    dict(zip(header, values)), from_csv=True, null_token=null_token
+                )
+            except ValueError as error:
+                raise ValueError(f"CSV record {number}: {error}") from error
+            records.append(tuple(parsed[name] for name in header))
+    except csv.Error as error:
+        raise ValueError("CSV syntax or field-size limit exceeded") from error
+    return Table(contract, tuple(records), (digest,))
