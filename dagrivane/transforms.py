@@ -8,3 +8,12 @@ from .contracts import Column, Contract, convert, identifier
 from .tables import Table, MAX_ROWS, MAX_CELLS
 
 
+def fields(definition, allowed, required=()):
+    if (
+        not isinstance(definition, dict)
+        or set(definition) - set(allowed)
+        or not set(required) <= set(definition)
+    ):
+        raise ValueError("operation contains unsupported or missing fields")
+
+
