@@ -17,3 +17,18 @@ def fields(definition, allowed, required=()):
         raise ValueError("operation contains unsupported or missing fields")
 
 
+def names(value, contract, *, nonempty=True):
+    if (
+        not isinstance(value, list)
+        or nonempty
+        and not value
+        or any(not isinstance(item, str) for item in value)
+    ):
+        raise ValueError("columns must be a list of names")
+    if len(set(value)) != len(value):
+        raise ValueError("columns must be unique")
+    for name in value:
+        contract.column(name)
+    return tuple(value)
+
+
