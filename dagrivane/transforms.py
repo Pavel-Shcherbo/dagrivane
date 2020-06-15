@@ -42,3 +42,12 @@ def output_contract(previous, columns):
     )
 
 
+def widened(column, *, name=None, nullable=None):
+    definition = column.definition()
+    if name is not None:
+        definition["name"] = name
+    if nullable is not None:
+        definition["nullable"] = nullable
+    return Column.compile(definition)
+
+
