@@ -32,3 +32,13 @@ def names(value, contract, *, nonempty=True):
     return tuple(value)
 
 
+def output_contract(previous, columns):
+    return Contract.compile(
+        {
+            "name": previous.name,
+            "version": previous.version,
+            "columns": [column.definition() for column in columns],
+        }
+    )
+
+
