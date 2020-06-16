@@ -51,3 +51,17 @@ def widened(column, *, name=None, nullable=None):
     return Column.compile(definition)
 
 
+def operand(definition, contract, kind):
+    if not isinstance(definition, dict) or len(definition) != 1:
+        raise ValueError("operand requires exactly one column or literal")
+    if "column" in definition:
+        column = contract.column(definition["column"])
+        if column.kind != kind and not (kind == "decimal" and column.kind == "integer"):
+            raise ValueError("operand column has an incompatible type")
+        return ("column", column.name)
+    if "literal" in definition:
+        value = definition["literal"]
+        return ("literal", None if value is None else convert(value, kind))
+    raise ValueError("unsupported operand")
+
+
