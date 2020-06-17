@@ -65,3 +65,13 @@ def operand(definition, contract, kind):
     raise ValueError("unsupported operand")
 
 
+def value_of(expression, row):
+    return row[expression[1]] if expression[0] == "column" else expression[1]
+
+
+@dataclass(frozen=True)
+class Operation:
+    kind: str
+    contract: Contract
+    config: dict
+
