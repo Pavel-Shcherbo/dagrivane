@@ -75,3 +75,61 @@ class Operation:
     contract: Contract
     config: dict
 
+    def apply(self, table, right=None):
+        rows = list(table.rows())
+        config = self.config
+        if self.kind == "select":
+            selected = [
+                {
+                    config["rename"].get(name, name): row[name]
+                    for name in config["columns"]
+                }
+                for row in rows
+            ]
+        elif self.kind == "filter":
+            selected = [
+                row
+                for row in rows
+                if all(
+                    condition_matches(row, condition)
+                    for condition in config["conditions"]
+                )
+            ]
+        elif self.kind == "calculate":
+            selected = (
+                {**row, config["column"].name: calculate(config["expression"], row)}
+                for row in rows
+            )
+        elif self.kind == "aggregate":
+            selected = aggregate(rows, config)
+        elif self.kind == "join":
+            if not isinstance(right, Table):
+                raise ValueError("join requires a right-hand table")
+            selected = join(
+                rows, list(right.rows()), config, len(self.contract.columns)
+            )
+        elif self.kind == "sort":
+            selected = rows
+            for key in reversed(config["keys"]):
+                name, descending, nulls_first = key
+                present = [row for row in selected if row[name] is not None]
+                missing = [row for row in selected if row[name] is None]
+                present.sort(key=lambda row: row[name], reverse=descending)
+                selected = missing + present if nulls_first else present + missing
+        elif self.kind == "distinct":
+            selected, seen = [], set()
+            for row in rows:
+                key = tuple(row[name] for name in config["columns"])
+                if key not in seen:
+                    selected.append(row)
+                    seen.add(key)
+        elif self.kind == "limit":
+            selected = rows[config["offset"] : config["offset"] + config["count"]]
+        else:
+            raise ValueError("uncompiled operation")
+        sources = tuple(
+            dict.fromkeys(table.sources + (right.sources if right is not None else ()))
+        )
+        return Table.from_rows(self.contract, selected, sources)
+
+
