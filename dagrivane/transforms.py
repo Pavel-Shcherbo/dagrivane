@@ -133,3 +133,33 @@ class Operation:
         return Table.from_rows(self.contract, selected, sources)
 
 
+def condition_matches(row, condition):
+    column, operation, expected = condition
+    actual = row[column]
+    if operation == "is_null":
+        return actual is None
+    if operation == "not_null":
+        return actual is not None
+    if actual is None:
+        return False
+    if operation == "eq":
+        return actual == expected
+    if operation == "ne":
+        return actual != expected
+    if operation == "gt":
+        return actual > expected
+    if operation == "gte":
+        return actual >= expected
+    if operation == "lt":
+        return actual < expected
+    if operation == "lte":
+        return actual <= expected
+    if operation == "in":
+        return actual in expected
+    if operation == "not_in":
+        return actual not in expected
+    if operation == "starts_with":
+        return actual.startswith(expected)
+    return expected in actual
+
+
