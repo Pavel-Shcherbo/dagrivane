@@ -163,3 +163,37 @@ def condition_matches(row, condition):
     return expected in actual
 
 
+def calculate(expression, row):
+    operation, arguments, places = expression
+    values = [value_of(argument, row) for argument in arguments]
+    if operation == "coalesce":
+        return next((value for value in values if value is not None), None)
+    if any(value is None for value in values):
+        return None
+    if operation == "concat":
+        return "".join(values)
+    if operation in ("lower", "upper", "trim"):
+        return {"lower": str.lower, "upper": str.upper, "trim": str.strip}[operation](
+            values[0]
+        )
+    with localcontext() as context:
+        context.prec = 80
+        if operation == "add":
+            return values[0] + values[1]
+        if operation == "subtract":
+            return values[0] - values[1]
+        if operation == "multiply":
+            return values[0] * values[1]
+        if operation == "divide":
+            if values[1] == 0:
+                raise ValueError("calculated division by zero")
+            return (Decimal(values[0]) / Decimal(values[1])).quantize(
+                Decimal(1).scaleb(-places), rounding=ROUND_HALF_EVEN
+            )
+        if operation == "round":
+            return Decimal(values[0]).quantize(
+                Decimal(1).scaleb(-places), rounding=ROUND_HALF_EVEN
+            )
+    raise ValueError("unsupported calculation")
+
+
