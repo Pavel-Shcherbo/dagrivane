@@ -197,3 +197,41 @@ def calculate(expression, row):
     raise ValueError("unsupported calculation")
 
 
+def aggregate(rows, config):
+    groups = {}
+    if not config["group_by"]:
+        groups[()] = []
+    for row in rows:
+        key = tuple(row[name] for name in config["group_by"])
+        groups.setdefault(key, []).append(row)
+    output = []
+    for key, members in groups.items():
+        result = dict(zip(config["group_by"], key))
+        for name, operation, column in config["metrics"]:
+            values = (
+                [row[column] for row in members if row[column] is not None]
+                if column
+                else []
+            )
+            if operation == "count":
+                value = len(values) if column else len(members)
+            elif not values:
+                value = None
+            elif operation in ("sum", "avg"):
+                with localcontext() as context:
+                    context.prec = 80
+                    value = sum(values)
+                    if operation == "avg":
+                        value = Decimal(value) / Decimal(len(values))
+                        value = value.quantize(
+                            Decimal("0.000000000000000001"), rounding=ROUND_HALF_EVEN
+                        )
+            elif operation == "min":
+                value = min(values)
+            else:
+                value = max(values)
+            result[name] = value
+        output.append(result)
+    return output
+
+
