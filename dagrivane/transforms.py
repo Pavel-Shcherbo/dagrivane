@@ -235,3 +235,39 @@ def aggregate(rows, config):
     return output
 
 
+def join(left, right, config, width):
+    indexed = {}
+    for row in right:
+        key = tuple(row[name] for name in config["right_on"])
+        if any(value is None for value in key):
+            continue
+        indexed.setdefault(key, []).append(row)
+    if config["cardinality"] in ("many_to_one", "one_to_one") and any(
+        len(values) > 1 for values in indexed.values()
+    ):
+        raise ValueError("join right keys violate declared cardinality")
+    seen, output = set(), []
+    for row in left:
+        key = tuple(row[name] for name in config["left_on"])
+        nonnull = not any(value is None for value in key)
+        if nonnull and config["cardinality"] == "one_to_one" and key in seen:
+            raise ValueError("join left keys violate one_to_one cardinality")
+        seen.add(key)
+        matches = indexed.get(key, []) if nonnull else []
+        if not matches and config["how"] == "left":
+            matches = [None]
+        for match in matches:
+            output.append(
+                {
+                    **row,
+                    **{
+                        target: match[source] if match is not None else None
+                        for source, target in config["right_columns"]
+                    },
+                }
+            )
+            if len(output) > MAX_ROWS or len(output) * width > MAX_CELLS:
+                raise ValueError("join exceeds output row or cell budget")
+    return output
+
+
