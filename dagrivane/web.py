@@ -13,11 +13,22 @@ def example():
 
 
 def evaluate(params):
-    spec = example()
+    mode = params.get("mode", "commands")
+    if mode not in ("commands", "dataflow"):
+        raise ValueError("mode must be commands or dataflow")
+    spec = json.loads(
+        (
+            examples_directory()
+            / ("typed-pipeline.json" if mode == "dataflow" else "pipeline.json")
+        ).read_text()
+    )
     for task in spec["tasks"]:
-        if task["command"][0] == "python3":
+        if "command" in task and task["command"][0] == "python3":
             task["command"][0] = sys.executable
-    if params.get("fail_quality"):
+    if params.get("fail_quality") and mode == "dataflow":
+        spec["tasks"][0]["dataflow"]["gates"][1]["min"] = 5
+        spec["tasks"][0]["dataflow"]["gates"][1]["max"] = 5
+    elif params.get("fail_quality"):
         spec["tasks"][1]["command"] = [
             sys.executable,
             "-c",
@@ -27,11 +38,12 @@ def evaluate(params):
     state = state_directory("dagrivane")
     inputs = state / "demo-inputs" / run_id
     inputs.mkdir(parents=True)
-    for name in ["orders.csv", "tasks.py"]:
+    for name in ["orders.csv", "tasks.py", "release_typed.py"]:
         copy2(examples_directory() / name, inputs / name)
     tasks = run(spec, state / "runs.sqlite", run_id, inputs)
     return {
         "run_id": run_id,
+        "mode": mode,
         "tasks": tasks,
         "succeeded": all(x["status"] == "succeeded" for x in tasks),
     }
