@@ -1,0 +1,162 @@
+{
+  "tasks": [
+    {
+      "id": "validate",
+      "dataflow": {
+        "version": 1,
+        "sources": [
+          {
+            "id": "orders",
+            "path": "orders.csv",
+            "sha256": "06b879f46634bef0f6b5e5a63a4cf379b459c91eae5e37c44da3aaecce07c2ad",
+            "contract": {
+              "name": "orders",
+              "version": 1,
+              "columns": [
+                {
+                  "name": "id",
+                  "type": "string"
+                },
+                {
+                  "name": "amount",
+                  "type": "decimal",
+                  "min": "0"
+                },
+                {
+                  "name": "currency",
+                  "type": "string",
+                  "enum": [
+                    "USD",
+                    "EUR"
+                  ]
+                }
+              ]
+            }
+          }
+        ],
+        "output": "orders",
+        "gates": [
+          {
+            "id": "unique_orders",
+            "kind": "unique",
+            "columns": [
+              "id"
+            ]
+          },
+          {
+            "id": "row_count",
+            "kind": "row_count",
+            "min": 4,
+            "max": 4
+          },
+          {
+            "id": "source_total",
+            "kind": "sum",
+            "columns": [
+              "amount"
+            ],
+            "min": "112.00",
+            "max": "112.00"
+          }
+        ],
+        "destination": ".local/typed-orders.json"
+      }
+    },
+    {
+      "id": "aggregate",
+      "needs": [
+        "validate"
+      ],
+      "dataflow": {
+        "version": 1,
+        "sources": [
+          {
+            "id": "orders",
+            "path": "orders.csv",
+            "sha256": "06b879f46634bef0f6b5e5a63a4cf379b459c91eae5e37c44da3aaecce07c2ad",
+            "contract": {
+              "name": "orders",
+              "version": 1,
+              "columns": [
+                {
+                  "name": "id",
+                  "type": "string"
+                },
+                {
+                  "name": "amount",
+                  "type": "decimal",
+                  "min": "0"
+                },
+                {
+                  "name": "currency",
+                  "type": "string",
+                  "enum": [
+                    "USD",
+                    "EUR"
+                  ]
+                }
+              ]
+            }
+          }
+        ],
+        "steps": [
+          {
+            "id": "summary",
+            "input": "orders",
+            "op": "aggregate",
+            "group_by": [
+              "currency"
+            ],
+            "metrics": [
+              {
+                "name": "revenue",
+                "op": "sum",
+                "column": "amount"
+              },
+              {
+                "name": "orders",
+                "op": "count"
+              }
+            ]
+          }
+        ],
+        "output": "summary",
+        "gates": [
+          {
+            "id": "currencies",
+            "kind": "unique",
+            "columns": [
+              "currency"
+            ]
+          },
+          {
+            "id": "total",
+            "kind": "sum",
+            "columns": [
+              "revenue"
+            ],
+            "min": "112.00",
+            "max": "112.00"
+          }
+        ],
+        "destination": ".local/typed-summary.json"
+      }
+    },
+    {
+      "id": "release-check",
+      "needs": [
+        "aggregate"
+      ],
+      "command": [
+        "python3",
+        "release_typed.py"
+      ]
+    }
+  ],
+  "inputs": [
+    {
+      "path": "orders.csv",
+      "sha256": "06b879f46634bef0f6b5e5a63a4cf379b459c91eae5e37c44da3aaecce07c2ad"
+    }
+  ]
+}
