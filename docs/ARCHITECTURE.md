@@ -19,3 +19,9 @@ authorization or organization model yet.
 ## Next architectural increment
 
 Add immutable output artifacts and attempt-level events before introducing scheduling or distributed execution. Timeout handling terminates the process group on POSIX, but does not provide an operating-system sandbox.
+
+## Typed data adapter
+
+`contracts` defines explicit scalar types and version-compatibility reports. `tables` loads bounded, hashed CSV into immutable records. `transforms` compiles schemas and applies relational operations; join cardinality and output budgets are explicit. `quality` separates data acceptance from execution success. `dataflow` compiles the complete plan before input I/O and publishes one create-only JSON bundle after all gates pass.
+
+`data_adapter` launches built-in plans through the graph's subprocess boundary, pinning imports to this installation. The normal checkpoint, timeout, cancellation and dependency semantics apply. The workbench selects between fixed bundled command and typed-data pipelines; it does not accept arbitrary process commands over HTTP. See DATAFLOWS.md for the exact scope and limits.
