@@ -1,0 +1,31 @@
+{
+  "scope": "Observed local browser checks for the typed-data workbench, not full product acceptance",
+  "passed": true,
+  "desktop_success": {
+    "tasks": [
+      "validate",
+      "aggregate",
+      "release-check"
+    ],
+    "states": [
+      "succeeded",
+      "succeeded",
+      "succeeded"
+    ]
+  },
+  "mobile_failure": {
+    "viewport_width": 390,
+    "document_scroll_width": 390,
+    "states": [
+      "failed",
+      "blocked",
+      "blocked"
+    ]
+  },
+  "console_errors": 0,
+  "console_warnings": 0,
+  "screenshots": {
+    "docs/workbench.png": "01a4c2f8ffb24fb1d26fcbf45789395a8d4ca56257d779c912c3a53331b5cd09",
+    "docs/workbench-mobile.png": "df3bbd04b4605da1a937625797792753e356806dad6198a2882583b52698ad1a"
+  }
+}
