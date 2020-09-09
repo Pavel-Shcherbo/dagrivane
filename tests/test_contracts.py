@@ -24,3 +24,31 @@ class ContractTests(unittest.TestCase):
             schema.parse_row({"amount": "1", "note": "\\N"}, from_csv=True)["note"]
         )
 
+    def test_types_do_not_coerce_booleans_floats_or_ambiguous_csv(self):
+        invalid = [
+            ("integer", True),
+            ("integer", 1.0),
+            ("decimal", 0.1),
+            ("boolean", 1),
+            ("date", "20260101"),
+            ("timestamp", "2026-01-01T00:00:00"),
+            ("decimal", "NaN"),
+            ("decimal", "1e999"),
+            ("integer", 2**63),
+            ("timestamp", "0001-01-01T00:00:00+23:59"),
+        ]
+        for kind, value in invalid:
+            with self.subTest(kind=kind, value=value), self.assertRaises(ValueError):
+                Column.compile({"name": "value", "type": kind}).parse(value)
+        for kind, text in [
+            ("integer", "01"),
+            ("integer", "+1"),
+            ("integer", " 1"),
+            ("boolean", "TRUE"),
+            ("integer", ""),
+        ]:
+            with self.subTest(kind=kind, text=text), self.assertRaises(ValueError):
+                Column.compile({"name": "value", "type": kind}).parse(
+                    text, from_csv=True
+                )
+
