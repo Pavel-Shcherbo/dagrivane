@@ -52,3 +52,14 @@ class ContractTests(unittest.TestCase):
                     text, from_csv=True
                 )
 
+    def test_timestamp_normalizes_offsets_and_date_remains_date(self):
+        timestamp = Column.compile({"name": "created", "type": "timestamp"})
+        self.assertEqual(
+            timestamp.parse("2026-01-01T03:00:00+03:00"),
+            dt.datetime(2026, 1, 1, tzinfo=dt.timezone.utc),
+        )
+        self.assertEqual(
+            Column.compile({"name": "day", "type": "date"}).parse("2026-01-01"),
+            dt.date(2026, 1, 1),
+        )
+
