@@ -63,3 +63,12 @@ class ContractTests(unittest.TestCase):
             dt.date(2026, 1, 1),
         )
 
+    def test_range_enum_and_null_constraints_are_enforced(self):
+        column = Column.compile(
+            {"name": "state", "type": "integer", "min": 0, "max": 10, "enum": [1, 2]}
+        )
+        self.assertEqual(column.parse(2), 2)
+        for value in [None, -1, 3, 11]:
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                column.parse(value)
+
