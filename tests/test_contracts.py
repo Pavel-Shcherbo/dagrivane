@@ -72,3 +72,10 @@ class ContractTests(unittest.TestCase):
             with self.subTest(value=value), self.assertRaises(ValueError):
                 column.parse(value)
 
+    def test_contract_round_trip_and_exact_fields(self):
+        schema = contract([{"name": "price", "type": "decimal", "min": "0.01"}])
+        self.assertEqual(Contract.compile(schema.definition()), schema)
+        for row in [{}, {"price": "1", "extra": 2}]:
+            with self.assertRaises(ValueError):
+                schema.parse_row(row)
+
