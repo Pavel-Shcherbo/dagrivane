@@ -79,3 +79,16 @@ class ContractTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 schema.parse_row(row)
 
+    def test_invalid_contracts_are_rejected(self):
+        for columns in [
+            [],
+            [{"name": "id", "type": "integer"}] * 2,
+            [{"name": "bad-name", "type": "string"}],
+            [{"name": "id", "type": "integer", "nullable": 1}],
+            [{"name": "id", "type": "string", "min": "a"}],
+            [{"name": "id", "type": "integer", "enum": []}],
+            [{"name": "id", "type": "integer", "min": 2, "max": 1}],
+        ]:
+            with self.subTest(columns=columns), self.assertRaises(ValueError):
+                contract(columns)
+
