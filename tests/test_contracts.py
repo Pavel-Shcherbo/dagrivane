@@ -92,3 +92,22 @@ class ContractTests(unittest.TestCase):
             with self.subTest(columns=columns), self.assertRaises(ValueError):
                 contract(columns)
 
+    def test_compatibility_accepts_widened_constraints(self):
+        old = contract(
+            [{"name": "id", "type": "integer", "min": 1, "max": 9, "enum": [1, 2]}]
+        )
+        new = contract(
+            [
+                {
+                    "name": "id",
+                    "type": "integer",
+                    "min": 0,
+                    "max": 10,
+                    "nullable": True,
+                    "enum": [1, 2, 3],
+                }
+            ],
+            version=2,
+        )
+        self.assertTrue(compatibility(old, new)["compatible"])
+
