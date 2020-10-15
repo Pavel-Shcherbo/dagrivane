@@ -111,3 +111,22 @@ class ContractTests(unittest.TestCase):
         )
         self.assertTrue(compatibility(old, new)["compatible"])
 
+    def test_compatibility_reports_breaks_and_required_migration(self):
+        old = contract([{"name": "id", "type": "integer", "nullable": True}])
+        changed = contract(
+            [
+                {"name": "id", "type": "integer", "min": 1},
+                {"name": "note", "type": "string", "nullable": True},
+            ],
+            version=2,
+        )
+        codes = {item["code"] for item in compatibility(old, changed)["issues"]}
+        self.assertEqual(
+            codes,
+            {
+                "nullability_tightened",
+                "minimum_tightened",
+                "column_added_requires_migration",
+            },
+        )
+        self.assertFalse(compatibility(old, old)["compatible"])
