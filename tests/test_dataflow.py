@@ -68,3 +68,11 @@ def plan(destination="release/orders.json"):
     }
 
 
+def input_file(folder):
+    path = Path(folder) / "orders.csv"
+    path.write_text("id,region,quantity,price\n1,EU,3,0.10\n2,EU,2,0.20\n")
+    return path
+
+
+class DataflowTests(unittest.TestCase):
+    pass
