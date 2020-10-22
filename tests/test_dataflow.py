@@ -75,4 +75,25 @@ def input_file(folder):
 
 
 class DataflowTests(unittest.TestCase):
-    pass
+    def test_real_csv_to_quality_gated_artifact(self):
+        with tempfile.TemporaryDirectory() as folder:
+            input_file(folder)
+            definition = plan()
+            report = run_plan(definition, folder)
+            self.assertTrue(report["passed"])
+            artifact = json.loads(
+                (Path(folder) / definition["destination"]).read_text()
+            )
+            self.assertEqual(
+                artifact["rows"], [{"region": "EU", "revenue": "0.70", "orders": 2}]
+            )
+            self.assertEqual(artifact["report"]["plan_sha256"], report["plan_sha256"])
+            self.assertEqual(
+                artifact["report"]["output"]["source_sha256"],
+                [
+                    hashlib.sha256(
+                        (Path(folder) / "orders.csv").read_bytes()
+                    ).hexdigest()
+                ],
+            )
+
