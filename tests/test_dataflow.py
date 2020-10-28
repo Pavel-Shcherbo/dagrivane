@@ -97,3 +97,14 @@ class DataflowTests(unittest.TestCase):
                 ],
             )
 
+    def test_quality_failure_never_publishes(self):
+        with tempfile.TemporaryDirectory() as folder:
+            input_file(folder)
+            definition = plan()
+            definition["gates"][1]["min"] = "10"
+            definition["gates"][1].pop("max")
+            report = run_plan(definition, folder)
+            self.assertFalse(report["passed"])
+            self.assertFalse((Path(folder) / definition["destination"]).exists())
+            self.assertNotIn("artifact", report)
+
