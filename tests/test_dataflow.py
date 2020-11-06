@@ -108,3 +108,13 @@ class DataflowTests(unittest.TestCase):
             self.assertFalse((Path(folder) / definition["destination"]).exists())
             self.assertNotIn("artifact", report)
 
+    def test_existing_artifact_is_preserved(self):
+        with tempfile.TemporaryDirectory() as folder:
+            input_file(folder)
+            target = Path(folder) / "result.json"
+            target.write_text("previous release")
+            with self.assertRaises(FileExistsError):
+                run_plan(plan("result.json"), folder)
+            self.assertEqual(target.read_text(), "previous release")
+            self.assertFalse(list(Path(folder).glob(".dagrivane-*")))
+
