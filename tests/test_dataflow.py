@@ -118,3 +118,20 @@ class DataflowTests(unittest.TestCase):
             self.assertEqual(target.read_text(), "previous release")
             self.assertFalse(list(Path(folder).glob(".dagrivane-*")))
 
+    def test_concurrent_publish_has_one_winner_and_no_torn_json(self):
+        with tempfile.TemporaryDirectory() as folder:
+            target = Path(folder) / "artifact.json"
+
+            def publish(value):
+                try:
+                    publish_bundle(target, {"value": value})
+                    return True
+                except FileExistsError:
+                    return False
+
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                outcomes = list(pool.map(publish, [1, 2]))
+            self.assertEqual(sum(outcomes), 1)
+            self.assertIn(json.loads(target.read_text())["value"], [1, 2])
+            self.assertFalse(list(Path(folder).glob(".dagrivane-*")))
+
