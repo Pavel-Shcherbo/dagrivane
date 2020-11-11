@@ -135,3 +135,15 @@ class DataflowTests(unittest.TestCase):
             self.assertIn(json.loads(target.read_text())["value"], [1, 2])
             self.assertFalse(list(Path(folder).glob(".dagrivane-*")))
 
+    def test_pinned_source_detects_change(self):
+        with tempfile.TemporaryDirectory() as folder:
+            source = input_file(folder)
+            definition = plan()
+            definition["sources"][0]["sha256"] = hashlib.sha256(
+                source.read_bytes()
+            ).hexdigest()
+            source.write_text(source.read_text().replace("0.10", "0.11"))
+            with self.assertRaisesRegex(ValueError, "pinned hash"):
+                run_plan(definition, folder)
+            self.assertFalse((Path(folder) / definition["destination"]).exists())
+
