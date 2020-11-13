@@ -153,3 +153,12 @@ class DataflowTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "unknown column"):
             run_plan(definition, "/nonexistent/path")
 
+    def test_compiled_plan_is_independent_of_original_mutation(self):
+        definition = plan()
+        compiled = compile_plan(definition)
+        definition["sources"][0]["path"] = "missing.csv"
+        with tempfile.TemporaryDirectory() as folder:
+            input_file(folder)
+            report, _ = compiled.execute(folder)
+            self.assertTrue(report["passed"])
+
