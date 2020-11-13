@@ -147,3 +147,9 @@ class DataflowTests(unittest.TestCase):
                 run_plan(definition, folder)
             self.assertFalse((Path(folder) / definition["destination"]).exists())
 
+    def test_whole_plan_is_compiled_before_reading_sources(self):
+        definition = plan()
+        definition["steps"][1]["metrics"][0]["column"] = "missing"
+        with self.assertRaisesRegex(ValueError, "unknown column"):
+            run_plan(definition, "/nonexistent/path")
+
