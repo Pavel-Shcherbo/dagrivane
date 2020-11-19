@@ -162,3 +162,24 @@ class DataflowTests(unittest.TestCase):
             report, _ = compiled.execute(folder)
             self.assertTrue(report["passed"])
 
+    def test_invalid_references_shapes_and_paths_are_rejected(self):
+        invalid = []
+        for change in [
+            lambda d: d.update(version=True),
+            lambda d: d.update(output="unknown"),
+            lambda d: d.update(destination="../outside.json"),
+            lambda d: d["steps"][0].update(input="summary"),
+            lambda d: d["steps"][1].update(id="orders"),
+            lambda d: d["gates"][0].update(ignore_nulls="yes"),
+            lambda d: d["sources"][0].update(sha256="wrong"),
+        ]:
+            definition = plan()
+            change(definition)
+            invalid.append(definition)
+        for definition in invalid:
+            with self.subTest(definition=definition), self.assertRaises(ValueError):
+                compile_plan(definition)
+        for text in ['{"version":1,"version":2}', '{"x":NaN}']:
+            with self.assertRaises(ValueError):
+                load_plan(text)
+
