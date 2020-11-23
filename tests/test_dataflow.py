@@ -183,3 +183,28 @@ class DataflowTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 load_plan(text)
 
+    def test_cli_pass_and_quality_failure_have_distinct_exit_codes(self):
+        with tempfile.TemporaryDirectory() as folder:
+            input_file(folder)
+            path = Path(folder) / "flow.json"
+            definition = plan()
+            path.write_text(json.dumps(definition))
+            result = subprocess.run(
+                [sys.executable, "-m", "dagrivane.dataflow", str(path)],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue(json.loads(result.stdout)["passed"])
+            definition["gates"][1].update(min="10", max="10")
+            path.write_text(json.dumps(definition))
+            failed = subprocess.run(
+                [sys.executable, "-m", "dagrivane.dataflow", str(path)],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            self.assertEqual(failed.returncode, 3, failed.stderr)
+            self.assertFalse(json.loads(failed.stdout)["passed"])
+
