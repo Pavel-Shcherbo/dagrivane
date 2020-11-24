@@ -233,3 +233,30 @@ class DataflowTests(unittest.TestCase):
             )
             self.assertEqual([task["attempts"] for task in second], [1, 1])
 
+    def test_graph_quality_failure_blocks_release(self):
+        with tempfile.TemporaryDirectory() as folder:
+            input_file(folder)
+            definition = plan()
+            definition["gates"][1].update(min="10", max="10")
+            result = run(
+                {
+                    "tasks": [
+                        {"id": "data", "dataflow": definition},
+                        {
+                            "id": "release",
+                            "needs": ["data"],
+                            "command": [
+                                sys.executable,
+                                "-c",
+                                'raise RuntimeError("must not start")',
+                            ],
+                        },
+                    ]
+                },
+                Path(folder) / "runs.db",
+                "failure",
+                folder,
+            )
+            self.assertEqual([task["status"] for task in result], ["failed", "blocked"])
+            self.assertFalse((Path(folder) / definition["destination"]).exists())
+
