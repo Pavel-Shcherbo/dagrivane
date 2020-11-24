@@ -208,3 +208,28 @@ class DataflowTests(unittest.TestCase):
             self.assertEqual(failed.returncode, 3, failed.stderr)
             self.assertFalse(json.loads(failed.stdout)["passed"])
 
+    def test_graph_adapter_runs_from_unrelated_workspace_and_resumes(self):
+        with tempfile.TemporaryDirectory() as folder:
+            input_file(folder)
+            spec = {
+                "tasks": [
+                    {"id": "data", "dataflow": plan()},
+                    {
+                        "id": "release",
+                        "needs": ["data"],
+                        "command": [
+                            sys.executable,
+                            "-c",
+                            'import json; from pathlib import Path; assert json.loads(Path("release/orders.json").read_text())["rows"][0]["revenue"] == "0.70"',
+                        ],
+                    },
+                ]
+            }
+            state = Path(folder) / "runs.db"
+            first = run(spec, state, "flow", folder)
+            second = run(spec, state, "flow", folder)
+            self.assertEqual(
+                [task["status"] for task in first], ["succeeded", "succeeded"]
+            )
+            self.assertEqual([task["attempts"] for task in second], [1, 1])
+
