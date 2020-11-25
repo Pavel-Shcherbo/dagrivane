@@ -260,3 +260,32 @@ class DataflowTests(unittest.TestCase):
             self.assertEqual([task["status"] for task in result], ["failed", "blocked"])
             self.assertFalse((Path(folder) / definition["destination"]).exists())
 
+    def test_invalid_builtin_task_prevents_all_graph_side_effects(self):
+        with tempfile.TemporaryDirectory() as folder:
+            marker = Path(folder) / "started"
+            definition = plan()
+            definition["output"] = "unknown"
+            spec = {
+                "tasks": [
+                    {
+                        "id": "effect",
+                        "command": [
+                            sys.executable,
+                            "-c",
+                            f'open({str(marker)!r}, "w").close()',
+                        ],
+                    },
+                    {"id": "invalid", "dataflow": definition},
+                ]
+            }
+            with self.assertRaises(ValueError):
+                run(spec, Path(folder) / "runs.db", "invalid", folder)
+            self.assertFalse(marker.exists())
+            with self.assertRaises(ValueError):
+                validate(
+                    {
+                        "tasks": [
+                            {"id": "ambiguous", "command": ["true"], "dataflow": plan()}
+                        ]
+                    }
+                )
