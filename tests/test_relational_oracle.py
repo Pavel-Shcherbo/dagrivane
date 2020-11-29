@@ -93,3 +93,26 @@ class RelationalOracleTests(unittest.TestCase):
                 ).fetchall()
             self.assertCountEqual(actual, expected)
 
+    def test_many_to_many_growth_is_bounded(self):
+        schema = Contract.compile(
+            {
+                "name": "rows",
+                "version": 1,
+                "columns": [{"name": "key", "type": "integer"}],
+            }
+        )
+        table = Table.from_rows(schema, [{"key": 1}] * 317)
+        operation = compile_operation(
+            {
+                "op": "join",
+                "right": "rows",
+                "left_on": ["key"],
+                "right_on": ["key"],
+                "right_columns": {"key": "right_key"},
+                "cardinality": "many_to_many",
+            },
+            schema,
+            schema,
+        )
+        with self.assertRaisesRegex(ValueError, "budget"):
+            operation.apply(table, table)
