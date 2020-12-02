@@ -9,4 +9,15 @@ from dagrivane.tables import Table, read_csv, local_path
 
 
 class TableTests(unittest.TestCase):
-    pass
+    def setUp(self):
+        self.schema = Contract.compile(
+            {
+                "name": "orders",
+                "version": 1,
+                "columns": [
+                    {"name": "id", "type": "integer"},
+                    {"name": "amount", "type": "decimal"},
+                ],
+            }
+        )
+
