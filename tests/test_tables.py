@@ -36,3 +36,18 @@ class TableTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "pinned hash"):
                 read_csv(path, self.schema, expected_sha256="0" * 64)
 
+    def test_invalid_csv_is_rejected_with_record_context(self):
+        for text in [
+            "amount,id\n1,2\n",
+            "id,amount\n1\n",
+            "id,amount\n1,nope\n",
+            "id,amount\n1,2,3\n",
+            'id,amount\n"1,2\n',
+            "id,amount\n1,\x00\n",
+        ]:
+            with tempfile.TemporaryDirectory() as folder, self.subTest(text=text):
+                path = Path(folder) / "input.csv"
+                path.write_text(text)
+                with self.assertRaises(ValueError):
+                    read_csv(path, self.schema)
+
