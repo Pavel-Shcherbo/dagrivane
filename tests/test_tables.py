@@ -63,3 +63,21 @@ class TableTests(unittest.TestCase):
         with self.assertRaises(FrozenInstanceError):
             table.records = ()
 
+    def test_paths_cannot_escape_including_symlinks(self):
+        with (
+            tempfile.TemporaryDirectory() as folder,
+            tempfile.TemporaryDirectory() as external,
+        ):
+            root = Path(folder)
+            (root / "outside").symlink_to(external, target_is_directory=True)
+            for relative in [
+                "../outside.csv",
+                "/tmp/outside.csv",
+                "outside/data.csv",
+                ".",
+            ]:
+                with self.subTest(relative=relative), self.assertRaises(ValueError):
+                    local_path(root, relative)
+            self.assertEqual(
+                local_path(root, "safe/input.csv"), (root / "safe/input.csv").resolve()
+            )
