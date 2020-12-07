@@ -51,3 +51,15 @@ class TableTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     read_csv(path, self.schema)
 
+    def test_table_is_immutable_and_identity_covers_schema_and_order(self):
+        rows = [{"id": 1, "amount": "1"}, {"id": 2, "amount": "2"}]
+        table = Table.from_rows(self.schema, rows)
+        identity = table.digest()
+        rows[0]["id"] = 99
+        next(table.rows())["id"] = 100
+        self.assertEqual(table.digest(), identity)
+        reversed_table = Table.from_rows(self.schema, list(reversed(table.json_rows())))
+        self.assertNotEqual(reversed_table.digest(), identity)
+        with self.assertRaises(FrozenInstanceError):
+            table.records = ()
+
