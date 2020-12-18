@@ -31,4 +31,10 @@ def table():
 
 
 class TransformTests(unittest.TestCase):
-    pass
+    def apply(self, definition, source=None, right=None):
+        source = source or table()
+        compiled = compile_operation(
+            definition, source.contract, right.contract if right else None
+        )
+        return compiled.apply(source, right)
+
