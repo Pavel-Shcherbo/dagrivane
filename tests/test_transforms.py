@@ -38,3 +38,33 @@ class TransformTests(unittest.TestCase):
         )
         return compiled.apply(source, right)
 
+    def test_money_calculation_and_hand_computed_group_sum(self):
+        priced = self.apply(
+            {
+                "op": "calculate",
+                "column": {"name": "total", "type": "decimal", "nullable": True},
+                "expression": {
+                    "op": "multiply",
+                    "args": [{"column": "price"}, {"column": "quantity"}],
+                },
+            }
+        )
+        summary = self.apply(
+            {
+                "op": "aggregate",
+                "group_by": ["region"],
+                "metrics": [
+                    {"name": "revenue", "op": "sum", "column": "total"},
+                    {"name": "orders", "op": "count"},
+                ],
+            },
+            priced,
+        )
+        self.assertEqual(
+            summary.json_rows(),
+            [
+                {"region": "EU", "revenue": "0.70", "orders": 2},
+                {"region": None, "revenue": None, "orders": 1},
+            ],
+        )
+
