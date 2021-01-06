@@ -68,3 +68,19 @@ class TransformTests(unittest.TestCase):
             ],
         )
 
+    def test_divide_rounds_to_explicit_places_and_zero_fails(self):
+        definition = {
+            "op": "calculate",
+            "column": {"name": "third", "type": "decimal"},
+            "expression": {
+                "op": "divide",
+                "args": [{"column": "quantity"}, {"literal": "3"}],
+                "places": 4,
+            },
+        }
+        result = self.apply(definition)
+        self.assertEqual(list(result.rows())[1]["third"], Decimal("0.6667"))
+        definition["expression"]["args"][1]["literal"] = "0"
+        with self.assertRaisesRegex(ValueError, "zero"):
+            self.apply(definition)
+
