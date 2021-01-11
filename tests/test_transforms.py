@@ -84,3 +84,16 @@ class TransformTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "zero"):
             self.apply(definition)
 
+    def test_null_filter_does_not_treat_unknown_as_not_equal(self):
+        result = self.apply(
+            {
+                "op": "filter",
+                "conditions": [{"column": "region", "op": "ne", "value": "EU"}],
+            }
+        )
+        self.assertEqual(len(result.records), 0)
+        result = self.apply(
+            {"op": "filter", "conditions": [{"column": "region", "op": "is_null"}]}
+        )
+        self.assertEqual(result.json_rows()[0]["id"], 3)
+
