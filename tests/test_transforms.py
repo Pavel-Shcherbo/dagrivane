@@ -97,3 +97,17 @@ class TransformTests(unittest.TestCase):
         )
         self.assertEqual(result.json_rows()[0]["id"], 3)
 
+    def test_select_rename_and_collision_validation(self):
+        result = self.apply(
+            {"op": "select", "columns": ["id", "region"], "rename": {"id": "order_id"}}
+        )
+        self.assertEqual(result.contract.names, ("order_id", "region"))
+        with self.assertRaises(ValueError):
+            self.apply(
+                {
+                    "op": "select",
+                    "columns": ["id", "region"],
+                    "rename": {"id": "region"},
+                }
+            )
+
