@@ -111,3 +111,34 @@ class TransformTests(unittest.TestCase):
                 }
             )
 
+    def test_left_join_preserves_unmatched_rows_and_null_never_matches(self):
+        right_schema = Contract.compile(
+            {
+                "name": "regions",
+                "version": 1,
+                "columns": [
+                    {"name": "code", "type": "string", "nullable": True},
+                    {"name": "tax", "type": "decimal"},
+                ],
+            }
+        )
+        right = Table.from_rows(
+            right_schema, [{"code": "EU", "tax": "0.2"}, {"code": None, "tax": "0.9"}]
+        )
+        definition = {
+            "op": "join",
+            "right": "regions",
+            "left_on": ["region"],
+            "right_on": ["code"],
+            "right_columns": {"tax": "tax_rate"},
+            "how": "left",
+        }
+        rows = self.apply(definition, right=right).json_rows()
+        self.assertEqual([row["tax_rate"] for row in rows], ["0.2", "0.2", None])
+        duplicated = Table.from_rows(right_schema, [{"code": "EU", "tax": "0.2"}] * 2)
+        with self.assertRaisesRegex(ValueError, "cardinality"):
+            self.apply(definition, right=duplicated)
+        definition["cardinality"] = "one_to_one"
+        with self.assertRaisesRegex(ValueError, "one_to_one"):
+            self.apply(definition, right=right)
+
