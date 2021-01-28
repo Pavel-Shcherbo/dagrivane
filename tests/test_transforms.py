@@ -142,3 +142,18 @@ class TransformTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "one_to_one"):
             self.apply(definition, right=right)
 
+    def test_global_empty_aggregate_has_count_zero_and_sum_null(self):
+        source = Table(table().contract, ())
+        result = self.apply(
+            {
+                "op": "aggregate",
+                "group_by": [],
+                "metrics": [
+                    {"name": "n", "op": "count"},
+                    {"name": "total", "op": "sum", "column": "price"},
+                ],
+            },
+            source,
+        )
+        self.assertEqual(result.json_rows(), [{"n": 0, "total": None}])
+
