@@ -157,3 +157,18 @@ class TransformTests(unittest.TestCase):
         )
         self.assertEqual(result.json_rows(), [{"n": 0, "total": None}])
 
+    def test_stable_sort_explicit_null_placement_distinct_and_limit(self):
+        source = table()
+        sorted_table = self.apply(
+            {
+                "op": "sort",
+                "keys": [{"column": "region", "descending": True, "nulls_first": True}],
+            },
+            source,
+        )
+        self.assertEqual([row["id"] for row in sorted_table.rows()], [3, 1, 2])
+        distinct = self.apply({"op": "distinct", "columns": ["region"]}, source)
+        self.assertEqual([row["id"] for row in distinct.rows()], [1, 3])
+        limited = self.apply({"op": "limit", "offset": 1, "count": 1}, distinct)
+        self.assertEqual(limited.json_rows()[0]["id"], 3)
+
