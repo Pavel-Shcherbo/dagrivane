@@ -172,3 +172,26 @@ class TransformTests(unittest.TestCase):
         limited = self.apply({"op": "limit", "offset": 1, "count": 1}, distinct)
         self.assertEqual(limited.json_rows()[0]["id"], 3)
 
+    def test_coalesce_and_text_normalization(self):
+        result = self.apply(
+            {
+                "op": "calculate",
+                "column": {"name": "label", "type": "string"},
+                "expression": {
+                    "op": "coalesce",
+                    "args": [{"column": "region"}, {"literal": "unknown"}],
+                },
+            }
+        )
+        result = self.apply(
+            {
+                "op": "calculate",
+                "column": {"name": "normalized", "type": "string"},
+                "expression": {"op": "lower", "args": [{"column": "label"}]},
+            },
+            result,
+        )
+        self.assertEqual(
+            [row["normalized"] for row in result.rows()], ["eu", "eu", "unknown"]
+        )
+
