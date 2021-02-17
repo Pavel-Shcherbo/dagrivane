@@ -195,3 +195,28 @@ class TransformTests(unittest.TestCase):
             [row["normalized"] for row in result.rows()], ["eu", "eu", "unknown"]
         )
 
+    def test_gates_distinguish_counts_nulls_duplicates_and_decimal_sums(self):
+        source = table()
+        gates = compile_gates(
+            [
+                {"id": "rows", "kind": "row_count", "min": 3, "max": 3},
+                {"id": "ids", "kind": "unique", "columns": ["id"]},
+                {"id": "regions", "kind": "unique", "columns": ["region"]},
+                {"id": "prices", "kind": "not_null", "columns": ["price"]},
+                {
+                    "id": "sum",
+                    "kind": "sum",
+                    "columns": ["price"],
+                    "min": "0.30",
+                    "max": "0.30",
+                },
+            ],
+            source.contract,
+        )
+        results = [gate.evaluate(source) for gate in gates]
+        self.assertEqual(
+            [result["passed"] for result in results], [True, True, False, False, True]
+        )
+        self.assertEqual(results[2]["sample_record_numbers"], [2])
+        self.assertEqual(results[3]["sample_record_numbers"], [3])
+
