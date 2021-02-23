@@ -220,3 +220,26 @@ class TransformTests(unittest.TestCase):
         self.assertEqual(results[2]["sample_record_numbers"], [2])
         self.assertEqual(results[3]["sample_record_numbers"], [3])
 
+    def test_invalid_types_and_unknown_fields_fail_at_compile_time(self):
+        invalid = [
+            {
+                "op": "filter",
+                "conditions": [{"column": "id", "op": "contains", "value": 1}],
+            },
+            {
+                "op": "filter",
+                "conditions": [{"column": "id", "op": "eq", "value": True}],
+            },
+            {"op": "limit", "count": True},
+            {"op": "select", "columns": ["unknown"]},
+            {
+                "op": "aggregate",
+                "group_by": [],
+                "metrics": [{"name": "bad", "op": "sum", "column": "region"}],
+            },
+            {"op": "sort", "keys": [{"column": "id", "descending": "yes"}]},
+            {"op": "limit", "count": 1, "typo": 2},
+        ]
+        for definition in invalid:
+            with self.subTest(definition=definition), self.assertRaises(ValueError):
+                compile_operation(definition, table().contract)
