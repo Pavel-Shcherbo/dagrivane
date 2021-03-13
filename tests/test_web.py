@@ -30,3 +30,13 @@ class WorkbenchTests(unittest.TestCase):
             self.assertTrue((success_dir / ".local/typed-summary.json").exists())
             self.assertFalse((failure_dir / ".local/typed-summary.json").exists())
 
+    def test_invalid_mode_is_rejected_before_creating_runtime_state(self):
+        with (
+            tempfile.TemporaryDirectory() as folder,
+            patch.dict(
+                "os.environ", {"DAGRIVANE_STATE_DIR": str(Path(folder) / "state")}
+            ),
+        ):
+            with self.assertRaises(ValueError):
+                evaluate({"mode": "unknown"})
+            self.assertFalse((Path(folder) / "state").exists())
