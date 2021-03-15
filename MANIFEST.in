@@ -5,3 +5,4 @@ include examples/tasks.py
 include examples/dataflow.json
 include examples/typed-pipeline.json
 include examples/release_typed.py
+include examples/summary_app.py
