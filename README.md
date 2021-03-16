@@ -35,6 +35,12 @@ Run `python3 -m dagrivane.dataflow examples/dataflow.json` for schema-checked CS
 
 The adapter provides typed contracts, explicit decimal calculations, filters, bounded joins, grouping, stable sorting, quality gates and create-only output bundles. See [dataflow guide](docs/DATAFLOWS.md) for commands, schemas, null semantics and resource limits.
 
+## Artifact and release catalog
+
+`python3 -m dagrivane.release_demo --output .local/release-control` executes a quality-checked dataset and an application package through content-addressed artifact recording, pinned release verification and prerequisite-gated local environment pointers. The workbench includes healthy, changed-data and missing-prerequisite controls.
+
+The [artifact guide](docs/ARTIFACTS.md) covers immutable policies, dataset versions, lineage, generation conflicts and independently verifiable release exports. `python3 -m dagrivane.catalog_cli --help` exposes the persistent operator interface.
+
 ## Boundaries
 
 Task execution within each workflow run is local and sequential. Commands are trusted local programs, not sandboxed workloads. Captured output is not a secret store. A process crash may leave external effects with an unknown outcome; the runner refuses to silently retry a task marked running. The durable control plane supports versioned workflow registration, idempotent submission, worker leases, cancellation, event cursors and pinned interval schedules through the operator CLI. Tasks within each run remain sequential. Remote executors, connector SDKs, CI promotion and authenticated multi-user operation remain planned.
