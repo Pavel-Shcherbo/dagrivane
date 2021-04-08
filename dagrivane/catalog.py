@@ -78,3 +78,13 @@ class Catalog(ReleaseOperations):
         finally:
             db.close()
 
+    def _namespace(self, db, workspace):
+        token(workspace, "workspace")
+        if (
+            db.execute(
+                "SELECT name FROM namespaces WHERE name=?", (workspace,)
+            ).fetchone()
+            is None
+        ):
+            raise CatalogError("unknown catalog workspace")
+
