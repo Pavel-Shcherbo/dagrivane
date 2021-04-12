@@ -88,3 +88,11 @@ class Catalog(ReleaseOperations):
         ):
             raise CatalogError("unknown catalog workspace")
 
+    def create_workspace(self, name):
+        token(name, "workspace")
+        with self._tx() as db:
+            db.execute("INSERT OR IGNORE INTO namespaces VALUES (?,?)", (name, now()))
+            return dict(
+                db.execute("SELECT * FROM namespaces WHERE name=?", (name,)).fetchone()
+            )
+
