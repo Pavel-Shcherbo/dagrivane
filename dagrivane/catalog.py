@@ -96,3 +96,9 @@ class Catalog(ReleaseOperations):
                 db.execute("SELECT * FROM namespaces WHERE name=?", (name,)).fetchone()
             )
 
+    def _event(self, db, workspace, kind, payload):
+        db.execute(
+            "INSERT INTO catalog_events(workspace,kind,payload,created_at) VALUES (?,?,?,?)",
+            (workspace, kind, json_bytes(payload, 1024 * 1024).decode(), now()),
+        )
+
