@@ -102,3 +102,17 @@ class Catalog(ReleaseOperations):
             (workspace, kind, json_bytes(payload, 1024 * 1024).decode(), now()),
         )
 
+    def _request(self, db, workspace, key, operation, payload):
+        token(key, "request key")
+        identity = fingerprint(payload)
+        row = db.execute(
+            "SELECT * FROM requests WHERE workspace=? AND key=?", (workspace, key)
+        ).fetchone()
+        if row:
+            if row["operation"] != operation or row["fingerprint"] != identity:
+                raise CatalogError(
+                    "request key conflicts with a different operation or payload"
+                )
+            return json.loads(row["result"]), identity
+        return None, identity
+
