@@ -116,3 +116,16 @@ class Catalog(ReleaseOperations):
             return json.loads(row["result"]), identity
         return None, identity
 
+    def _remember(self, db, workspace, key, operation, identity, result):
+        db.execute(
+            "INSERT INTO requests VALUES (?,?,?,?,?)",
+            (
+                workspace,
+                key,
+                operation,
+                identity,
+                json_bytes(result, 1024 * 1024).decode(),
+            ),
+        )
+        return result
+
