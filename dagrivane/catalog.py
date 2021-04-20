@@ -129,3 +129,66 @@ class Catalog(ReleaseOperations):
         )
         return result
 
+    def register_policy(
+        self, workspace, name, version, contract, gates, *, allow_breaking=False
+    ):
+        token(name, "dataset name")
+        if type(allow_breaking) is not bool:
+            raise CatalogError("allow_breaking must be boolean")
+        definition, compiled, _ = policy_definition(contract, gates, version)
+        identity = fingerprint(definition)
+        with self._tx() as db:
+            self._namespace(db, workspace)
+            existing = db.execute(
+                "SELECT * FROM policies WHERE workspace=? AND name=? AND version=?",
+                (workspace, name, version),
+            ).fetchone()
+            if existing:
+                if existing["fingerprint"] != identity:
+                    raise CatalogError(
+                        "policy version is immutable and has different content"
+                    )
+                return self._policy(db, workspace, name, version)
+            previous = db.execute(
+                "SELECT * FROM policies WHERE workspace=? AND name=? ORDER BY version DESC LIMIT 1",
+                (workspace, name),
+            ).fetchone()
+            expected = previous["version"] + 1 if previous else 1
+            if version != expected:
+                raise CatalogError(
+                    "dataset policy versions must start at one and increase consecutively"
+                )
+            report = {"compatible": True, "issues": []}
+            if previous:
+                old = json.loads(previous["payload"])
+                report = compatibility(Contract.compile(old["contract"]), compiled)
+                if not report["compatible"] and not allow_breaking:
+                    raise CatalogError(
+                        "breaking contract evolution requires allow_breaking=True and an explicit migration decision"
+                    )
+            db.execute(
+                "INSERT INTO policies VALUES (?,?,?,?,?,?,?)",
+                (
+                    workspace,
+                    name,
+                    version,
+                    json_bytes(definition).decode(),
+                    identity,
+                    json_bytes(report).decode(),
+                    now(),
+                ),
+            )
+            self._event(
+                db,
+                workspace,
+                "policy_registered",
+                {
+                    "dataset": name,
+                    "version": version,
+                    "sha256": identity,
+                    "compatibility": report,
+                    "breaking_allowed": allow_breaking,
+                },
+            )
+            return self._policy(db, workspace, name, version)
+
