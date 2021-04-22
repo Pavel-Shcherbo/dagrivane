@@ -192,3 +192,22 @@ class Catalog(ReleaseOperations):
             )
             return self._policy(db, workspace, name, version)
 
+    def _policy(self, db, workspace, name, version):
+        row = db.execute(
+            "SELECT * FROM policies WHERE workspace=? AND name=? AND version=?",
+            (workspace, name, version),
+        ).fetchone()
+        if row is None:
+            raise CatalogError("unknown dataset policy version")
+        definition = json.loads(row["payload"])
+        if fingerprint(definition) != row["fingerprint"]:
+            raise CatalogError("stored dataset policy failed fingerprint verification")
+        return {
+            "workspace": workspace,
+            "name": name,
+            "version": version,
+            "definition": definition,
+            "sha256": row["fingerprint"],
+            "compatibility": json.loads(row["compatibility"]),
+        }
+
