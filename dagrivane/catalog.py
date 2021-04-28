@@ -211,3 +211,10 @@ class Catalog(ReleaseOperations):
             "compatibility": json.loads(row["compatibility"]),
         }
 
+    def policy(self, workspace, name, version):
+        token(name, "dataset name")
+        positive_version(version)
+        with self._tx(False) as db:
+            self._namespace(db, workspace)
+            return self._policy(db, workspace, name, version)
+
