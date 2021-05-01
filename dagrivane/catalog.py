@@ -218,3 +218,21 @@ class Catalog(ReleaseOperations):
             self._namespace(db, workspace)
             return self._policy(db, workspace, name, version)
 
+    def _artifact(self, db, workspace, identity):
+        token(identity, "artifact ID")
+        row = db.execute(
+            "SELECT * FROM artifacts WHERE workspace=? AND id=?", (workspace, identity)
+        ).fetchone()
+        if row is None:
+            raise CatalogError("unknown artifact in this workspace")
+        result = dict(row)
+        result["metadata"] = json.loads(result["metadata"])
+        result["parents"] = [
+            row["parent"]
+            for row in db.execute(
+                "SELECT parent FROM parents WHERE workspace=? AND child=? ORDER BY parent",
+                (workspace, identity),
+            )
+        ]
+        return result
+
