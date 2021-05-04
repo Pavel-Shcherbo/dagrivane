@@ -236,3 +236,12 @@ class Catalog(ReleaseOperations):
         ]
         return result
 
+    def _parents(self, db, workspace, parents):
+        if not isinstance(parents, (list, tuple)) or len(parents) > 100:
+            raise CatalogError("artifact parents must contain at most 100 IDs")
+        for parent in parents:
+            self._artifact(db, workspace, parent)
+        if len(set(parents)) != len(parents):
+            raise CatalogError("artifact parent IDs must be unique")
+        return sorted(parents)
+
