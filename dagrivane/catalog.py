@@ -245,3 +245,54 @@ class Catalog(ReleaseOperations):
             raise CatalogError("artifact parent IDs must be unique")
         return sorted(parents)
 
+    def _insert_artifact(
+        self,
+        db,
+        workspace,
+        name,
+        kind,
+        payload,
+        run_id,
+        parents,
+        metadata,
+        *,
+        revision=None,
+        policy_name=None,
+        policy_version=None,
+    ):
+        stored = self.objects.put(payload)
+        identity = uuid.uuid4().hex
+        db.execute(
+            "INSERT INTO artifacts(id,workspace,name,kind,sha256,bytes,run_id,revision,policy_name,policy_version,metadata,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+            (
+                identity,
+                workspace,
+                name,
+                kind,
+                stored["sha256"],
+                stored["bytes"],
+                run_id,
+                revision,
+                policy_name,
+                policy_version,
+                json_bytes(metadata).decode(),
+                now(),
+            ),
+        )
+        db.executemany(
+            "INSERT INTO parents VALUES (?,?,?)",
+            [(workspace, identity, parent) for parent in parents],
+        )
+        self._event(
+            db,
+            workspace,
+            "artifact_recorded",
+            {
+                "artifact": identity,
+                "kind": kind,
+                "sha256": stored["sha256"],
+                "parents": parents,
+            },
+        )
+        return identity
+
