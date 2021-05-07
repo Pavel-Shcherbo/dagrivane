@@ -353,3 +353,65 @@ class Catalog(ReleaseOperations):
                 db, workspace, request_key, "publish_table", request_hash, result
             )
 
+    def record_build(
+        self,
+        workspace,
+        name,
+        path,
+        *,
+        revision,
+        run_id,
+        request_key,
+        parents=(),
+        media_type="application/octet-stream",
+    ):
+        token(name, "build name")
+        token(run_id, "run ID")
+        if not isinstance(revision, str) or not REVISION.fullmatch(revision):
+            raise CatalogError(
+                "build revision must be a full 40- or 64-character lowercase source hash"
+            )
+        if not isinstance(media_type, str) or not re.fullmatch(
+            r"[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]{0,63}/[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]{0,63}",
+            media_type,
+        ):
+            raise CatalogError("build media_type must be a bounded MIME type/subtype")
+        payload = bounded_file(path)
+        if not payload:
+            raise CatalogError("build artifact must not be empty")
+        with self._tx() as db:
+            self._namespace(db, workspace)
+            parents = self._parents(db, workspace, parents)
+            request = {
+                "name": name,
+                "blob_sha256": hashlib.sha256(payload).hexdigest(),
+                "run_id": run_id,
+                "revision": revision,
+                "parents": parents,
+                "media_type": media_type,
+            }
+            previous, request_hash = self._request(
+                db, workspace, request_key, "record_build", request
+            )
+            if previous is not None:
+                return previous
+            identity = self._insert_artifact(
+                db,
+                workspace,
+                name,
+                "build",
+                payload,
+                run_id,
+                parents,
+                {"media_type": media_type},
+                revision=revision,
+            )
+            return self._remember(
+                db,
+                workspace,
+                request_key,
+                "record_build",
+                request_hash,
+                self._artifact(db, workspace, identity),
+            )
+
