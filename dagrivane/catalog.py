@@ -296,3 +296,60 @@ class Catalog(ReleaseOperations):
         )
         return identity
 
+    def publish_table(
+        self, workspace, name, policy_version, path, *, run_id, request_key, parents=()
+    ):
+        token(name, "dataset name")
+        token(run_id, "run ID")
+        positive_version(policy_version)
+        payload = bounded_file(path)
+        table, report = table_bundle(payload)
+        with self._tx() as db:
+            self._namespace(db, workspace)
+            parents = self._parents(db, workspace, parents)
+            policy = self._policy(db, workspace, name, policy_version)
+            checks = verify_policy(table, policy["definition"])
+            request = {
+                "dataset": name,
+                "policy_version": policy_version,
+                "blob_sha256": hashlib.sha256(payload).hexdigest(),
+                "run_id": run_id,
+                "parents": parents,
+            }
+            previous, request_hash = self._request(
+                db, workspace, request_key, "publish_table", request
+            )
+            if previous is not None:
+                return previous
+            sequence = db.execute(
+                "SELECT COALESCE(MAX(version),0)+1 FROM dataset_versions WHERE workspace=? AND name=?",
+                (workspace, name),
+            ).fetchone()[0]
+            metadata = {
+                "dataset_version": sequence,
+                "table": table.summary(),
+                "quality_checks": checks,
+                "plan_sha256": report["plan_sha256"],
+                "policy_sha256": policy["sha256"],
+            }
+            identity = self._insert_artifact(
+                db,
+                workspace,
+                name,
+                "table",
+                payload,
+                run_id,
+                parents,
+                metadata,
+                policy_name=name,
+                policy_version=policy_version,
+            )
+            db.execute(
+                "INSERT INTO dataset_versions VALUES (?,?,?,?)",
+                (workspace, name, sequence, identity),
+            )
+            result = self._artifact(db, workspace, identity)
+            return self._remember(
+                db, workspace, request_key, "publish_table", request_hash, result
+            )
+
