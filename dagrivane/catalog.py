@@ -415,3 +415,31 @@ class Catalog(ReleaseOperations):
                 self._artifact(db, workspace, identity),
             )
 
+    def _verify_artifact(self, db, workspace, identity):
+        artifact = self._artifact(db, workspace, identity)
+        payload = self.objects.get(artifact["sha256"])
+        if len(payload) != artifact["bytes"]:
+            raise CatalogError("artifact byte count differs from stored content")
+        result = {
+            "artifact": identity,
+            "kind": artifact["kind"],
+            "sha256": artifact["sha256"],
+            "passed": True,
+        }
+        if artifact["kind"] == "table":
+            table, _ = table_bundle(payload)
+            policy = self._policy(
+                db, workspace, artifact["policy_name"], artifact["policy_version"]
+            )
+            result["quality_checks"] = verify_policy(table, policy["definition"])
+            if (
+                table.summary() != artifact["metadata"]["table"]
+                or policy["sha256"] != artifact["metadata"]["policy_sha256"]
+            ):
+                raise CatalogError(
+                    "artifact table metadata differs from verified contents or policy"
+                )
+        elif artifact["kind"] != "build":
+            raise CatalogError("unsupported stored artifact kind")
+        return result
+
