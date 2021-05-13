@@ -443,3 +443,8 @@ class Catalog(ReleaseOperations):
             raise CatalogError("unsupported stored artifact kind")
         return result
 
+    def verify_artifact(self, workspace, identity):
+        with self._tx(False) as db:
+            self._namespace(db, workspace)
+            return self._verify_artifact(db, workspace, identity)
+
