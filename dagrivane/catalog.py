@@ -448,3 +448,8 @@ class Catalog(ReleaseOperations):
             self._namespace(db, workspace)
             return self._verify_artifact(db, workspace, identity)
 
+    def artifact(self, workspace, identity):
+        with self._tx(False) as db:
+            self._namespace(db, workspace)
+            return self._artifact(db, workspace, identity)
+
