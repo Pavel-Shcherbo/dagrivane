@@ -466,3 +466,25 @@ class Catalog(ReleaseOperations):
                 raise CatalogError("unknown dataset version")
             return self._artifact(db, workspace, row["artifact_id"])
 
+    def list_artifacts(self, workspace, after=0, limit=100):
+        if (
+            type(after) is not int
+            or after < 0
+            or type(limit) is not int
+            or not 1 <= limit <= 1000
+        ):
+            raise CatalogError(
+                "artifact cursor must be nonnegative and limit between 1 and 1000"
+            )
+        with self._tx(False) as db:
+            self._namespace(db, workspace)
+            rows = db.execute(
+                "SELECT id FROM artifacts WHERE workspace=? AND seq>? ORDER BY seq LIMIT ?",
+                (workspace, after, limit),
+            ).fetchall()
+            result = [self._artifact(db, workspace, row["id"]) for row in rows]
+            return {
+                "artifacts": result,
+                "next_cursor": result[-1]["seq"] if result else after,
+            }
+
