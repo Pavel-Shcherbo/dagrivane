@@ -488,3 +488,23 @@ class Catalog(ReleaseOperations):
                 "next_cursor": result[-1]["seq"] if result else after,
             }
 
+    def events(self, workspace, after=0, limit=100):
+        if (
+            type(after) is not int
+            or after < 0
+            or type(limit) is not int
+            or not 1 <= limit <= 1000
+        ):
+            raise CatalogError(
+                "event cursor must be nonnegative and limit between 1 and 1000"
+            )
+        with self._tx(False) as db:
+            self._namespace(db, workspace)
+            return [
+                {**dict(row), "payload": json.loads(row["payload"])}
+                for row in db.execute(
+                    "SELECT * FROM catalog_events WHERE workspace=? AND seq>? ORDER BY seq LIMIT ?",
+                    (workspace, after, limit),
+                )
+            ]
+
