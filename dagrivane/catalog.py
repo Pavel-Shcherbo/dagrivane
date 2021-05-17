@@ -453,3 +453,16 @@ class Catalog(ReleaseOperations):
             self._namespace(db, workspace)
             return self._artifact(db, workspace, identity)
 
+    def dataset_version(self, workspace, name, version):
+        token(name, "dataset name")
+        positive_version(version)
+        with self._tx(False) as db:
+            self._namespace(db, workspace)
+            row = db.execute(
+                "SELECT artifact_id FROM dataset_versions WHERE workspace=? AND name=? AND version=?",
+                (workspace, name, version),
+            ).fetchone()
+            if row is None:
+                raise CatalogError("unknown dataset version")
+            return self._artifact(db, workspace, row["artifact_id"])
+
