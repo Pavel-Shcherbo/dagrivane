@@ -564,3 +564,98 @@ class Catalog(ReleaseOperations):
                 ],
             }
 
+    def audit(self, workspace, limit=1000):
+        if type(limit) is not int or not 1 <= limit <= 10000:
+            raise CatalogError("audit limit must be between 1 and 10000")
+        issues, checked = [], []
+        with self._tx(False) as db:
+            self._namespace(db, workspace)
+            artifacts = db.execute(
+                "SELECT id FROM artifacts WHERE workspace=? ORDER BY seq LIMIT ?",
+                (workspace, limit + 1),
+            ).fetchall()
+            complete = len(artifacts) <= limit
+            for row in artifacts[:limit]:
+                try:
+                    checked.append(self._verify_artifact(db, workspace, row["id"]))
+                    self._closure(db, workspace, [row["id"]])
+                except (ValueError, KeyError, OSError) as error:
+                    issues.append(
+                        {"kind": "artifact", "id": row["id"], "error": str(error)}
+                    )
+            policies = db.execute(
+                "SELECT name,version FROM policies WHERE workspace=? ORDER BY name,version LIMIT ?",
+                (workspace, limit + 1),
+            ).fetchall()
+            complete = complete and len(policies) <= limit
+            for row in policies[:limit]:
+                try:
+                    self._policy(db, workspace, row["name"], row["version"])
+                except (ValueError, KeyError) as error:
+                    issues.append(
+                        {
+                            "kind": "policy",
+                            "name": row["name"],
+                            "version": row["version"],
+                            "error": str(error),
+                        }
+                    )
+            releases = db.execute(
+                "SELECT id FROM releases WHERE workspace=? ORDER BY created_at,id LIMIT ?",
+                (workspace, limit + 1),
+            ).fetchall()
+            complete = complete and len(releases) <= limit
+            for row in releases[:limit]:
+                try:
+                    self._verify_release(db, workspace, row["id"])
+                except (ValueError, KeyError, OSError) as error:
+                    issues.append(
+                        {"kind": "release", "id": row["id"], "error": str(error)}
+                    )
+            versions = db.execute(
+                "SELECT * FROM dataset_versions WHERE workspace=? ORDER BY name,version LIMIT ?",
+                (workspace, limit + 1),
+            ).fetchall()
+            complete = complete and len(versions) <= limit
+            for row in versions[:limit]:
+                try:
+                    artifact = self._artifact(db, workspace, row["artifact_id"])
+                    matches = (
+                        artifact["name"] == row["name"]
+                        and artifact["metadata"].get("dataset_version")
+                        == row["version"]
+                    )
+                except (ValueError, KeyError):
+                    matches = False
+                if not matches:
+                    issues.append(
+                        {
+                            "kind": "dataset_version",
+                            "name": row["name"],
+                            "version": row["version"],
+                            "error": "dataset index and artifact metadata disagree",
+                        }
+                    )
+            referenced = {
+                row[0] for row in db.execute("SELECT DISTINCT sha256 FROM artifacts")
+            }
+        inventory = self.objects.inventory(limit=min(10000, max(limit, 100)))
+        orphans = sorted(set(inventory["objects"]) - referenced)
+        complete = complete and inventory["complete"]
+        if inventory["invalid_entries"]:
+            issues.append(
+                {
+                    "kind": "object_storage",
+                    "error": "invalid entries",
+                    "paths": inventory["invalid_entries"],
+                }
+            )
+        return {
+            "passed": complete and not issues,
+            "complete": complete,
+            "checked_artifacts": len(checked),
+            "issues": issues,
+            "unreferenced_objects": orphans,
+            "deletion_performed": False,
+            "scope": "workspace metadata and release provenance; object inventory is shared by local catalog workspaces",
+        }
