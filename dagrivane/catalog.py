@@ -508,3 +508,59 @@ class Catalog(ReleaseOperations):
                 )
             ]
 
+    def lineage(
+        self,
+        workspace,
+        identity,
+        *,
+        direction="ancestors",
+        max_nodes=1000,
+        max_depth=100,
+    ):
+        if (
+            direction not in ("ancestors", "descendants")
+            or type(max_nodes) is not int
+            or not 1 <= max_nodes <= 1000
+            or type(max_depth) is not int
+            or not 0 <= max_depth <= 100
+        ):
+            raise CatalogError("invalid lineage direction or traversal budget")
+        with self._tx(False) as db:
+            self._namespace(db, workspace)
+            self._artifact(db, workspace, identity)
+            seen, frontier, edges, complete = {identity}, [(identity, 0)], set(), True
+            while frontier:
+                current, depth = frontier.pop(0)
+                column, target = (
+                    ("child", "parent")
+                    if direction == "ancestors"
+                    else ("parent", "child")
+                )
+                rows = db.execute(
+                    f"SELECT child,parent FROM parents WHERE workspace=? AND {column}=? ORDER BY child,parent",
+                    (workspace, current),
+                ).fetchall()
+                for row in rows:
+                    other = row[target]
+                    if (
+                        depth >= max_depth
+                        or other not in seen
+                        and len(seen) >= max_nodes
+                    ):
+                        complete = False
+                        continue
+                    edges.add((row["child"], row["parent"]))
+                    if other not in seen:
+                        seen.add(other)
+                        frontier.append((other, depth + 1))
+            return {
+                "root": identity,
+                "direction": direction,
+                "complete": complete,
+                "nodes": [self._artifact(db, workspace, item) for item in sorted(seen)],
+                "edges": [
+                    {"child": child, "parent": parent}
+                    for child, parent in sorted(edges)
+                ],
+            }
+
