@@ -25,3 +25,9 @@ def token(value, label):
     return value
 
 
+def positive_version(value):
+    if type(value) is not int or not 1 <= value <= 1000000:
+        raise CatalogError("version must be an integer between 1 and one million")
+    return value
+
+
