@@ -19,3 +19,9 @@ class CatalogError(ValueError):
     pass
 
 
+def token(value, label):
+    if not isinstance(value, str) or not TOKEN.fullmatch(value):
+        raise CatalogError(f"{label} must be a bounded ASCII identifier")
+    return value
+
+
