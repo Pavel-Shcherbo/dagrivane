@@ -31,3 +31,15 @@ def positive_version(value):
     return value
 
 
+def json_bytes(value, maximum=MAX_OBJECT_BYTES):
+    try:
+        encoded = json.dumps(
+            value, sort_keys=True, separators=(",", ":"), allow_nan=False
+        ).encode()
+    except (ValueError, TypeError, RecursionError) as error:
+        raise CatalogError("catalog values must contain bounded finite JSON") from error
+    if len(encoded) > maximum:
+        raise CatalogError("catalog JSON exceeds its byte budget")
+    return encoded
+
+
