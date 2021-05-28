@@ -43,3 +43,7 @@ def json_bytes(value, maximum=MAX_OBJECT_BYTES):
     return encoded
 
 
+def fingerprint(value):
+    return hashlib.sha256(json_bytes(value)).hexdigest()
+
+
