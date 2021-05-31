@@ -47,3 +47,7 @@ def fingerprint(value):
     return hashlib.sha256(json_bytes(value)).hexdigest()
 
 
+def now():
+    return datetime.now(timezone.utc).isoformat()
+
+
