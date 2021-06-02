@@ -84,3 +84,52 @@ def parse_json(payload):
     return value
 
 
+def table_bundle(payload):
+    bundle = parse_json(payload)
+    if (
+        not isinstance(bundle, dict)
+        or set(bundle) != {"format", "report", "rows"}
+        or bundle["format"] != "dagrivane.table.v1"
+    ):
+        raise CatalogError("unsupported typed table bundle format")
+    report = bundle["report"]
+    if not isinstance(report, dict) or report.get("passed") is not True:
+        raise CatalogError("bundle does not declare a successful dataflow")
+    summary = report.get("output")
+    if not isinstance(summary, dict):
+        raise CatalogError("bundle requires an output summary")
+    contract = Contract.compile(summary.get("contract"))
+    sources = summary.get("source_sha256")
+    if not isinstance(sources, list) or len(sources) > 32:
+        raise CatalogError("bundle sources must be a list of at most 32 hashes")
+    for source in sources:
+        digest_name(source)
+    if len(set(sources)) != len(sources):
+        raise CatalogError("bundle source identities must be unique")
+    if not isinstance(bundle["rows"], list):
+        raise CatalogError("bundle rows must be an array")
+    table = Table.from_rows(contract, bundle["rows"], sources)
+    actual = table.summary()
+    if any(
+        type(summary.get(key)) is not int or summary[key] != actual[key]
+        for key in ("rows", "columns")
+    ):
+        raise CatalogError("bundle dimensions disagree with actual rows")
+    if summary.get("data_sha256") != actual["data_sha256"]:
+        raise CatalogError("bundle data identity disagrees with actual rows")
+    digest_name(report.get("plan_sha256"))
+    checks = report.get("checks")
+    if (
+        not isinstance(checks, list)
+        or not 1 <= len(checks) <= 100
+        or any(
+            not isinstance(check, dict) or check.get("passed") is not True
+            for check in checks
+        )
+    ):
+        raise CatalogError(
+            "bundle quality check declarations are incomplete or unsuccessful"
+        )
+    return table, report
+
+
