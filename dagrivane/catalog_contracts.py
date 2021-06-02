@@ -51,3 +51,36 @@ def now():
     return datetime.now(timezone.utc).isoformat()
 
 
+def parse_json(payload):
+    if not isinstance(payload, bytes) or len(payload) > MAX_OBJECT_BYTES:
+        raise CatalogError("catalog input must be bounded JSON bytes")
+
+    def unique(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise CatalogError("duplicate catalog JSON key")
+            result[key] = value
+        return result
+
+    def reject(_):
+        raise CatalogError("catalog JSON numbers must be finite")
+
+    try:
+        value = json.loads(payload, object_pairs_hook=unique, parse_constant=reject)
+    except RecursionError as error:
+        raise CatalogError("catalog JSON nesting exceeds the parser limit") from error
+    pending, count = [(value, 0)], 0
+    while pending:
+        item, depth = pending.pop()
+        count += 1
+        if depth > 100 or count > 2500000:
+            raise CatalogError("catalog JSON structure exceeds its budget")
+        if isinstance(item, dict):
+            pending.extend((entry, depth + 1) for entry in item.values())
+        elif isinstance(item, list):
+            pending.extend((entry, depth + 1) for entry in item)
+    json_bytes(value)
+    return value
+
+
