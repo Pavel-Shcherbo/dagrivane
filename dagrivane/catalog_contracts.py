@@ -133,3 +133,18 @@ def table_bundle(payload):
     return table, report
 
 
+def policy_definition(contract, gates, version):
+    positive_version(version)
+    compiled = Contract.compile(contract)
+    if compiled.version != version:
+        raise CatalogError("contract and policy version must match")
+    rules = compile_gates(gates, compiled)
+    definition = {
+        "contract": compiled.definition(),
+        "gates": copy.deepcopy(gates),
+        "version": version,
+    }
+    json_bytes(definition, 1024 * 1024)
+    return definition, compiled, rules
+
+
