@@ -148,3 +148,15 @@ def policy_definition(contract, gates, version):
     return definition, compiled, rules
 
 
+def verify_policy(table, definition):
+    _, contract, rules = policy_definition(
+        definition["contract"], definition["gates"], definition["version"]
+    )
+    if table.contract.definition() != contract.definition():
+        raise CatalogError("table contract differs from the pinned dataset policy")
+    checks = [rule.evaluate(table) for rule in rules]
+    if not all(check["passed"] for check in checks):
+        raise CatalogError(
+            "table does not satisfy the independently evaluated catalog quality gates"
+        )
+    return checks
