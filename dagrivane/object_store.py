@@ -20,3 +20,14 @@ def digest_name(value):
     return value
 
 
+def bounded_file(path, maximum=MAX_OBJECT_BYTES):
+    path = Path(path)
+    if not path.is_file():
+        raise ObjectError("object input must be a regular file")
+    with path.open("rb") as stream:
+        payload = stream.read(maximum + 1)
+    if len(payload) > maximum:
+        raise ObjectError("object exceeds the supported byte budget")
+    return payload
+
+
