@@ -14,3 +14,9 @@ class ObjectError(ValueError):
     pass
 
 
+def digest_name(value):
+    if not isinstance(value, str) or not DIGEST.fullmatch(value):
+        raise ObjectError("object identity must be lowercase SHA-256")
+    return value
+
+
