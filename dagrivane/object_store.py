@@ -31,3 +31,24 @@ def bounded_file(path, maximum=MAX_OBJECT_BYTES):
     return payload
 
 
+def atomic_create(path, payload):
+    """Publish a complete file without replacing an existing destination."""
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            dir=path.parent, prefix=".dagrivane-object-", delete=False
+        ) as stream:
+            temporary = Path(stream.name)
+            stream.write(payload)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.link(temporary, path)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+
+
+class ObjectStore:
+    pass
