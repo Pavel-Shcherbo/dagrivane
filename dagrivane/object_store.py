@@ -51,4 +51,7 @@ def atomic_create(path, payload):
 
 
 class ObjectStore:
-    pass
+    def __init__(self, root):
+        self.root = Path(root).resolve()
+        self.root.mkdir(parents=True, exist_ok=True, mode=0o700)
+
