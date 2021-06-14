@@ -55,3 +55,13 @@ class ObjectStore:
         self.root = Path(root).resolve()
         self.root.mkdir(parents=True, exist_ok=True, mode=0o700)
 
+    def path(self, identity):
+        digest_name(identity)
+        target = self.root / identity[:2] / identity[2:]
+        if not target.resolve().is_relative_to(self.root):
+            raise ObjectError("object storage path escapes its root")
+        for component in (target, target.parent):
+            if component.is_symlink():
+                raise ObjectError("object storage symlinks are unsupported")
+        return target
+
