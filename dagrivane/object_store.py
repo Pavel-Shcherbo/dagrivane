@@ -81,3 +81,10 @@ class ObjectStore:
                 raise ObjectError("stored object differs despite its declared digest")
         return {"sha256": identity, "bytes": len(payload)}
 
+    def get(self, identity):
+        target = self.path(identity)
+        payload = bounded_file(target)
+        if hashlib.sha256(payload).hexdigest() != identity:
+            raise ObjectError("stored object failed SHA-256 verification")
+        return payload
+
