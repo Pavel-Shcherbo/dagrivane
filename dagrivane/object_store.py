@@ -88,3 +88,11 @@ class ObjectStore:
             raise ObjectError("stored object failed SHA-256 verification")
         return payload
 
+    def verify(self, identity, expected_bytes=None):
+        payload = self.get(identity)
+        if expected_bytes is not None and (
+            type(expected_bytes) is not int or expected_bytes != len(payload)
+        ):
+            raise ObjectError("stored object size differs from catalog metadata")
+        return {"sha256": identity, "bytes": len(payload), "verified": True}
+
