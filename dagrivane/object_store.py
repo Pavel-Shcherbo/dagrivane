@@ -65,3 +65,19 @@ class ObjectStore:
                 raise ObjectError("object storage symlinks are unsupported")
         return target
 
+    def put(self, payload):
+        if not isinstance(payload, bytes) or len(payload) > MAX_OBJECT_BYTES:
+            raise ObjectError("object must be bytes within the 64 MiB budget")
+        identity = hashlib.sha256(payload).hexdigest()
+        target = self.path(identity)
+        target.parent.mkdir(mode=0o700, exist_ok=True)
+        try:
+            atomic_create(target, payload)
+        except FileExistsError:
+            # A racing identical publication is safe only after reading the
+            # winner; an existing corrupt object must never be silently reused.
+            existing = self.get(identity)
+            if existing != payload:
+                raise ObjectError("stored object differs despite its declared digest")
+        return {"sha256": identity, "bytes": len(payload)}
+
