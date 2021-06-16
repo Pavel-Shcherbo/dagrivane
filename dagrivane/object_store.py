@@ -96,3 +96,8 @@ class ObjectStore:
             raise ObjectError("stored object size differs from catalog metadata")
         return {"sha256": identity, "bytes": len(payload), "verified": True}
 
+    def export(self, identity, destination):
+        payload = self.get(identity)
+        atomic_create(destination, payload)
+        return {"sha256": identity, "bytes": len(payload)}
+
