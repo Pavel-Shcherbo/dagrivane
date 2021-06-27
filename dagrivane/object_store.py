@@ -101,3 +101,34 @@ class ObjectStore:
         atomic_create(destination, payload)
         return {"sha256": identity, "bytes": len(payload)}
 
+    def inventory(self, limit=10000):
+        if type(limit) is not int or not 1 <= limit <= 10000:
+            raise ObjectError("object inventory limit must be between 1 and 10000")
+        objects, invalid, complete = [], [], True
+        for prefix in sorted(self.root.iterdir()):
+            if len(objects) + len(invalid) >= limit:
+                complete = False
+                break
+            if (
+                not prefix.is_dir()
+                or prefix.is_symlink()
+                or not re.fullmatch("[0-9a-f]{2}", prefix.name)
+            ):
+                invalid.append(prefix.name)
+                continue
+            for path in sorted(prefix.iterdir()):
+                if len(objects) + len(invalid) >= limit:
+                    complete = False
+                    break
+                identity = prefix.name + path.name
+                if (
+                    not path.is_file()
+                    or path.is_symlink()
+                    or not DIGEST.fullmatch(identity)
+                ):
+                    invalid.append(str(path.relative_to(self.root)))
+                else:
+                    objects.append(identity)
+            if not complete:
+                break
+        return {"objects": objects, "invalid_entries": invalid, "complete": complete}
