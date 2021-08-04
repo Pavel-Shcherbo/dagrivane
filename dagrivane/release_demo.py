@@ -20,3 +20,15 @@ from .resources import examples_directory
 SCENARIOS = ("healthy", "corrupt-data", "missing-staging")
 
 
+def build_application(source, destination):
+    content = Path(source).read_bytes()
+    info = zipfile.ZipInfo("__main__.py", date_time=(1980, 1, 1, 0, 0, 0))
+    info.compress_type = zipfile.ZIP_DEFLATED
+    info.external_attr = 0o644 << 16
+    with zipfile.ZipFile(
+        destination, "x", compression=zipfile.ZIP_DEFLATED, compresslevel=9
+    ) as archive:
+        archive.writestr(info, content)
+    return hashlib.sha256(content).hexdigest()
+
+
