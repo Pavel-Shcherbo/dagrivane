@@ -195,3 +195,22 @@ def run_demo(directory, scenario="healthy"):
     }
 
 
+def main(argv=None):
+    parser = argparse.ArgumentParser(
+        description="Run the reviewed local data/application release control"
+    )
+    parser.add_argument(
+        "--output", type=Path, required=True, help="New control-run directory"
+    )
+    parser.add_argument("--scenario", choices=SCENARIOS, default="healthy")
+    args = parser.parse_args(argv)
+    try:
+        report = run_demo(args.output, args.scenario)
+    except (ValueError, OSError, sqlite3.Error, subprocess.SubprocessError) as error:
+        parser.exit(2, f"{error}\n")
+    print(json.dumps(report, indent=2, allow_nan=False))
+    return 0 if report["passed"] else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
