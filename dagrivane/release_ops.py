@@ -62,3 +62,7 @@ def validate_snapshot(record):
     return record
 
 
+def snapshot(artifact):
+    return validate_snapshot({key: artifact[key] for key in sorted(SNAPSHOT_FIELDS)})
+
+
