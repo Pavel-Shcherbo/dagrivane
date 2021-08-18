@@ -66,3 +66,49 @@ def snapshot(artifact):
     return validate_snapshot({key: artifact[key] for key in sorted(SNAPSHOT_FIELDS)})
 
 
+def validate_manifest(manifest):
+    if (
+        not isinstance(manifest, dict)
+        or set(manifest) != {"format", "workspace", "name", "bindings", "requirements"}
+        or manifest["format"] != "dagrivane.release.v1"
+    ):
+        raise CatalogError("unsupported release manifest format")
+    token(manifest["workspace"], "release workspace")
+    token(manifest["name"], "release name")
+    bindings = manifest["bindings"]
+    if not isinstance(bindings, dict) or not 1 <= len(bindings) <= 32:
+        raise CatalogError("release requires bounded named artifact bindings")
+    for label, binding in bindings.items():
+        token(label, "release binding name")
+        validate_snapshot(binding)
+        if binding["workspace"] != manifest["workspace"]:
+            raise CatalogError("release binding belongs to a different workspace")
+    requirements = manifest["requirements"]
+    if not isinstance(requirements, dict) or set(requirements) - set(bindings):
+        raise CatalogError("release requirements do not match its bindings")
+    for label, rules in requirements.items():
+        if not isinstance(rules, dict) or set(rules) - {
+            "kind",
+            "dataset",
+            "policy_version",
+        }:
+            raise CatalogError("unsupported release requirement")
+        for key, value in rules.items():
+            if key == "policy_version":
+                positive_version(value)
+            elif key == "dataset":
+                token(value, "required dataset")
+            elif value not in ("table", "build"):
+                raise CatalogError("unsupported required artifact kind")
+            actual = (
+                bindings[label]["policy_name"]
+                if key == "dataset"
+                else bindings[label][key]
+            )
+            if value != actual:
+                raise CatalogError("release binding does not satisfy its requirement")
+    return manifest
+
+
+class ReleaseOperations:
+    pass
