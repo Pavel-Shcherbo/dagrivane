@@ -111,4 +111,14 @@ def validate_manifest(manifest):
 
 
 class ReleaseOperations:
-    pass
+    def alias(self, workspace, name):
+        token(name, "alias name")
+        with self._tx(False) as db:
+            self._namespace(db, workspace)
+            row = db.execute(
+                "SELECT * FROM aliases WHERE workspace=? AND name=?", (workspace, name)
+            ).fetchone()
+            if row is None:
+                raise CatalogError("unknown artifact alias")
+            return dict(row)
+
