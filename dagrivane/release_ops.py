@@ -122,3 +122,30 @@ class ReleaseOperations:
                 raise CatalogError("unknown artifact alias")
             return dict(row)
 
+    def move_alias(self, workspace, name, artifact_id, *, expected_generation):
+        token(name, "alias name")
+        if type(expected_generation) is not int or expected_generation < 0:
+            raise CatalogError("alias expected generation must be nonnegative")
+        with self._tx() as db:
+            self._namespace(db, workspace)
+            self._verify_artifact(db, workspace, artifact_id)
+            previous = db.execute(
+                "SELECT * FROM aliases WHERE workspace=? AND name=?", (workspace, name)
+            ).fetchone()
+            generation = previous["generation"] if previous else 0
+            if generation != expected_generation:
+                raise CatalogError("artifact alias generation conflict")
+            result = {
+                "workspace": workspace,
+                "name": name,
+                "artifact_id": artifact_id,
+                "generation": generation + 1,
+                "updated_at": now(),
+            }
+            db.execute(
+                "INSERT INTO aliases VALUES (?,?,?,?,?) ON CONFLICT(workspace,name) DO UPDATE SET artifact_id=excluded.artifact_id,generation=excluded.generation,updated_at=excluded.updated_at",
+                tuple(result.values()),
+            )
+            self._event(db, workspace, "alias_moved", result)
+            return result
+
