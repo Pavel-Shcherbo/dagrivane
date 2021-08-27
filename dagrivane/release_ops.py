@@ -149,3 +149,12 @@ class ReleaseOperations:
             self._event(db, workspace, "alias_moved", result)
             return result
 
+    def _release(self, db, workspace, identity):
+        token(identity, "release ID")
+        row = db.execute(
+            "SELECT * FROM releases WHERE workspace=? AND id=?", (workspace, identity)
+        ).fetchone()
+        if row is None:
+            raise CatalogError("unknown release in this workspace")
+        return {**dict(row), "manifest": json.loads(row["manifest"])}
+
