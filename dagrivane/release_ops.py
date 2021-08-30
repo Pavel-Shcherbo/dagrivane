@@ -158,3 +158,34 @@ class ReleaseOperations:
             raise CatalogError("unknown release in this workspace")
         return {**dict(row), "manifest": json.loads(row["manifest"])}
 
+    def _closure(self, db, workspace, identities, maximum=1000):
+        seen, pending = {}, list(identities)
+        while pending:
+            identity = pending.pop()
+            if identity in seen:
+                continue
+            if len(seen) >= maximum:
+                raise CatalogError(
+                    "release provenance exceeds the supported traversal budget"
+                )
+            artifact = self._artifact(db, workspace, identity)
+            seen[identity] = artifact
+            pending.extend(artifact["parents"])
+        # Kahn traversal also detects a manually corrupted catalog cycle.
+        remaining = {
+            identity: set(artifact["parents"]) for identity, artifact in seen.items()
+        }
+        ready = [identity for identity, parents in remaining.items() if not parents]
+        visited = 0
+        while ready:
+            identity = ready.pop()
+            visited += 1
+            for child, parents in remaining.items():
+                if identity in parents:
+                    parents.remove(identity)
+                    if not parents:
+                        ready.append(child)
+        if visited != len(seen):
+            raise CatalogError("artifact provenance contains a cycle")
+        return seen
+
