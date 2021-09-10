@@ -189,3 +189,34 @@ class ReleaseOperations:
             raise CatalogError("artifact provenance contains a cycle")
         return seen
 
+    def _verify_release(self, db, workspace, identity):
+        release = self._release(db, workspace, identity)
+        manifest = validate_manifest(release["manifest"])
+        if fingerprint(manifest) != release["sha256"]:
+            raise CatalogError(
+                "release manifest hash differs from its catalog identity"
+            )
+        bindings = manifest.get("bindings")
+        if not isinstance(bindings, dict) or not bindings:
+            raise CatalogError("release manifest has no artifact bindings")
+        for binding in bindings.values():
+            artifact = self._artifact(db, workspace, binding["id"])
+            if snapshot(artifact) != binding:
+                raise CatalogError(
+                    "release binding differs from immutable artifact metadata"
+                )
+        closure = self._closure(
+            db, workspace, [binding["id"] for binding in bindings.values()]
+        )
+        checks = [
+            self._verify_artifact(db, workspace, artifact)
+            for artifact in sorted(closure)
+        ]
+        return {
+            "release": identity,
+            "sha256": release["sha256"],
+            "passed": True,
+            "artifact_checks": checks,
+            "provenance_complete": True,
+        }
+
