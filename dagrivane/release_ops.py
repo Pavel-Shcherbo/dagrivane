@@ -332,3 +332,8 @@ class ReleaseOperations:
                 db, workspace, request_key, "create_release", request_hash, result
             )
 
+    def release(self, workspace, identity):
+        with self._tx(False) as db:
+            self._namespace(db, workspace)
+            return self._release(db, workspace, identity)
+
