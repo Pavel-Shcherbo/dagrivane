@@ -220,3 +220,115 @@ class ReleaseOperations:
             "provenance_complete": True,
         }
 
+    def create_release(
+        self, workspace, name, bindings, *, request_key, requirements=None
+    ):
+        token(name, "release name")
+        if not isinstance(bindings, dict) or not 1 <= len(bindings) <= 32:
+            raise CatalogError("release requires 1–32 named artifact bindings")
+        for label, reference in bindings.items():
+            token(label, "binding name")
+            if not isinstance(reference, dict) or set(reference) not in (
+                {"artifact"},
+                {"alias"},
+            ):
+                raise CatalogError(
+                    "release binding requires exactly one artifact or alias"
+                )
+            token(next(iter(reference.values())), "binding reference")
+        requirements = {} if requirements is None else requirements
+        if not isinstance(requirements, dict) or set(requirements) - set(bindings):
+            raise CatalogError("release requirements must reference declared bindings")
+        for requirement in requirements.values():
+            if not isinstance(requirement, dict) or set(requirement) - {
+                "kind",
+                "dataset",
+                "policy_version",
+            }:
+                raise CatalogError("release requirement contains unsupported fields")
+            if "kind" in requirement and requirement["kind"] not in ("table", "build"):
+                raise CatalogError("release kind requirement must be table or build")
+            if "dataset" in requirement:
+                token(requirement["dataset"], "required dataset")
+            if "policy_version" in requirement:
+                positive_version(requirement["policy_version"])
+        request = {"name": name, "bindings": bindings, "requirements": requirements}
+        with self._tx() as db:
+            self._namespace(db, workspace)
+            previous, request_hash = self._request(
+                db, workspace, request_key, "create_release", request
+            )
+            if previous is not None:
+                return previous
+            if db.execute(
+                "SELECT id FROM releases WHERE workspace=? AND name=?",
+                (workspace, name),
+            ).fetchone():
+                raise CatalogError(
+                    "release name already exists; use its original request key or a new release name"
+                )
+            resolved = {}
+            for label, reference in sorted(bindings.items()):
+                identity = reference.get("artifact")
+                if identity is None:
+                    alias = db.execute(
+                        "SELECT artifact_id FROM aliases WHERE workspace=? AND name=?",
+                        (workspace, reference["alias"]),
+                    ).fetchone()
+                    if alias is None:
+                        raise CatalogError(
+                            "release references an unknown artifact alias"
+                        )
+                    identity = alias["artifact_id"]
+                artifact = self._artifact(db, workspace, identity)
+                requirement = requirements.get(label, {})
+                for key, value in requirement.items():
+                    actual = (
+                        artifact["policy_name"] if key == "dataset" else artifact[key]
+                    )
+                    if value != actual:
+                        raise CatalogError(
+                            "release binding does not satisfy its kind/dataset/policy requirement"
+                        )
+                resolved[label] = snapshot(artifact)
+            closure = self._closure(
+                db, workspace, [artifact["id"] for artifact in resolved.values()]
+            )
+            for identity in closure:
+                self._verify_artifact(db, workspace, identity)
+            manifest = {
+                "format": "dagrivane.release.v1",
+                "workspace": workspace,
+                "name": name,
+                "bindings": resolved,
+                "requirements": requirements,
+            }
+            validate_manifest(manifest)
+            identity, manifest_hash = uuid.uuid4().hex, fingerprint(manifest)
+            db.execute(
+                "INSERT INTO releases VALUES (?,?,?,?,?,?)",
+                (
+                    identity,
+                    workspace,
+                    name,
+                    json_bytes(manifest).decode(),
+                    manifest_hash,
+                    now(),
+                ),
+            )
+            result = self._release(db, workspace, identity)
+            self._event(
+                db,
+                workspace,
+                "release_created",
+                {
+                    "release": identity,
+                    "name": name,
+                    "sha256": manifest_hash,
+                    "bindings": resolved,
+                },
+            )
+            return self._remember(
+                db, workspace, request_key, "create_release", request_hash, result
+            )
+
