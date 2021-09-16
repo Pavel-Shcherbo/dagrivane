@@ -337,3 +337,8 @@ class ReleaseOperations:
             self._namespace(db, workspace)
             return self._release(db, workspace, identity)
 
+    def verify_release(self, workspace, identity):
+        with self._tx(False) as db:
+            self._namespace(db, workspace)
+            return self._verify_release(db, workspace, identity)
+
