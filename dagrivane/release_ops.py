@@ -342,3 +342,41 @@ class ReleaseOperations:
             self._namespace(db, workspace)
             return self._verify_release(db, workspace, identity)
 
+    def create_environment(self, workspace, name, requires=None):
+        token(name, "environment name")
+        if requires is not None:
+            token(requires, "prerequisite environment")
+            if name == requires:
+                raise CatalogError("environment cannot require itself")
+        with self._tx() as db:
+            self._namespace(db, workspace)
+            previous = db.execute(
+                "SELECT * FROM environments WHERE workspace=? AND name=?",
+                (workspace, name),
+            ).fetchone()
+            if previous:
+                if previous["requires"] != requires:
+                    raise CatalogError("environment prerequisite is immutable")
+                return dict(previous)
+            if (
+                requires is not None
+                and db.execute(
+                    "SELECT name FROM environments WHERE workspace=? AND name=?",
+                    (workspace, requires),
+                ).fetchone()
+                is None
+            ):
+                raise CatalogError("prerequisite environment must already exist")
+            db.execute(
+                "INSERT INTO environments VALUES (?,?,?,NULL,0,?)",
+                (workspace, name, requires, now()),
+            )
+            result = dict(
+                db.execute(
+                    "SELECT * FROM environments WHERE workspace=? AND name=?",
+                    (workspace, name),
+                ).fetchone()
+            )
+            self._event(db, workspace, "environment_created", result)
+            return result
+
