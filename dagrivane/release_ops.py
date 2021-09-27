@@ -380,3 +380,15 @@ class ReleaseOperations:
             self._event(db, workspace, "environment_created", result)
             return result
 
+    def environment(self, workspace, name):
+        token(name, "environment name")
+        with self._tx(False) as db:
+            self._namespace(db, workspace)
+            row = db.execute(
+                "SELECT * FROM environments WHERE workspace=? AND name=?",
+                (workspace, name),
+            ).fetchone()
+            if row is None:
+                raise CatalogError("unknown local environment")
+            return dict(row)
+
