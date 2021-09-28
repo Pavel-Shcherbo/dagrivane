@@ -392,3 +392,67 @@ class ReleaseOperations:
                 raise CatalogError("unknown local environment")
             return dict(row)
 
+    def promote(
+        self, workspace, environment, release_id, *, expected_generation, request_key
+    ):
+        token(environment, "environment name")
+        token(release_id, "release ID")
+        if type(expected_generation) is not int or expected_generation < 0:
+            raise CatalogError("environment expected generation must be nonnegative")
+        request = {
+            "environment": environment,
+            "release": release_id,
+            "expected_generation": expected_generation,
+        }
+        with self._tx() as db:
+            self._namespace(db, workspace)
+            previous, request_hash = self._request(
+                db, workspace, request_key, "promote", request
+            )
+            if previous is not None:
+                return previous
+            row = db.execute(
+                "SELECT * FROM environments WHERE workspace=? AND name=?",
+                (workspace, environment),
+            ).fetchone()
+            if row is None:
+                raise CatalogError("unknown local environment")
+            if row["generation"] != expected_generation:
+                raise CatalogError("environment generation conflict")
+            if row["requires"] is not None:
+                parent = db.execute(
+                    "SELECT release_id FROM environments WHERE workspace=? AND name=?",
+                    (workspace, row["requires"]),
+                ).fetchone()
+                if parent is None or parent["release_id"] != release_id:
+                    raise CatalogError(
+                        "prerequisite environment does not reference this exact release"
+                    )
+            verification = self._verify_release(db, workspace, release_id)
+            db.execute(
+                "UPDATE environments SET release_id=?,generation=generation+1,updated_at=? WHERE workspace=? AND name=?",
+                (release_id, now(), workspace, environment),
+            )
+            result = {
+                **dict(
+                    db.execute(
+                        "SELECT * FROM environments WHERE workspace=? AND name=?",
+                        (workspace, environment),
+                    ).fetchone()
+                ),
+                "verification": verification,
+            }
+            self._event(
+                db,
+                workspace,
+                "environment_promoted",
+                {
+                    "environment": environment,
+                    "release": release_id,
+                    "generation": result["generation"],
+                    "sha256": verification["sha256"],
+                },
+            )
+            return self._remember(
+                db, workspace, request_key, "promote", request_hash, result
+            )
