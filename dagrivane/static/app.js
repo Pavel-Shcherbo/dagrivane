@@ -177,3 +177,120 @@ $("mode").onchange = () => {
     "Run the pipeline, then select a task to inspect its output";
   $("logtitle").textContent = "Task output";
 };
+
+let releaseResult = null;
+function resetRelease() {
+  releaseResult = null;
+  $("release-export").disabled = true;
+  $("release-error").hidden = true;
+  $("release-status").textContent = "Scenario changed; run the check";
+  $("release-reason").textContent =
+    "The control builds an executable package against the synthetic order summary";
+  for (const id of [
+    "release-summary",
+    "release-lineage",
+    "release-environments",
+    "release-identity",
+  ])
+    $(id).textContent = "";
+  clear($("release-steps"));
+  clear($("release-artifacts"));
+}
+$("release-scenario").addEventListener("input", resetRelease);
+$("release-run").onclick = async () => {
+  resetRelease();
+  $("release-status").textContent = "Building and verifying";
+  $("release-run").disabled = true;
+  $("release-scenario").disabled = true;
+  try {
+    releaseResult = await evaluate({
+      mode: "release",
+      scenario: $("release-scenario").value,
+    });
+    const report = releaseResult;
+    $("release-status").textContent = report.passed
+      ? "Local release verified"
+      : "Local release blocked";
+    for (const step of report.steps) {
+      const row = element("tr");
+      row.append(
+        element("td", step.name),
+        element(
+          "td",
+          step.status,
+          "status " + (step.status === "passed" ? "succeeded" : "failed"),
+        ),
+      );
+      $("release-steps").append(row);
+    }
+    $("release-reason").textContent =
+      report.blocked_reason ||
+      "Content, contracts and local prerequisite pointers passed";
+    $("release-summary").textContent =
+      "Executable package returned " +
+      report.application.result.orders +
+      " orders; USD " +
+      report.application.result.currencies.USD;
+    for (const artifact of report.artifacts) {
+      const row = element("tr");
+      const name = element("td", undefined, "artifact-name");
+      name.append(element("span", artifact.name));
+      const details = element("details", undefined, "artifact-mobile-digest");
+      details.append(
+        element("summary", "SHA-256"),
+        element("code", artifact.sha256),
+      );
+      name.append(details);
+      row.append(
+        name,
+        element("td", artifact.kind),
+        element(
+          "td",
+          artifact.sha256,
+          "mono digest-cell artifact-digest-column",
+        ),
+        element(
+          "td",
+          artifact.verification.passed ? "Verified" : "Changed",
+          "status " + (artifact.verification.passed ? "succeeded" : "failed"),
+        ),
+      );
+      $("release-artifacts").append(row);
+    }
+    const names = new Map(
+      report.lineage.nodes.map((node) => [node.id, node.name]),
+    );
+    $("release-lineage").textContent = report.lineage.edges
+      .map(
+        (edge) =>
+          names.get(edge.child) + " depends on " + names.get(edge.parent),
+      )
+      .join("; ");
+    $("release-environments").textContent = report.environments
+      .map(
+        (environment) =>
+          environment.name +
+          ": " +
+          (environment.release_id
+            ? "pinned to this release"
+            : "no release selected") +
+          " (generation " +
+          environment.generation +
+          ")",
+      )
+      .join("; ");
+    $("release-identity").textContent =
+      "Manifest SHA-256 " + report.release.sha256;
+    $("release-export").disabled = false;
+  } catch (exception) {
+    $("release-status").textContent = "Release check could not start";
+    $("release-error").textContent = exception.message;
+    $("release-error").hidden = false;
+  } finally {
+    $("release-run").disabled = false;
+    $("release-scenario").disabled = false;
+  }
+};
+$("release-export").onclick = () => {
+  if (releaseResult) download("dagrivane-release-check.json", releaseResult);
+};
