@@ -466,3 +466,49 @@ textarea {
 .workspace {
   min-width: 0;
 }
+
+.release-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 24px;
+}
+.release-controls select {
+  min-width: 240px;
+}
+.digest-cell {
+  max-width: 320px;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+
+.artifact-mobile-digest {
+  display: none;
+}
+@media (max-width: 700px) {
+  .artifact-digest-column {
+    display: none;
+  }
+  .artifact-mobile-digest {
+    display: block;
+    margin-top: 8px;
+  }
+  .artifact-mobile-digest summary {
+    font-size: 12px;
+    cursor: pointer;
+    color: var(--secondary);
+  }
+  .artifact-mobile-digest code {
+    display: block;
+    max-width: 140px;
+    margin-top: 8px;
+    overflow-wrap: anywhere;
+    font-size: 12px;
+  }
+  #release-artifacts td {
+    padding: 12px;
+  }
+  .artifact-name {
+    overflow-wrap: anywhere;
+  }
+}
