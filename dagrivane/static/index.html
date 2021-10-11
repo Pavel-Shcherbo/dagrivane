@@ -15,6 +15,7 @@
         <p class="caption">Workflow execution and release gates</p>
         <nav aria-label="Workspace">
           <a href="#workflow">Workflow</a><a href="#tasks">Task results</a
+          ><a href="#releases">Release checks</a
           ><a href="#contract">Execution contract</a>
         </nav>
         <footer>Local workbench<br />Development build</footer>
@@ -83,6 +84,75 @@
             <div class="panelbody">
               <pre id="logs">
 Run the pipeline, then select a task to inspect its output</pre>
+            </div>
+          </div>
+        </section>
+        <section class="section" id="releases">
+          <div class="pagehead">
+            <div>
+              <h2>Data and application release</h2>
+              <p>Check exact artifacts and prerequisite environment pointers</p>
+            </div>
+            <div class="actions">
+              <button id="release-export" disabled>Export check result</button
+              ><button id="release-run" class="primary">
+                Check local release
+              </button>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panelbody release-controls">
+              <label
+                >Control scenario<select id="release-scenario">
+                  <option value="healthy">Verified data and package</option>
+                  <option value="corrupt-data">Stored data changed</option>
+                  <option value="missing-staging">
+                    Staging prerequisite missing
+                  </option>
+                </select></label
+              ><span id="release-status" role="status">Not checked</span>
+            </div>
+            <div id="release-error" class="error" role="alert" hidden></div>
+            <div class="tablewrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Check</th>
+                    <th>Outcome</th>
+                  </tr>
+                </thead>
+                <tbody id="release-steps"></tbody>
+              </table>
+            </div>
+            <div class="panelbody">
+              <p id="release-reason" class="secondary">
+                The control builds an executable package against the synthetic
+                order summary
+              </p>
+              <p id="release-summary" class="notice"></p>
+            </div>
+            <div class="tablewrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Artifact</th>
+                    <th>Kind</th>
+                    <th class="artifact-digest-column">Content SHA-256</th>
+                    <th>Verification</th>
+                  </tr>
+                </thead>
+                <tbody id="release-artifacts"></tbody>
+              </table>
+            </div>
+            <div class="panelbody">
+              <p id="release-lineage" class="secondary"></p>
+              <p id="release-environments" class="notice"></p>
+              <p id="release-identity" class="mono notice"></p>
+              <p class="notice">
+                This check updates an isolated local catalog. Environment
+                pointers select a verified manifest; they do not deploy a
+                service.
+              </p>
             </div>
           </div>
         </section>
