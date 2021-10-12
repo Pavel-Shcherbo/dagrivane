@@ -4,6 +4,7 @@ import uuid
 from shutil import copy2
 
 from .engine import run
+from .release_web import evaluate_release
 from .httpapp import serve
 from .resources import examples_directory, state_directory
 
@@ -13,6 +14,8 @@ def example():
 
 
 def evaluate(params):
+    if params.get("mode") == "release":
+        return evaluate_release(params)
     mode = params.get("mode", "commands")
     if mode not in ("commands", "dataflow"):
         raise ValueError("mode must be commands or dataflow")
