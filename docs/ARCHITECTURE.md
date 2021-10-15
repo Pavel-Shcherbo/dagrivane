@@ -18,10 +18,14 @@ authorization or organization model yet.
 
 ## Next architectural increment
 
-Add immutable output artifacts and attempt-level events before introducing scheduling or distributed execution. Timeout handling terminates the process group on POSIX, but does not provide an operating-system sandbox.
+Expose existing workflow versions, queue, leases and events in management views; qualify remote storage and deployment adapters before distributed execution. Timeout handling terminates the process group on POSIX, but does not provide an operating-system sandbox.
 
 ## Typed data adapter
 
 `contracts` defines explicit scalar types and version-compatibility reports. `tables` loads bounded, hashed CSV into immutable records. `transforms` compiles schemas and applies relational operations; join cardinality and output budgets are explicit. `quality` separates data acceptance from execution success. `dataflow` compiles the complete plan before input I/O and publishes one create-only JSON bundle after all gates pass.
 
 `data_adapter` launches built-in plans through the graph's subprocess boundary, pinning imports to this installation. The normal checkpoint, timeout, cancellation and dependency semantics apply. The workbench selects between fixed bundled command and typed-data pipelines; it does not accept arbitrary process commands over HTTP. See DATAFLOWS.md for the exact scope and limits.
+
+## Artifact and release boundary
+
+The content-addressed object store verifies actual bytes independently of SQLite metadata. Immutable policies gate typed rows again at publication and verification. Dataset versions, build provenance, alias generations and pinned release manifests are transactional metadata; environment pointers require the exact prerequisite release and a fresh content check. Exported packages include the bounded parent closure and policies, allowing offline verification without the originating catalog. These are local selection primitives; authentication, signatures, retention and deployment adapters remain open. See ARTIFACTS.md.
