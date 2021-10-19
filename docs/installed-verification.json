@@ -1,11 +1,11 @@
 {
-  "scope": "Clean wheel installation and public entry points, not full portfolio acceptance",
-  "wheel_sha256": "c2bef41a5b18ccd88f7f9eb79a0ff2ef6ee8f14fa4fff1b2698468d1b0013c65",
+  "wheel_sha256": "4214d7a90917f5360998ba45c63c9234a3e6025242bd1656743922a143073f37",
   "examples_exported": [
     "dataflow.json",
     "orders.csv",
     "pipeline.json",
     "release_typed.py",
+    "summary_app.py",
     "tasks.py",
     "typed-pipeline.json"
   ],
@@ -16,5 +16,6 @@
   "state_outside_package": true,
   "typed_dataflow_cli_passed": true,
   "typed_workbench_success_and_failure_passed": true,
-  "full_portfolio_acceptance": false
+  "artifact_release_cli_and_offline_export_passed": true,
+  "release_http_healthy_and_blocked_passed": true
 }
