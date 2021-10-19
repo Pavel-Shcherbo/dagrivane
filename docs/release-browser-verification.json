@@ -1,0 +1,20 @@
+{
+  "scope": "Local artifact and release checks, not remote deployment or full product acceptance",
+  "passed": true,
+  "healthy": "five checks passed; two verified artifacts; staging and production generation 1",
+  "corrupt_data": "stored SHA-256 mismatch; both environment selections blocked at generation 0",
+  "missing_staging": "production blocked because prerequisite does not select the exact release",
+  "mobile": {
+    "viewport_width": 390,
+    "document_scroll_width": 390,
+    "full_digest_disclosure_checked": true
+  },
+  "download_reopened_and_exported_application_executed": true,
+  "console_errors": 0,
+  "console_warnings": 0,
+  "screenshots": {
+    "docs/release-mobile-corrupt.png": "09009d5b79d24745976720a9b76f7ddeb3fc294651f5fd13cee8419105ce43ce",
+    "docs/release-mobile-healthy.png": "c7ddce2cac17b35dfc056e1893f621c5d3e1791771aef8c14f599ae39653e2cd",
+    "docs/release-desktop-healthy.png": "ea857d130889afe5fb67a637655f28b1f2817c8092399bbe88c767be30637b89"
+  }
+}
