@@ -1,0 +1,16 @@
+{
+  "passed": true,
+  "scope": "Actual downloaded browser report, reopened catalog and executable release export",
+  "download_sha256": "dd3431d7372fb3ad82b5a0e49e8b2c3660550c0fb31946c4f11b3b8dc739af8f",
+  "release_sha256": "8167ec438856815ad8fe54e81f44c8635f74c58f244fbf4f10263b4919b276c5",
+  "artifact_count": 2,
+  "catalog_reopened_and_verified": true,
+  "offline_export_verified": true,
+  "exported_application_executed": true,
+  "application_result": {
+    "currencies": {
+      "USD": "112.00"
+    },
+    "orders": 4
+  }
+}
