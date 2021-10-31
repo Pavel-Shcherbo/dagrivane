@@ -16,3 +16,16 @@ def contract(version=1):
     }
 
 
+def gates():
+    return [
+        {"id": "ids", "kind": "unique", "columns": ["id"]},
+        {
+            "id": "total",
+            "kind": "sum",
+            "columns": ["amount"],
+            "min": "0",
+            "max": "1000",
+        },
+    ]
+
+
