@@ -51,3 +51,36 @@ def write_bundle(directory, name="orders.json", rows=None, version=1):
     return path
 
 
+def prepare(catalog, directory, workspace="research"):
+    catalog.create_workspace(workspace)
+    catalog.register_policy(workspace, "orders", 1, contract(), gates())
+    table = catalog.publish_table(
+        workspace,
+        "orders",
+        1,
+        write_bundle(directory),
+        run_id="data-run",
+        request_key="publish-orders",
+    )
+    path = Path(directory) / "application.txt"
+    path.write_text("validated application package\n")
+    build = catalog.record_build(
+        workspace,
+        "api",
+        path,
+        revision="a" * 40,
+        run_id="build-run",
+        request_key="record-build",
+        parents=[table["id"]],
+    )
+    release = catalog.create_release(
+        workspace,
+        "release-1",
+        {"app": {"artifact": build["id"]}, "orders": {"artifact": table["id"]}},
+        request_key="create-release",
+        requirements={
+            "app": {"kind": "build"},
+            "orders": {"kind": "table", "dataset": "orders", "policy_version": 1},
+        },
+    )
+    return table, build, release
