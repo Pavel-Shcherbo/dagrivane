@@ -29,3 +29,25 @@ def gates():
     ]
 
 
+def write_bundle(directory, name="orders.json", rows=None, version=1):
+    rows = (
+        [{"id": 1, "amount": "10.00"}, {"id": 2, "amount": "20.00"}]
+        if rows is None
+        else rows
+    )
+    table = Table.from_rows(Contract.compile(contract(version)), rows, ["1" * 64])
+    payload = {
+        "format": "dagrivane.table.v1",
+        "report": {
+            "passed": True,
+            "plan_sha256": "2" * 64,
+            "output": table.summary(),
+            "checks": [{"id": "producer", "passed": True}],
+        },
+        "rows": table.json_rows(),
+    }
+    path = Path(directory) / name
+    path.write_text(json.dumps(payload))
+    return path
+
+
