@@ -13,4 +13,11 @@ from catalog_fixtures import contract, gates, prepare, write_bundle
 
 
 class CatalogTests(unittest.TestCase):
-    pass
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temporary.cleanup)
+        self.root = Path(self.temporary.name)
+        self.catalog = Catalog(self.root / "catalog")
+        self.catalog.create_workspace("research")
+        self.catalog.register_policy("research", "orders", 1, contract(), gates())
+
