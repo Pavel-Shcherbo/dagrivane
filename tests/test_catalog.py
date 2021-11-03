@@ -21,3 +21,9 @@ class CatalogTests(unittest.TestCase):
         self.catalog.create_workspace("research")
         self.catalog.register_policy("research", "orders", 1, contract(), gates())
 
+    def publish(self, key="table-1", **options):
+        path = options.pop("path") if "path" in options else write_bundle(self.root)
+        return self.catalog.publish_table(
+            "research", "orders", 1, path, run_id="data-run", request_key=key, **options
+        )
+
