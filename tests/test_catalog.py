@@ -27,3 +27,15 @@ class CatalogTests(unittest.TestCase):
             "research", "orders", 1, path, run_id="data-run", request_key=key, **options
         )
 
+    def test_table_publication_rechecks_contents_and_catalog_quality(self):
+        record = self.publish()
+        self.assertEqual(record["metadata"]["table"]["rows"], 2)
+        self.assertEqual(record["metadata"]["quality_checks"][1]["observed"], "30.00")
+        self.assertTrue(
+            self.catalog.verify_artifact("research", record["id"])["passed"]
+        )
+        self.assertEqual(
+            self.catalog.dataset_version("research", "orders", 1)["id"], record["id"]
+        )
+        self.assertTrue(self.catalog.audit("research")["passed"])
+
