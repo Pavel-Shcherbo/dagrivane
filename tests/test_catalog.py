@@ -39,3 +39,12 @@ class CatalogTests(unittest.TestCase):
         )
         self.assertTrue(self.catalog.audit("research")["passed"])
 
+    def test_false_producer_success_cannot_bypass_independent_quality_gate(self):
+        path = write_bundle(
+            self.root, rows=[{"id": 1, "amount": "10"}, {"id": 1, "amount": "20"}]
+        )
+        with self.assertRaisesRegex(CatalogError, "independently"):
+            self.publish(path=path)
+        self.assertEqual(self.catalog.list_artifacts("research")["artifacts"], [])
+        self.assertEqual(self.catalog.objects.inventory()["objects"], [])
+
