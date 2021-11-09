@@ -48,3 +48,16 @@ class CatalogTests(unittest.TestCase):
         self.assertEqual(self.catalog.list_artifacts("research")["artifacts"], [])
         self.assertEqual(self.catalog.objects.inventory()["objects"], [])
 
+    def test_tampered_rows_and_boolean_dimensions_are_rejected(self):
+        for change in [
+            lambda data: data["rows"][0].update(amount="999"),
+            lambda data: data["report"]["output"].update(rows=True),
+            lambda data: data["report"].update(passed=1),
+        ]:
+            path = write_bundle(self.root)
+            data = json.loads(path.read_text())
+            change(data)
+            path.write_text(json.dumps(data))
+            with self.assertRaises(ValueError):
+                self.publish(path=path)
+
