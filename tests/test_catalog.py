@@ -61,3 +61,12 @@ class CatalogTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 self.publish(path=path)
 
+    def test_publication_idempotency_and_conflicts_are_explicit(self):
+        first = self.publish()
+        second = self.publish()
+        self.assertEqual(first, second)
+        changed = write_bundle(self.root, rows=[{"id": 1, "amount": "40"}])
+        with self.assertRaisesRegex(CatalogError, "request key conflicts"):
+            self.publish(path=changed)
+        self.assertEqual(len(self.catalog.list_artifacts("research")["artifacts"]), 1)
+
