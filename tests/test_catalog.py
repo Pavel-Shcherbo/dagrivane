@@ -92,3 +92,25 @@ class CatalogTests(unittest.TestCase):
         self.assertEqual(len({record["sha256"] for record in records}), 1)
         self.assertEqual(len(self.catalog.objects.inventory()["objects"]), 1)
 
+    def test_policy_versions_are_immutable_and_breaks_require_explicit_choice(self):
+        self.assertEqual(
+            self.catalog.register_policy("research", "orders", 1, contract(), gates())[
+                "version"
+            ],
+            1,
+        )
+        changed_gates = gates()
+        changed_gates[1]["max"] = "999"
+        with self.assertRaisesRegex(CatalogError, "immutable"):
+            self.catalog.register_policy(
+                "research", "orders", 1, contract(), changed_gates
+            )
+        changed = contract(2)
+        changed["columns"].append({"name": "note", "type": "string", "nullable": True})
+        with self.assertRaisesRegex(CatalogError, "breaking"):
+            self.catalog.register_policy("research", "orders", 2, changed, gates())
+        accepted = self.catalog.register_policy(
+            "research", "orders", 2, changed, gates(), allow_breaking=True
+        )
+        self.assertFalse(accepted["compatibility"]["compatible"])
+
