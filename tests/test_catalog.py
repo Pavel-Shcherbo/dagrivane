@@ -70,3 +70,25 @@ class CatalogTests(unittest.TestCase):
             self.publish(path=changed)
         self.assertEqual(len(self.catalog.list_artifacts("research")["artifacts"]), 1)
 
+    def test_concurrent_publishers_allocate_unique_dataset_versions(self):
+        path = write_bundle(self.root)
+
+        def publish(number):
+            return Catalog(self.root / "catalog").publish_table(
+                "research",
+                "orders",
+                1,
+                path,
+                run_id="data-run",
+                request_key="publish-" + str(number),
+            )
+
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            records = list(pool.map(publish, range(8)))
+        self.assertEqual(
+            {record["metadata"]["dataset_version"] for record in records},
+            set(range(1, 9)),
+        )
+        self.assertEqual(len({record["sha256"] for record in records}), 1)
+        self.assertEqual(len(self.catalog.objects.inventory()["objects"]), 1)
+
