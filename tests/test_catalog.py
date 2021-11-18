@@ -114,3 +114,29 @@ class CatalogTests(unittest.TestCase):
         )
         self.assertFalse(accepted["compatibility"]["compatible"])
 
+    def test_namespace_scope_applies_to_lookup_parent_links_and_release_refs(self):
+        record = self.publish()
+        self.catalog.create_workspace("other")
+        with self.assertRaisesRegex(CatalogError, "unknown artifact"):
+            self.catalog.artifact("other", record["id"])
+        path = self.root / "app.txt"
+        path.write_text("application")
+        with self.assertRaisesRegex(CatalogError, "unknown artifact"):
+            self.catalog.record_build(
+                "other",
+                "app",
+                path,
+                revision="a" * 40,
+                run_id="build",
+                request_key="record",
+                parents=[record["id"]],
+            )
+        with self.assertRaises(CatalogError):
+            self.catalog.create_release(
+                "other",
+                "release",
+                {"orders": {"artifact": record["id"]}},
+                request_key="release",
+            )
+        self.assertEqual(self.catalog.list_artifacts("other")["artifacts"], [])
+
