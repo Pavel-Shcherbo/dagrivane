@@ -165,3 +165,14 @@ class CatalogTests(unittest.TestCase):
             [item["id"] for item in remainder["artifacts"]], [second["id"], third["id"]]
         )
 
+    def test_audit_detects_policy_and_blob_corruption_without_deleting(self):
+        record = self.publish()
+        self.catalog.objects.path(record["sha256"]).write_bytes(b"broken")
+        report = self.catalog.audit("research")
+        self.assertFalse(report["passed"])
+        self.assertFalse(report["deletion_performed"])
+        with closing(sqlite3.connect(self.catalog.path)) as db, db:
+            db.execute("UPDATE policies SET payload='{}'")
+        with self.assertRaisesRegex(CatalogError, "fingerprint"):
+            self.catalog.policy("research", "orders", 1)
+
