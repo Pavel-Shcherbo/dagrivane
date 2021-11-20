@@ -176,3 +176,13 @@ class CatalogTests(unittest.TestCase):
         with self.assertRaisesRegex(CatalogError, "fingerprint"):
             self.catalog.policy("research", "orders", 1)
 
+    def test_orphans_are_reported_and_partial_audits_are_not_full_success(self):
+        self.publish()
+        self.publish("table-2")
+        orphan = self.catalog.objects.put(b"unreferenced")["sha256"]
+        report = self.catalog.audit("research", limit=1)
+        self.assertFalse(report["passed"])
+        self.assertFalse(report["complete"])
+        self.assertIn(orphan, report["unreferenced_objects"])
+        self.assertEqual(self.catalog.objects.get(orphan), b"unreferenced")
+
