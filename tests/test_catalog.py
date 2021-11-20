@@ -140,3 +140,28 @@ class CatalogTests(unittest.TestCase):
             )
         self.assertEqual(self.catalog.list_artifacts("other")["artifacts"], [])
 
+    def test_lineage_limits_report_partial_scope_and_cursor_is_stable(self):
+        first = self.publish()
+        second = self.publish("table-2", parents=[first["id"]])
+        third = self.publish("table-3", parents=[second["id"]])
+        graph = self.catalog.lineage("research", third["id"])
+        self.assertTrue(graph["complete"])
+        self.assertEqual(len(graph["nodes"]), 3)
+        self.assertFalse(
+            self.catalog.lineage("research", third["id"], max_depth=1)["complete"]
+        )
+        descendants = self.catalog.lineage(
+            "research", first["id"], direction="descendants"
+        )
+        self.assertEqual(
+            {item["id"] for item in descendants["nodes"]},
+            {first["id"], second["id"], third["id"]},
+        )
+        page = self.catalog.list_artifacts("research", limit=1)
+        remainder = Catalog(self.root / "catalog").list_artifacts(
+            "research", after=page["next_cursor"]
+        )
+        self.assertEqual(
+            [item["id"] for item in remainder["artifacts"]], [second["id"], third["id"]]
+        )
+
