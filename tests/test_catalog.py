@@ -197,3 +197,12 @@ class CatalogTests(unittest.TestCase):
         self.assertTrue(all(record == records[0] for record in records))
         self.assertTrue(Catalog(target).audit("shared")["passed"])
 
+    def test_future_catalog_schema_is_rejected_without_downgrading(self):
+        with closing(sqlite3.connect(self.catalog.path)) as db, db:
+            db.execute("UPDATE metadata SET version=99")
+        with self.assertRaisesRegex(CatalogError, "schema version"):
+            Catalog(self.root / "catalog")
+        with closing(sqlite3.connect(self.catalog.path)) as db:
+            self.assertEqual(
+                db.execute("SELECT version FROM metadata").fetchone()[0], 99
+            )
