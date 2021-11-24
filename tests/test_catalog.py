@@ -186,3 +186,14 @@ class CatalogTests(unittest.TestCase):
         self.assertIn(orphan, report["unreferenced_objects"])
         self.assertEqual(self.catalog.objects.get(orphan), b"unreferenced")
 
+    def test_concurrent_cold_initialization_keeps_one_schema(self):
+        target = self.root / "cold-catalog"
+
+        def create(_):
+            return Catalog(target).create_workspace("shared")
+
+        with ThreadPoolExecutor(max_workers=6) as pool:
+            records = list(pool.map(create, range(8)))
+        self.assertTrue(all(record == records[0] for record in records))
+        self.assertTrue(Catalog(target).audit("shared")["passed"])
+
