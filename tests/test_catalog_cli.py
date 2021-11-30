@@ -29,3 +29,54 @@ class CatalogCliTests(unittest.TestCase):
         self.assertEqual(process.returncode, 0, process.stderr)
         return json.loads(process.stdout)
 
+    def test_operator_lifecycle_exports_and_verifies_without_a_live_catalog(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            store = root / "catalog"
+            policy = root / "policy.json"
+            policy.write_text(
+                json.dumps({"contract": contract(), "version": 1, "gates": gates()})
+            )
+            self.command(store, "workspace-create", "research")
+            self.command(store, "policy-register", "research", "orders", policy)
+            artifact = self.command(
+                store,
+                "publish-table",
+                "research",
+                "orders",
+                write_bundle(root),
+                "--policy-version",
+                "1",
+                "--run-id",
+                "data",
+                "--request-key",
+                "publish",
+            )
+            release_definition = root / "release.json"
+            release_definition.write_text(
+                json.dumps({"bindings": {"orders": {"artifact": artifact["id"]}}})
+            )
+            release = self.command(
+                store,
+                "release-create",
+                "research",
+                "release-1",
+                release_definition,
+                "--request-key",
+                "release",
+            )
+            self.assertTrue(
+                self.command(store, "verify-release", "research", release["id"])[
+                    "passed"
+                ]
+            )
+            self.command(
+                store, "export-release", "research", release["id"], root / "export"
+            )
+            self.assertTrue(
+                self.command(
+                    root / "nonexistent-catalog", "verify-export", root / "export"
+                )["passed"]
+            )
+            self.assertFalse((root / "nonexistent-catalog").exists())
+
