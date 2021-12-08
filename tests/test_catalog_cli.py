@@ -80,3 +80,23 @@ class CatalogCliTests(unittest.TestCase):
             )
             self.assertFalse((root / "nonexistent-catalog").exists())
 
+    def test_read_command_does_not_create_an_empty_catalog(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / "missing"
+            process = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "dagrivane.catalog_cli",
+                    "--store",
+                    str(root),
+                    "artifacts",
+                    "research",
+                ],
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            self.assertEqual(process.returncode, 2)
+            self.assertFalse(root.exists())
