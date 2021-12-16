@@ -1,3 +1,4 @@
+from contextlib import closing
 import concurrent.futures
 import sqlite3
 import sys
@@ -215,11 +216,11 @@ class ControlTests(unittest.TestCase):
             self.assertEqual(stores[0].list_workspaces(), [])
 
     def test_newer_schema_is_not_downgraded(self):
-        with sqlite3.connect(self.path) as connection:
+        with closing(sqlite3.connect(self.path)) as connection, connection:
             connection.execute("PRAGMA user_version=99")
         with self.assertRaises(Conflict):
             ControlStore(self.path)
-        with sqlite3.connect(self.path) as connection:
+        with closing(sqlite3.connect(self.path)) as connection, connection:
             self.assertEqual(
                 connection.execute("PRAGMA user_version").fetchone()[0], 99
             )
