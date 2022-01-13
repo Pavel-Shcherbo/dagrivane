@@ -1,3 +1,4 @@
+from contextlib import closing
 import sqlite3
 import sys
 import tempfile
@@ -70,7 +71,7 @@ class EngineTests(unittest.TestCase):
                     "one",
                     folder,
                 )
-            with sqlite3.connect(state) as db:
+            with closing(sqlite3.connect(state)) as db, db:
                 db.execute("UPDATE tasks SET status='running'")
             with self.assertRaisesRegex(ValueError, "unknown outcome"):
                 run(spec, state, "one", folder)
