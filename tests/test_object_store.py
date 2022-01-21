@@ -20,3 +20,16 @@ class ObjectStoreTests(unittest.TestCase):
             self.assertEqual(store.inventory()["objects"], [identity])
             self.assertTrue(store.inventory()["complete"])
 
+    def test_corrupt_existing_object_is_never_silently_reused(self):
+        with tempfile.TemporaryDirectory() as directory:
+            store = ObjectStore(directory)
+            identity = store.put(b"original")["sha256"]
+            store.path(identity).write_bytes(b"changed")
+            for operation in [
+                lambda: store.get(identity),
+                lambda: store.put(b"original"),
+            ]:
+                with self.assertRaisesRegex(ObjectError, "SHA-256"):
+                    operation()
+            self.assertEqual(store.path(identity).read_bytes(), b"changed")
+
