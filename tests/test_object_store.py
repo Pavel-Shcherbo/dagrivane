@@ -33,3 +33,14 @@ class ObjectStoreTests(unittest.TestCase):
                     operation()
             self.assertEqual(store.path(identity).read_bytes(), b"changed")
 
+    def test_export_is_verified_and_create_only(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            store = ObjectStore(root / "objects")
+            identity = store.put(b"payload")["sha256"]
+            destination = root / "export.bin"
+            store.export(identity, destination)
+            self.assertEqual(destination.read_bytes(), b"payload")
+            with self.assertRaises(FileExistsError):
+                store.export(identity, destination)
+
