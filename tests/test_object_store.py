@@ -44,3 +44,16 @@ class ObjectStoreTests(unittest.TestCase):
             with self.assertRaises(FileExistsError):
                 store.export(identity, destination)
 
+    def test_digest_paths_and_symlinked_storage_are_rejected(self):
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            tempfile.TemporaryDirectory() as external,
+        ):
+            store = ObjectStore(directory)
+            for identity in ["../escape", "A" * 64, "0" * 63]:
+                with self.assertRaises(ObjectError):
+                    store.path(identity)
+            (Path(directory) / "00").symlink_to(external, target_is_directory=True)
+            with self.assertRaises(ObjectError):
+                store.get("0" * 64)
+
