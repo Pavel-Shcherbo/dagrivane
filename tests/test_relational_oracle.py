@@ -1,3 +1,5 @@
+from contextlib import closing
+
 """Compare integer relational behavior with an independent SQLite implementation."""
 
 import random
@@ -77,7 +79,7 @@ class RelationalOracleTests(unittest.TestCase):
                 tuple(row[name] for name in ("key", "n", "present", "total"))
                 for row in aggregate.apply(result).rows()
             ]
-            with sqlite3.connect(":memory:") as database:
+            with closing(sqlite3.connect(":memory:")) as database, database:
                 database.execute("create table events(id integer, key integer)")
                 database.execute("create table labels(key integer, value integer)")
                 database.executemany(
