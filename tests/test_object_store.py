@@ -57,3 +57,12 @@ class ObjectStoreTests(unittest.TestCase):
             with self.assertRaises(ObjectError):
                 store.get("0" * 64)
 
+    def test_inventory_bounds_invalid_entries_as_well_as_objects(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            store = ObjectStore(root)
+            for number in range(4):
+                (root / ("invalid-" + str(number))).write_text("x")
+            result = store.inventory(limit=2)
+            self.assertFalse(result["complete"])
+            self.assertEqual(len(result["invalid_entries"]), 2)
