@@ -18,3 +18,10 @@ class ReleaseBundleTests(unittest.TestCase):
         self.catalog = Catalog(self.root / "catalog")
         self.table, self.build, self.release = prepare(self.catalog, self.root)
 
+    def export(self, release=None):
+        target = self.root / "export"
+        export_release(
+            self.catalog, "research", (release or self.release)["id"], target
+        )
+        return target
+
