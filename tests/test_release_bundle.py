@@ -25,3 +25,22 @@ class ReleaseBundleTests(unittest.TestCase):
         )
         return target
 
+    def test_independent_export_includes_and_verifies_parent_closure(self):
+        release = self.catalog.create_release(
+            "research",
+            "build-only",
+            {"app": {"artifact": self.build["id"]}},
+            request_key="build-only",
+        )
+        target = self.export(release)
+        descriptor = json.loads((target / "release.json").read_text())
+        self.assertEqual(len(descriptor["artifacts"]), 2)
+        self.assertEqual(
+            {item["artifact"]["id"] for item in descriptor["artifacts"]},
+            {self.table["id"], self.build["id"]},
+        )
+        self.assertTrue(verify_export(target)["passed"])
+        # The verifier requires only the export, not catalog files or handles.
+        self.catalog.path.rename(self.root / "hidden.sqlite")
+        self.assertTrue(verify_export(target)["passed"])
+
