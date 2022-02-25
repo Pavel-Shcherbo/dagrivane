@@ -44,3 +44,12 @@ class ReleaseBundleTests(unittest.TestCase):
         self.catalog.path.rename(self.root / "hidden.sqlite")
         self.assertTrue(verify_export(target)["passed"])
 
+    def test_export_never_overwrites_an_existing_directory(self):
+        target = self.root / "export"
+        target.mkdir()
+        (target / "previous").write_text("keep")
+        with self.assertRaises(FileExistsError):
+            export_release(self.catalog, "research", self.release["id"], target)
+        self.assertEqual((target / "previous").read_text(), "keep")
+        self.assertFalse(list(self.root.glob(".dagrivane-release-*")))
+
