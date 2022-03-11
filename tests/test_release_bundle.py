@@ -53,3 +53,9 @@ class ReleaseBundleTests(unittest.TestCase):
         self.assertEqual((target / "previous").read_text(), "keep")
         self.assertFalse(list(self.root.glob(".dagrivane-release-*")))
 
+    def test_tampered_object_is_detected_by_offline_verifier(self):
+        target = self.export()
+        (target / "objects" / self.table["sha256"]).write_bytes(b"tampered")
+        with self.assertRaisesRegex(CatalogError, "hash or byte"):
+            verify_export(target)
+
