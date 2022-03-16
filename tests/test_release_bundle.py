@@ -59,3 +59,13 @@ class ReleaseBundleTests(unittest.TestCase):
         with self.assertRaisesRegex(CatalogError, "hash or byte"):
             verify_export(target)
 
+    def test_manifest_requirements_are_rechecked_even_if_descriptor_hash_changes(self):
+        target = self.export()
+        path = target / "release.json"
+        data = json.loads(path.read_text())
+        data["release"]["requirements"]["app"]["kind"] = "table"
+        data["release_sha256"] = fingerprint(data["release"])
+        path.write_text(json.dumps(data))
+        with self.assertRaisesRegex(CatalogError, "requirement"):
+            verify_export(target)
+
