@@ -69,3 +69,24 @@ class ReleaseBundleTests(unittest.TestCase):
         with self.assertRaisesRegex(CatalogError, "requirement"):
             verify_export(target)
 
+    def test_missing_parent_and_object_symlinks_are_rejected(self):
+        target = self.export()
+        path = target / "release.json"
+        data = json.loads(path.read_text())
+        data["artifacts"] = [
+            entry
+            for entry in data["artifacts"]
+            if entry["artifact"]["id"] != self.table["id"]
+        ]
+        path.write_text(json.dumps(data))
+        with self.assertRaises(CatalogError):
+            verify_export(target)
+        payload = self.catalog.objects.get(self.build["sha256"])
+        external = self.root / "external-build.bin"
+        external.write_bytes(payload)
+        object_path = target / "objects" / self.build["sha256"]
+        object_path.unlink()
+        object_path.symlink_to(external)
+        with self.assertRaisesRegex(CatalogError, "symlink"):
+            verify_export(target)
+
