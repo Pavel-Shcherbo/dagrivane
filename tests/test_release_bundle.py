@@ -90,3 +90,20 @@ class ReleaseBundleTests(unittest.TestCase):
         with self.assertRaisesRegex(CatalogError, "symlink"):
             verify_export(target)
 
+    def test_boolean_sizes_and_changed_quality_policy_are_rejected(self):
+        target = self.export()
+        path = target / "release.json"
+        original = json.loads(path.read_text())
+        for change in [
+            lambda data: data["artifacts"][0]["artifact"].update(bytes=True),
+            lambda data: next(
+                entry
+                for entry in data["artifacts"]
+                if entry["artifact"]["kind"] == "table"
+            )["policy"]["gates"][1].update(max="1"),
+        ]:
+            data = copy.deepcopy(original)
+            change(data)
+            path.write_text(json.dumps(data))
+            with self.assertRaises(ValueError):
+                verify_export(target)
