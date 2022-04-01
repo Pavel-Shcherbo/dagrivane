@@ -29,3 +29,13 @@ class ReleaseControlTests(unittest.TestCase):
             )
             self.assertEqual(len(report["lineage"]["nodes"]), 2)
 
+    def test_corruption_and_missing_prerequisite_block_local_production_pointer(self):
+        with tempfile.TemporaryDirectory() as directory:
+            for scenario in ["corrupt-data", "missing-staging"]:
+                with self.subTest(scenario=scenario):
+                    report = run_demo(Path(directory) / scenario, scenario)
+                    self.assertFalse(report["passed"])
+                    self.assertIsNone(report["environments"][1]["release_id"])
+                    self.assertIsNone(report["export"])
+                    self.assertTrue(report["blocked_reason"])
+
