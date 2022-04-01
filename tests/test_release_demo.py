@@ -39,3 +39,14 @@ class ReleaseControlTests(unittest.TestCase):
                     self.assertIsNone(report["export"])
                     self.assertTrue(report["blocked_reason"])
 
+    def test_application_archive_is_reproducible_and_tracks_source_bytes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = examples_directory() / "summary_app.py"
+            first = build_application(source, root / "first.pyz")
+            second = build_application(source, root / "second.pyz")
+            self.assertEqual(first, second)
+            self.assertEqual(first, hashlib.sha256(source.read_bytes()).hexdigest())
+            self.assertEqual(
+                (root / "first.pyz").read_bytes(), (root / "second.pyz").read_bytes()
+            )
