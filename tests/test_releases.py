@@ -9,4 +9,10 @@ from catalog_fixtures import prepare, write_bundle
 
 
 class ReleaseTests(unittest.TestCase):
-    pass
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temporary.cleanup)
+        self.root = Path(self.temporary.name)
+        self.catalog = Catalog(self.root / "catalog")
+        self.table, self.build, self.release = prepare(self.catalog, self.root)
+
