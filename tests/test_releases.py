@@ -51,3 +51,26 @@ class ReleaseTests(unittest.TestCase):
             pinned["manifest"]["bindings"]["orders"]["id"], self.table["id"]
         )
 
+    def test_concurrent_alias_updates_have_one_generation_winner(self):
+        self.catalog.move_alias(
+            "research", "orders-current", self.table["id"], expected_generation=0
+        )
+
+        def update(_):
+            try:
+                Catalog(self.root / "catalog").move_alias(
+                    "research",
+                    "orders-current",
+                    self.table["id"],
+                    expected_generation=1,
+                )
+                return True
+            except CatalogError:
+                return False
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            self.assertEqual(sum(pool.map(update, range(2))), 1)
+        self.assertEqual(
+            self.catalog.alias("research", "orders-current")["generation"], 2
+        )
+
