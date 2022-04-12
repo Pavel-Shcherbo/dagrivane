@@ -74,3 +74,49 @@ class ReleaseTests(unittest.TestCase):
             self.catalog.alias("research", "orders-current")["generation"], 2
         )
 
+    def test_prerequisite_and_generation_gate_local_promotion(self):
+        self.catalog.create_environment("research", "staging")
+        self.catalog.create_environment("research", "production", requires="staging")
+        with self.assertRaisesRegex(CatalogError, "prerequisite"):
+            self.catalog.promote(
+                "research",
+                "production",
+                self.release["id"],
+                expected_generation=0,
+                request_key="too-early",
+            )
+        self.catalog.promote(
+            "research",
+            "staging",
+            self.release["id"],
+            expected_generation=0,
+            request_key="stage",
+        )
+        result = self.catalog.promote(
+            "research",
+            "production",
+            self.release["id"],
+            expected_generation=0,
+            request_key="promote",
+        )
+        self.assertEqual(result["generation"], 1)
+        self.assertTrue(result["verification"]["passed"])
+        self.assertEqual(
+            result,
+            self.catalog.promote(
+                "research",
+                "production",
+                self.release["id"],
+                expected_generation=0,
+                request_key="promote",
+            ),
+        )
+        with self.assertRaisesRegex(CatalogError, "generation"):
+            self.catalog.promote(
+                "research",
+                "production",
+                self.release["id"],
+                expected_generation=0,
+                request_key="another",
+            )
+
