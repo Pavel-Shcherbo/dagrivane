@@ -141,3 +141,19 @@ class ReleaseTests(unittest.TestCase):
             )
         self.assertIsNone(self.catalog.environment("research", "staging")["release_id"])
 
+    def test_wrong_artifact_kind_and_policy_requirement_are_rejected(self):
+        for requirements in [
+            {"app": {"kind": "table"}},
+            {"app": {"policy_version": 1}},
+        ]:
+            with self.assertRaisesRegex(CatalogError, "requirement"):
+                self.catalog.create_release(
+                    "research",
+                    "wrong",
+                    {"app": {"artifact": self.build["id"]}},
+                    request_key="wrong",
+                    requirements=requirements,
+                )
+        self.assertTrue(
+            self.catalog.verify_release("research", self.release["id"])["passed"]
+        )
