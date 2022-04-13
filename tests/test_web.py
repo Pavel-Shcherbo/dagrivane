@@ -40,3 +40,31 @@ class WorkbenchTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 evaluate({"mode": "unknown"})
             self.assertFalse((Path(folder) / "state").exists())
+
+    def test_release_control_retains_isolated_catalogs_and_blocks_changed_data(self):
+        with (
+            tempfile.TemporaryDirectory() as folder,
+            patch.dict("os.environ", {"DAGRIVANE_STATE_DIR": folder}),
+        ):
+            healthy = evaluate({"mode": "release"})
+            self.assertTrue(healthy["passed"])
+            self.assertTrue(Path(healthy["catalog_root"]).is_dir())
+            changed = evaluate({"mode": "release", "scenario": "corrupt-data"})
+            self.assertFalse(changed["passed"])
+            self.assertNotEqual(healthy["run_id"], changed["run_id"])
+            self.assertIsNone(changed["environments"][1]["release_id"])
+
+    def test_release_controls_reject_unknown_parameters_before_state_creation(self):
+        with (
+            tempfile.TemporaryDirectory() as folder,
+            patch.dict(
+                "os.environ", {"DAGRIVANE_STATE_DIR": str(Path(folder) / "state")}
+            ),
+        ):
+            for params in [
+                {"mode": "release", "scenario": "unknown"},
+                {"mode": "release", "command": ["arbitrary"]},
+            ]:
+                with self.assertRaises(ValueError):
+                    evaluate(params)
+            self.assertFalse((Path(folder) / "state").exists())
