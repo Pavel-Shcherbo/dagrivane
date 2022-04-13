@@ -120,3 +120,24 @@ class ReleaseTests(unittest.TestCase):
                 request_key="another",
             )
 
+    def test_corrupt_ancestor_blocks_build_only_release_verification(self):
+        release = self.catalog.create_release(
+            "research",
+            "build-only",
+            {"app": {"artifact": self.build["id"]}},
+            request_key="build-only",
+        )
+        self.catalog.objects.path(self.table["sha256"]).write_bytes(b"corrupt parent")
+        with self.assertRaises(ValueError):
+            self.catalog.verify_release("research", release["id"])
+        self.catalog.create_environment("research", "staging")
+        with self.assertRaises(ValueError):
+            self.catalog.promote(
+                "research",
+                "staging",
+                release["id"],
+                expected_generation=0,
+                request_key="stage",
+            )
+        self.assertIsNone(self.catalog.environment("research", "staging")["release_id"])
+
