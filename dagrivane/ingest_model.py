@@ -22,3 +22,9 @@ def instant(value):
     )
 
 
+def offset(value):
+    if type(value) is not int or not 0 <= value < 2**63:
+        raise ValueError("stream offsets require nonnegative signed 64-bit integers")
+    return value
+
+
