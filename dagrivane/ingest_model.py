@@ -14,3 +14,11 @@ MAX_EVENTS = 10000
 MAX_KEYS = 100000
 
 
+def instant(value):
+    return (
+        convert(value, "timestamp")
+        .isoformat(timespec="microseconds")
+        .replace("+00:00", "Z")
+    )
+
+
