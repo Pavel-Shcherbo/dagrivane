@@ -90,3 +90,18 @@ def stream_definition(value):
     return result
 
 
+def normalized_key(contract, keys, value):
+    if not isinstance(value, dict) or set(value) != set(keys):
+        raise ValueError("event keys must match the declared stream key columns")
+    result = {}
+    for key in keys:
+        parsed = contract.column(key).parse(value[key])
+        if isinstance(parsed, Decimal):
+            parsed = (
+                parsed.normalize(context=Context(prec=80)) if parsed else Decimal(0)
+            )
+        result[key] = encode(parsed)
+    raw = json_bytes(result, 1024)
+    return raw.decode(), result
+
+
