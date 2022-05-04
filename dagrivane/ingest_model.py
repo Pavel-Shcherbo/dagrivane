@@ -105,3 +105,104 @@ def normalized_key(contract, keys, value):
     return raw.decode(), result
 
 
+def batch_definition(raw, definition):
+    if not isinstance(raw, bytes) or len(raw) > MAX_BATCH_BYTES:
+        raise ValueError("incremental batch requires at most 4 MiB of JSON bytes")
+    value = parse_json(raw)
+    if (
+        not isinstance(value, dict)
+        or set(value) - {"version", "after", "through", "events", "source_sha256"}
+        or not {"version", "after", "through", "events"} <= set(value)
+        or type(value["version"]) is not int
+        or value["version"] != 1
+    ):
+        raise ValueError("batch requires version 1, after, through and events")
+    after = offset(value["after"])
+    through = offset(value["through"])
+    if through <= after:
+        raise ValueError("batch through offset must advance after")
+    events = value["events"]
+    sources = value.get("source_sha256", [])
+    if (
+        not isinstance(sources, list)
+        or len(sources) > 8
+        or any(
+            not isinstance(item, str)
+            or len(item) != 64
+            or any(c not in "0123456789abcdef" for c in item)
+            for item in sources
+        )
+        or len(set(sources)) != len(sources)
+    ):
+        raise ValueError(
+            "source_sha256 supports at most eight distinct lowercase hashes"
+        )
+    if not isinstance(events, list) or len(events) > MAX_EVENTS:
+        raise ValueError("batch supports at most 10,000 ordered events")
+    contract = Contract.compile(definition["contract"])
+    output = []
+    previous = after
+    ids = set()
+    for event in events:
+        if not isinstance(event, dict) or set(event) != {
+            "id",
+            "offset",
+            "operation",
+            "key",
+            "at",
+            "row",
+        }:
+            raise ValueError("events require id, offset, operation, key, at and row")
+        event_id = token(event["id"], "event ID")
+        position = offset(event["offset"])
+        if event_id in ids or not previous < position <= through:
+            raise ValueError(
+                "event IDs must be unique and offsets strictly increasing within the batch range"
+            )
+        ids.add(event_id)
+        previous = position
+        key_json, key = normalized_key(contract, definition["keys"], event["key"])
+        at = instant(event["at"])
+        operation = event["operation"]
+        if operation == "upsert":
+            row = contract.parse_row(event["row"])
+            row = {name: encode(v) for name, v in row.items()}
+            if (
+                normalized_key(
+                    contract,
+                    definition["keys"],
+                    {name: row[name] for name in definition["keys"]},
+                )[0]
+                != key_json
+            ):
+                raise ValueError("event key differs from row key")
+            if instant(row[definition["event_time_column"]]) != at:
+                raise ValueError("event at differs from row event-time column")
+        elif operation == "delete":
+            if event["row"] is not None:
+                raise ValueError("delete events require a null row")
+            row = None
+        else:
+            raise ValueError("event operation must be upsert or delete")
+        normalized = {
+            "id": event_id,
+            "offset": position,
+            "operation": operation,
+            "key": key,
+            "at": at,
+            "row": row,
+        }
+        normalized["key_json"] = key_json
+        normalized["content_sha256"] = fingerprint(
+            {key: normalized[key] for key in ["operation", "key", "at", "row"]}
+        )
+        output.append(normalized)
+    return {
+        "version": 1,
+        "after": after,
+        "through": through,
+        "source_sha256": sources,
+        "events": output,
+    }
+
+
