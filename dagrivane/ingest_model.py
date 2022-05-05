@@ -206,3 +206,83 @@ def batch_definition(raw, definition):
     }
 
 
+def reduce_events(definition, records, seen, watermark, events):
+    """Apply source-offset order with event-time staleness and tombstones."""
+    records = copy.deepcopy(records)
+    seen = dict(seen)
+    counts = {"applied": 0, "duplicate": 0, "stale": 0}
+    outcomes = []
+    maximum = convert(watermark, "timestamp") if watermark is not None else None
+    for event in events:
+        prior = seen.get(event["id"])
+        if prior is not None:
+            if prior != event["content_sha256"]:
+                raise ValueError("event ID was already used for different content")
+            outcome = "duplicate"
+        else:
+            at = convert(event["at"], "timestamp")
+            if maximum is not None:
+                try:
+                    boundary = maximum - timedelta(
+                        seconds=definition["allowed_lateness_seconds"]
+                    )
+                except OverflowError:
+                    boundary = maximum.replace(
+                        year=1,
+                        month=1,
+                        day=1,
+                        hour=0,
+                        minute=0,
+                        second=0,
+                        microsecond=0,
+                    )
+                if at < boundary:
+                    raise ValueError(
+                        "event precedes the allowed-lateness boundary; batch was not committed"
+                    )
+            maximum = at if maximum is None else max(maximum, at)
+            current = records.get(event["key_json"])
+            if current is not None and event["at"] < current["at"]:
+                outcome = "stale"
+            else:
+                records[event["key_json"]] = {
+                    "row": event["row"],
+                    "at": event["at"],
+                    "offset": event["offset"],
+                    "event_id": event["id"],
+                }
+                outcome = "applied"
+            seen[event["id"]] = event["content_sha256"]
+        counts[outcome] += 1
+        outcomes.append(
+            {"id": event["id"], "offset": event["offset"], "outcome": outcome}
+        )
+    if len(records) > MAX_KEYS:
+        raise ValueError("stream exceeds 100,000 keys including retained tombstones")
+    contract = Contract.compile(definition["contract"])
+    table = Table.from_rows(
+        contract,
+        [
+            records[key]["row"]
+            for key in sorted(records)
+            if records[key]["row"] is not None
+        ],
+    )
+    checks = [
+        gate.evaluate(table) for gate in compile_gates(definition["gates"], contract)
+    ]
+    if not all(check["passed"] for check in checks):
+        raise ValueError(
+            "materialized stream failed quality gates; batch was not committed"
+        )
+    state_sha = fingerprint([{"key": key, **records[key]} for key in sorted(records)])
+    return (
+        records,
+        seen,
+        instant(maximum) if maximum is not None else None,
+        counts,
+        outcomes,
+        table,
+        checks,
+        state_sha,
+    )
