@@ -70,3 +70,24 @@ def publish_next(store, name, catalog, *, lease_seconds=30, after_publish=None):
         raise
 
 
+def publish_pending(store, name, catalog, *, limit=100, lease_seconds=30):
+    if type(limit) is not int or not 1 <= limit <= 100:
+        raise ValueError("publication limit must be between 1 and 100")
+    if type(lease_seconds) is not int or not 1 <= lease_seconds <= 300:
+        raise ValueError("publication lease must be 1–300 seconds")
+    results = []
+    for _ in range(limit):
+        result = publish_next(store, name, catalog, lease_seconds=lease_seconds)
+        if not result["published"]:
+            break
+        results.append(result)
+    status = store.status(name)
+    return {
+        "published": results,
+        "remaining": sum(
+            count
+            for status_name, count in status["publication_counts"].items()
+            if status_name != "published"
+        ),
+        "publication_counts": status["publication_counts"],
+    }
