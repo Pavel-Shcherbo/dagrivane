@@ -44,3 +44,27 @@ def csv_batch(definition, path, *, after, expected_sha256=None):
     return result
 
 
+def write_batch(batch, destination):
+    raw = json_bytes(batch, MAX_BATCH_BYTES) + b"\n"
+    if len(raw) > MAX_BATCH_BYTES:
+        raise ValueError("CSV-derived batch exceeds 4 MiB")
+    destination = Path(destination)
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            prefix=".ingest-batch-", dir=destination.parent, delete=False
+        ) as stream:
+            temporary = Path(stream.name)
+            stream.write(raw)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.link(temporary, destination)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+    return {
+        "path": str(destination),
+        "events": len(batch["events"]),
+        "after": batch["after"],
+        "through": batch["through"],
+    }
