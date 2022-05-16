@@ -37,3 +37,9 @@ CREATE TABLE publications(stream TEXT NOT NULL,batch_id TEXT NOT NULL,status TEX
 """
 
 
+def utc():
+    return datetime.now(timezone.utc)
+
+
+class IngestStore:
+    pass
