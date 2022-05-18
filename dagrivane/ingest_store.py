@@ -96,3 +96,12 @@ class IngestStore:
                 "SELECT store_id FROM metadata WHERE singleton=1"
             ).fetchone()[0]
 
+    @contextmanager
+    def _connect(self):
+        with closing(
+            sqlite3.connect(self.path, timeout=10, isolation_level=None)
+        ) as db:
+            db.row_factory = sqlite3.Row
+            db.execute("PRAGMA foreign_keys=ON")
+            yield db
+
