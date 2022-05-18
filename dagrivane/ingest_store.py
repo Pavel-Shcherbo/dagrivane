@@ -42,4 +42,57 @@ def utc():
 
 
 class IngestStore:
-    pass
+    def __init__(self, path, *, create=False):
+        self.path = Path(path).expanduser()
+        if self.path.is_symlink():
+            raise ValueError("ingestion database cannot be a symlink")
+        if not create and not self.path.is_file():
+            raise ValueError(
+                "ingestion database does not exist; initialize it explicitly"
+            )
+        if create:
+            self.path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+        with self._connect() as db:
+            version = db.execute("PRAGMA user_version").fetchone()[0]
+            if version not in {0, 1} or version == 0 and not create:
+                raise ValueError("unsupported ingestion schema")
+            if version == 0:
+                db.execute("BEGIN IMMEDIATE")
+                try:
+                    version = db.execute("PRAGMA user_version").fetchone()[0]
+                    if version not in {0, 1}:
+                        raise ValueError("unsupported ingestion schema")
+                    if version == 0:
+                        if db.execute(
+                            "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
+                        ).fetchone():
+                            raise ValueError("refusing an unrelated SQLite database")
+                        for statement in SCHEMA.split(";"):
+                            if statement.strip():
+                                db.execute(statement)
+                        db.execute(
+                            "INSERT INTO metadata VALUES(1,?)", (uuid.uuid4().hex,)
+                        )
+                        db.execute("PRAGMA user_version=1")
+                        self.path.chmod(0o600)
+                    db.commit()
+                except BaseException:
+                    db.rollback()
+                    raise
+            deadline = time.monotonic() + 10
+            while True:
+                try:
+                    db.execute("PRAGMA journal_mode=WAL").fetchone()
+                    break
+                except sqlite3.OperationalError as error:
+                    if (
+                        getattr(error, "sqlite_errorcode", None)
+                        not in {sqlite3.SQLITE_BUSY, sqlite3.SQLITE_LOCKED}
+                        or time.monotonic() >= deadline
+                    ):
+                        raise
+                    time.sleep(0.02)
+            self.id = db.execute(
+                "SELECT store_id FROM metadata WHERE singleton=1"
+            ).fetchone()[0]
+
