@@ -116,3 +116,13 @@ class IngestStore:
                 db.rollback()
                 raise
 
+    def _stream(self, db, name):
+        token(name, "stream")
+        row = db.execute("SELECT * FROM streams WHERE name=?", (name,)).fetchone()
+        if row is None:
+            raise ValueError("unknown ingestion stream")
+        definition = stream_definition(json.loads(row["definition"]))
+        if fingerprint(definition) != row["definition_sha256"]:
+            raise ValueError("stored stream definition fingerprint mismatch")
+        return dict(row), definition
+
