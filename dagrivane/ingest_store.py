@@ -148,3 +148,25 @@ class IngestStore:
                 )
             return self._status(db, name)
 
+    def _status(self, db, name):
+        stream, definition = self._stream(db, name)
+        return {
+            "name": name,
+            "store_id": self.id,
+            "definition": definition,
+            "definition_sha256": stream["definition_sha256"],
+            "generation": stream["generation"],
+            "offset": stream["offset"],
+            "watermark": stream["watermark"],
+            "state_sha256": stream["state_sha256"],
+            "seen_events": stream["seen_count"],
+            "target_root": stream["target_root"],
+            "publication_counts": {
+                row["status"]: row["n"]
+                for row in db.execute(
+                    "SELECT status,count(*) AS n FROM publications WHERE stream=? GROUP BY status",
+                    (name,),
+                )
+            },
+        }
+
