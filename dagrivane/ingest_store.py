@@ -126,3 +126,25 @@ class IngestStore:
             raise ValueError("stored stream definition fingerprint mismatch")
         return dict(row), definition
 
+    def register(self, name, definition):
+        token(name, "stream")
+        definition = stream_definition(definition)
+        sha = fingerprint(definition)
+        with self._tx() as db:
+            row = db.execute(
+                "SELECT definition_sha256 FROM streams WHERE name=?", (name,)
+            ).fetchone()
+            if row:
+                if row["definition_sha256"] != sha:
+                    raise ValueError(
+                        "stream definition is immutable; register a new stream for changed semantics"
+                    )
+            else:
+                if db.execute("SELECT count(*) FROM streams").fetchone()[0] >= 1000:
+                    raise ValueError("ingestion store exceeds 1,000 streams")
+                db.execute(
+                    "INSERT INTO streams VALUES(?,?,?,0,0,NULL,?,0,NULL)",
+                    (name, json_bytes(definition).decode(), sha, fingerprint([])),
+                )
+            return self._status(db, name)
+
