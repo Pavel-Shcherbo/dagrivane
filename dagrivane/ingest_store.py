@@ -170,3 +170,7 @@ class IngestStore:
             },
         }
 
+    def status(self, name):
+        with self._tx(False) as db:
+            return self._status(db, name)
+
