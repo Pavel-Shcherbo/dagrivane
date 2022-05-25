@@ -174,3 +174,15 @@ class IngestStore:
         with self._tx(False) as db:
             return self._status(db, name)
 
+    def _records(self, db, name):
+        records = {}
+        size = 0
+        for row in db.execute(
+            "SELECT key,payload FROM records WHERE stream=? ORDER BY key", (name,)
+        ):
+            size += len(row["key"].encode()) + len(row["payload"].encode())
+            if len(records) >= 100000 or size > 32 * 1024 * 1024:
+                raise ValueError("stored ingestion state exceeds key/byte budget")
+            records[row["key"]] = parse_json(row["payload"].encode())
+        return records
+
