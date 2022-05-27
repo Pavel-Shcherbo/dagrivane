@@ -186,3 +186,155 @@ class IngestStore:
             records[row["key"]] = parse_json(row["payload"].encode())
         return records
 
+    def ingest(self, name, raw, *, request_key):
+        token(request_key, "request key")
+        if not isinstance(raw, bytes) or len(raw) > MAX_BATCH_BYTES:
+            raise ValueError("batch exceeds 4 MiB or is not bytes")
+        raw_sha = hashlib.sha256(raw).hexdigest()
+        with self._tx() as db:
+            stream, definition = self._stream(db, name)
+            batch = batch_definition(raw, definition)
+            batch_id = fingerprint(
+                [self.id, name, stream["definition_sha256"], raw_sha]
+            )
+            prior = db.execute(
+                "SELECT batch_id FROM requests WHERE stream=? AND request_key=?",
+                (name, request_key),
+            ).fetchone()
+            if prior and prior["batch_id"] != batch_id:
+                raise ValueError("request key conflicts with different batch bytes")
+            existing = db.execute(
+                "SELECT receipt FROM batches WHERE stream=? AND id=?", (name, batch_id)
+            ).fetchone()
+            if existing:
+                db.execute(
+                    "INSERT OR IGNORE INTO requests VALUES(?,?,?)",
+                    (name, request_key, batch_id),
+                )
+                return {**json.loads(existing["receipt"]), "reused": True}
+            if batch["after"] != stream["offset"]:
+                raise ValueError(
+                    "batch after offset differs from the committed checkpoint"
+                )
+            records = self._records(db, name)
+            actual = fingerprint(
+                [{"key": key, **records[key]} for key in sorted(records)]
+            )
+            if actual != stream["state_sha256"]:
+                raise ValueError("materialized stream state fingerprint mismatch")
+            ids = [event["id"] for event in batch["events"]]
+            seen = {}
+            for start in range(0, len(ids), 200):
+                chunk = ids[start : start + 200]
+                for row in db.execute(
+                    "SELECT event_id,content_sha256 FROM events WHERE stream=? AND event_id IN ("
+                    + ",".join("?" for _ in chunk)
+                    + ")",
+                    [name, *chunk],
+                ):
+                    seen[row["event_id"]] = row["content_sha256"]
+            updated, new_seen, watermark, counts, outcomes, table, checks, state_sha = (
+                reduce_events(
+                    definition, records, seen, stream["watermark"], batch["events"]
+                )
+            )
+            new_events = {
+                key: value for key, value in new_seen.items() if key not in seen
+            }
+            if stream["seen_count"] + len(new_events) > 1000000:
+                raise ValueError("stream exceeds one million retained event IDs")
+            generation = stream["generation"] + 1
+            previous = db.execute(
+                "SELECT bundle_sha256 FROM batches WHERE stream=? AND generation=?",
+                (name, generation - 1),
+            ).fetchone()
+            sources = list(
+                dict.fromkeys(
+                    [
+                        raw_sha,
+                        *batch["source_sha256"],
+                        *([previous["bundle_sha256"]] if previous else []),
+                    ]
+                )
+            )
+            from .tables import Table
+
+            table = Table(table.contract, table.records, tuple(sources))
+            bundle = json_bytes(
+                {
+                    "format": "dagrivane.table.v1",
+                    "report": {
+                        "passed": True,
+                        "plan_sha256": stream["definition_sha256"],
+                        "output": table.summary(),
+                        "checks": checks,
+                    },
+                    "rows": table.json_rows(),
+                }
+            )
+            bundle_sha = hashlib.sha256(bundle).hexdigest()
+            receipt = {
+                "stream": name,
+                "batch_id": batch_id,
+                "generation": generation,
+                "after": batch["after"],
+                "through": batch["through"],
+                "raw_sha256": raw_sha,
+                "previous_state_sha256": stream["state_sha256"],
+                "state_sha256": state_sha,
+                "bundle_sha256": bundle_sha,
+                "data_sha256": table.digest(),
+                "watermark": watermark,
+                "counts": counts,
+                "outcomes": outcomes,
+                "rows": len(table.records),
+                "tombstones": sum(item["row"] is None for item in updated.values()),
+                "committed_at": utc().isoformat(),
+            }
+            json_bytes(updated, 32 * 1024 * 1024)
+            db.execute(
+                "INSERT INTO batches VALUES(?,?,?,?,?,?,?,?)",
+                (
+                    name,
+                    batch_id,
+                    generation,
+                    raw,
+                    raw_sha,
+                    json_bytes(receipt).decode(),
+                    bundle,
+                    bundle_sha,
+                ),
+            )
+            db.execute(
+                "INSERT INTO requests VALUES(?,?,?)", (name, request_key, batch_id)
+            )
+            db.execute(
+                "INSERT INTO publications VALUES(?,?,'pending',NULL,NULL,0,NULL,NULL)",
+                (name, batch_id),
+            )
+            db.executemany(
+                "INSERT INTO events VALUES(?,?,?,?)",
+                [
+                    (name, event_id, sha, batch_id)
+                    for event_id, sha in new_events.items()
+                ],
+            )
+            for key, item in updated.items():
+                if records.get(key) != item:
+                    db.execute(
+                        "INSERT INTO records VALUES(?,?,?) ON CONFLICT(stream,key) DO UPDATE SET payload=excluded.payload",
+                        (name, key, json_bytes(item).decode()),
+                    )
+            db.execute(
+                "UPDATE streams SET generation=?,offset=?,watermark=?,state_sha256=?,seen_count=seen_count+? WHERE name=?",
+                (
+                    generation,
+                    batch["through"],
+                    watermark,
+                    state_sha,
+                    len(new_events),
+                    name,
+                ),
+            )
+            return {**receipt, "reused": False}
+
