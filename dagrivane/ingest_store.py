@@ -338,3 +338,8 @@ class IngestStore:
             )
             return {**receipt, "reused": False}
 
+    def ingest_file(self, name, path, *, request_key):
+        with Path(path).open("rb") as stream:
+            raw = stream.read(MAX_BATCH_BYTES + 1)
+        return self.ingest(name, raw, request_key=request_key)
+
