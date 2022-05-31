@@ -343,3 +343,25 @@ class IngestStore:
             raw = stream.read(MAX_BATCH_BYTES + 1)
         return self.ingest(name, raw, request_key=request_key)
 
+    def rows(self, name):
+        with self._tx(False) as db:
+            stream, definition = self._stream(db, name)
+            records = self._records(db, name)
+            actual = fingerprint(
+                [{"key": key, **records[key]} for key in sorted(records)]
+            )
+            if actual != stream["state_sha256"]:
+                raise ValueError("materialized stream state fingerprint mismatch")
+            return {
+                "stream": name,
+                "generation": stream["generation"],
+                "offset": stream["offset"],
+                "state_sha256": actual,
+                "rows": [
+                    records[key]["row"]
+                    for key in sorted(records)
+                    if records[key]["row"] is not None
+                ],
+                "tombstones": sum(item["row"] is None for item in records.values()),
+            }
+
