@@ -365,3 +365,48 @@ class IngestStore:
                 "tombstones": sum(item["row"] is None for item in records.values()),
             }
 
+    def batches(self, name, *, after_generation=0, limit=100):
+        if (
+            type(after_generation) is not int
+            or after_generation < 0
+            or type(limit) is not int
+            or not 1 <= limit <= 1000
+        ):
+            raise ValueError("invalid generation cursor or page limit")
+        with self._tx(False) as db:
+            self._stream(db, name)
+            cursor = db.execute(
+                "SELECT b.receipt,p.status,p.attempts,p.last_error,p.artifact FROM batches b JOIN publications p ON p.stream=b.stream AND p.batch_id=b.id WHERE b.stream=? AND b.generation>? ORDER BY b.generation LIMIT ?",
+                (name, after_generation, limit + 1),
+            )
+            items = []
+            size = 0
+            next_generation = None
+            for row in cursor:
+                receipt = json.loads(row["receipt"])
+                receipt.pop("outcomes", None)
+                item = {
+                    **receipt,
+                    "publication": {
+                        "status": row["status"],
+                        "attempts": row["attempts"],
+                        "last_error": row["last_error"],
+                        "artifact": (
+                            json.loads(row["artifact"]) if row["artifact"] else None
+                        ),
+                    },
+                }
+                encoded_size = len(json_bytes(item))
+                if len(items) >= limit or size + encoded_size > 4 * 1024 * 1024:
+                    next_generation = (
+                        items[-1]["generation"] if items else after_generation
+                    )
+                    break
+                items.append(item)
+                size += encoded_size
+            return {
+                "items": items,
+                "next_generation": next_generation,
+                "event_outcomes_omitted": True,
+            }
+
