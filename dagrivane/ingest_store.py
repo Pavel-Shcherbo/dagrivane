@@ -410,3 +410,60 @@ class IngestStore:
                 "event_outcomes_omitted": True,
             }
 
+    def claim(self, name, target_root, *, lease_seconds=30):
+        if type(lease_seconds) is not int or not 1 <= lease_seconds <= 300:
+            raise ValueError("publication lease must be 1–300 seconds")
+        target_root = str(Path(target_root).resolve())
+        moment = utc()
+        with self._tx() as db:
+            stream, definition = self._stream(db, name)
+            if stream["target_root"] not in (None, target_root):
+                raise ValueError(
+                    "stream publication destination is already bound to another catalog path"
+                )
+            row = db.execute(
+                "SELECT b.*,p.status,p.claim,p.lease_until FROM batches b JOIN publications p ON p.stream=b.stream AND p.batch_id=b.id WHERE b.stream=? AND p.status!='published' ORDER BY b.generation LIMIT 1",
+                (name,),
+            ).fetchone()
+            if row is None:
+                return None
+            if (
+                row["status"] == "leased"
+                and datetime.fromisoformat(row["lease_until"]) > moment
+            ):
+                return None
+            if hashlib.sha256(bytes(row["bundle"])).hexdigest() != row["bundle_sha256"]:
+                raise ValueError("stored outbox bundle SHA-256 mismatch")
+            claim = uuid.uuid4().hex
+            until = (moment + timedelta(seconds=lease_seconds)).isoformat()
+            previous = db.execute(
+                "SELECT p.artifact FROM batches b JOIN publications p ON p.stream=b.stream AND p.batch_id=b.id WHERE b.stream=? AND b.generation=?",
+                (name, row["generation"] - 1),
+            ).fetchone()
+            if previous and previous["artifact"] is None:
+                raise ValueError("prior publication has not been acknowledged")
+            db.execute(
+                "UPDATE publications SET status='leased',claim=?,lease_until=?,attempts=attempts+1,last_error=NULL WHERE stream=? AND batch_id=?",
+                (claim, until, name, row["id"]),
+            )
+            db.execute(
+                "UPDATE streams SET target_root=? WHERE name=?", (target_root, name)
+            )
+            return {
+                "stream": name,
+                "batch_id": row["id"],
+                "generation": row["generation"],
+                "claim": claim,
+                "lease_until": until,
+                "definition": definition,
+                "bundle": bytes(row["bundle"]),
+                "bundle_sha256": row["bundle_sha256"],
+                "parents": [json.loads(previous["artifact"])["id"]] if previous else [],
+                "request_key": "ingest:"
+                + self.id
+                + ":"
+                + fingerprint(name)[:12]
+                + ":"
+                + str(row["generation"]),
+            }
+
