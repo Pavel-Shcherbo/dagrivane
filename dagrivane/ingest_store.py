@@ -467,3 +467,37 @@ class IngestStore:
                 + str(row["generation"]),
             }
 
+    def acknowledge(self, claim, artifact):
+        if (
+            not isinstance(artifact, dict)
+            or artifact.get("kind") != "table"
+            or artifact.get("sha256") != claim["bundle_sha256"]
+        ):
+            raise ValueError("published artifact does not match claimed table bytes")
+        target = claim["definition"]["target"]
+        if (
+            artifact.get("workspace") != target["workspace"]
+            or artifact.get("name") != target["dataset"]
+            or artifact.get("policy_version") != target["policy_version"]
+            or sorted(artifact.get("parents", [])) != sorted(claim["parents"])
+        ):
+            raise ValueError(
+                "published artifact binding or lineage differs from the claim"
+            )
+        with self._tx() as db:
+            changed = db.execute(
+                "UPDATE publications SET status='published',claim=NULL,lease_until=NULL,artifact=? WHERE stream=? AND batch_id=? AND status='leased' AND claim=? AND lease_until>?",
+                (
+                    json_bytes(artifact).decode(),
+                    claim["stream"],
+                    claim["batch_id"],
+                    claim["claim"],
+                    utc().isoformat(),
+                ),
+            )
+            if changed.rowcount != 1:
+                raise ValueError(
+                    "publication claim is stale; acknowledgement was fenced"
+                )
+        return artifact
+
