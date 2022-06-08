@@ -501,3 +501,9 @@ class IngestStore:
                 )
         return artifact
 
+    def release(self, claim, error):
+        with self._tx() as db:
+            db.execute(
+                "UPDATE publications SET status='pending',claim=NULL,lease_until=NULL,last_error=? WHERE stream=? AND batch_id=? AND status='leased' AND claim=?",
+                (str(error)[:2048], claim["stream"], claim["batch_id"], claim["claim"]),
+            )
