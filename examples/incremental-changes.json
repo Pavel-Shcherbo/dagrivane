@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "after": 2,
+  "through": 5,
+  "events": [
+    {
+      "id": "change-3",
+      "offset": 3,
+      "operation": "upsert",
+      "key": {
+        "id": 1
+      },
+      "at": "2020-01-02T12:00:00Z",
+      "row": {
+        "id": 1,
+        "amount": "15",
+        "updated_at": "2020-01-02T12:00:00Z"
+      }
+    },
+    {
+      "id": "change-4",
+      "offset": 4,
+      "operation": "delete",
+      "key": {
+        "id": 2
+      },
+      "at": "2020-01-03T12:00:00Z",
+      "row": null
+    },
+    {
+      "id": "change-5",
+      "offset": 5,
+      "operation": "upsert",
+      "key": {
+        "id": 3
+      },
+      "at": "2020-01-03T12:00:00Z",
+      "row": {
+        "id": 3,
+        "amount": "30",
+        "updated_at": "2020-01-03T12:00:00Z"
+      }
+    }
+  ]
+}
