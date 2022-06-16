@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "contract": {
+    "name": "orders",
+    "version": 1,
+    "columns": [
+      {
+        "name": "id",
+        "type": "integer"
+      },
+      {
+        "name": "amount",
+        "type": "decimal",
+        "min": "0"
+      },
+      {
+        "name": "updated_at",
+        "type": "timestamp"
+      }
+    ]
+  },
+  "keys": [
+    "id"
+  ],
+  "event_time_column": "updated_at",
+  "allowed_lateness_seconds": 864000,
+  "gates": [
+    {
+      "id": "ids",
+      "kind": "unique",
+      "columns": [
+        "id"
+      ]
+    },
+    {
+      "id": "budget",
+      "kind": "sum",
+      "columns": [
+        "amount"
+      ],
+      "max": "1000"
+    }
+  ],
+  "target": {
+    "workspace": "ingestion",
+    "dataset": "orders",
+    "policy_version": 1
+  }
+}
