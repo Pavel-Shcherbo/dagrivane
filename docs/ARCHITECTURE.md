@@ -29,3 +29,7 @@ Expose existing workflow versions, queue, leases and events in management views;
 ## Artifact and release boundary
 
 The content-addressed object store verifies actual bytes independently of SQLite metadata. Immutable policies gate typed rows again at publication and verification. Dataset versions, build provenance, alias generations and pinned release manifests are transactional metadata; environment pointers require the exact prerequisite release and a fresh content check. Exported packages include the bounded parent closure and policies, allowing offline verification without the originating catalog. These are local selection primitives; authentication, signatures, retention and deployment adapters remain open. See ARTIFACTS.md.
+
+## Incremental ingestion and publication recovery
+
+`ingest_model` validates immutable stream contracts and reduces source-ordered events with event-time staleness, lateness and tombstones. `ingest_store` commits checkpoints, deduplication, materialized state and outbox bundles in one SQLite transaction. `ingest_publish` bridges the separate catalog transaction using ordered leased claims, deterministic request keys and fenced acknowledgement. `ingest_audit` replays raw batches and checks cached state, bundles and acknowledged catalog artifacts. `ingest_source` converts pinned CSV revisions to explicit upsert batches; `ingest_cli` supplies local operator commands. Remote source completeness and automatic schema migration are not inferred. See INGESTION.md.
