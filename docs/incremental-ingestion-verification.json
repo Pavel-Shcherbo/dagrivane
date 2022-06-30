@@ -1,0 +1,48 @@
+{
+  "scope": "Clean installed local incremental ingestion, not remote connectors or full product acceptance",
+  "passed": true,
+  "csv_sha256": "0898433a9def426a72e7c25081669721866fe5c1a3fc996dbfd14f46059b0e0a",
+  "generation": 2,
+  "offset": 5,
+  "rows": [
+    {
+      "amount": "15",
+      "id": 1,
+      "updated_at": "2020-01-02T12:00:00Z"
+    },
+    {
+      "amount": "30",
+      "id": 3,
+      "updated_at": "2020-01-03T12:00:00Z"
+    }
+  ],
+  "tombstones": 1,
+  "duplicate_batch_preserved": true,
+  "late_batch_rejected_without_advancing": true,
+  "artifact_chain": [
+    {
+      "id": "6709f9a1bf844323b804d5953db1364b",
+      "sha256": "06c7a3016301f0372621107dd37adbefe0d09902c1dbecaf570ffb7528d64838",
+      "parents": [],
+      "dataset_version": 1
+    },
+    {
+      "id": "249c5dc62eaf4147ae10beacd8d3bb41",
+      "sha256": "5ce07a59968a68b6ed9416ba82ad52b209223d4903b09dab11036c09cad4afd3",
+      "parents": [
+        "6709f9a1bf844323b804d5953db1364b"
+      ],
+      "dataset_version": 2
+    }
+  ],
+  "catalog_blob_independently_hashed": true,
+  "replay_audit": {
+    "passed": true,
+    "complete": true,
+    "checked_batches": 2,
+    "replayed_events": 5,
+    "raw_bytes": 1346,
+    "catalog_checked": true,
+    "errors": []
+  }
+}
