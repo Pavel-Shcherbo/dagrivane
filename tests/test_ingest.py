@@ -22,3 +22,26 @@ from dagrivane.ingest_publish import configure_target, publish_next, publish_pen
 from dagrivane.ingest_source import csv_batch, write_batch
 
 
+def definition():
+    return {
+        "version": 1,
+        "contract": {
+            "name": "orders",
+            "version": 1,
+            "columns": [
+                {"name": "id", "type": "integer"},
+                {"name": "amount", "type": "decimal", "min": "0"},
+                {"name": "updated_at", "type": "timestamp"},
+            ],
+        },
+        "keys": ["id"],
+        "event_time_column": "updated_at",
+        "allowed_lateness_seconds": 86400 * 10,
+        "gates": [
+            {"id": "ids", "kind": "unique", "columns": ["id"]},
+            {"id": "budget", "kind": "sum", "columns": ["amount"], "max": "1000"},
+        ],
+        "target": {"workspace": "research", "dataset": "orders", "policy_version": 1},
+    }
+
+
