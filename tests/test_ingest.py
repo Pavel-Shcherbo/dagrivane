@@ -45,3 +45,19 @@ def definition():
     }
 
 
+def event(number, key=1, amount="10", day=1, operation="upsert", event_id=None):
+    at = f"2020-01-{day:02d}T12:00:00Z"
+    return {
+        "id": event_id or "event-" + str(number),
+        "offset": number,
+        "operation": operation,
+        "key": {"id": key},
+        "at": at,
+        "row": (
+            {"id": key, "amount": amount, "updated_at": at}
+            if operation == "upsert"
+            else None
+        ),
+    }
+
+
