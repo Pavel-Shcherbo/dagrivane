@@ -61,3 +61,16 @@ def event(number, key=1, amount="10", day=1, operation="upsert", event_id=None):
     }
 
 
+def batch(after, events, through=None):
+    return json_bytes(
+        {
+            "version": 1,
+            "after": after,
+            "through": through if through is not None else events[-1]["offset"],
+            "events": events,
+        }
+    )
+
+
+class IngestTests(unittest.TestCase):
+    pass
