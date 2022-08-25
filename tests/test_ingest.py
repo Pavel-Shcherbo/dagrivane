@@ -73,4 +73,11 @@ def batch(after, events, through=None):
 
 
 class IngestTests(unittest.TestCase):
-    pass
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+        self.store = IngestStore(self.root / "ingest.sqlite", create=True)
+        self.store.register("orders", definition())
+        self.catalog = Catalog(self.root / "catalog")
+
