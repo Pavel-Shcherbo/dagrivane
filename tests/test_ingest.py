@@ -81,3 +81,8 @@ class IngestTests(unittest.TestCase):
         self.store.register("orders", definition())
         self.catalog = Catalog(self.root / "catalog")
 
+    def ingest(self, after, events, key="load", through=None):
+        return self.store.ingest(
+            "orders", batch(after, events, through), request_key=key
+        )
+
