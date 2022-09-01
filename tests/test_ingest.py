@@ -86,3 +86,30 @@ class IngestTests(unittest.TestCase):
             "orders", batch(after, events, through), request_key=key
         )
 
+    def test_upsert_delete_tombstone_and_replay(self):
+        first = self.ingest(0, [event(1), event(2, key=2, amount="20")])
+        second = self.ingest(
+            2,
+            [
+                event(3, amount="15", day=2),
+                event(4, key=2, day=3, operation="delete"),
+                event(5, key=3, amount="30", day=3),
+            ],
+            key="next",
+        )
+        rows = self.store.rows("orders")
+        self.assertEqual(
+            {r["id"]: r["amount"] for r in rows["rows"]}, {1: "15", 3: "30"}
+        )
+        self.assertEqual(rows["tombstones"], 1)
+        self.assertEqual(second["previous_state_sha256"], first["state_sha256"])
+        self.assertTrue(audit(self.store, "orders")["passed"])
+        configure_target(self.store, "orders", self.catalog)
+        published = publish_pending(self.store, "orders", self.catalog)
+        self.assertEqual(len(published["published"]), 2)
+        self.assertEqual(
+            published["published"][1]["artifact"]["parents"],
+            [published["published"][0]["artifact"]["id"]],
+        )
+        self.assertTrue(audit(self.store, "orders", catalog=self.catalog)["passed"])
+
