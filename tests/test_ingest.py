@@ -113,3 +113,14 @@ class IngestTests(unittest.TestCase):
         )
         self.assertTrue(audit(self.store, "orders", catalog=self.catalog)["passed"])
 
+    def test_exact_batch_retry_and_request_conflict(self):
+        raw = batch(0, [event(1)])
+        first = self.store.ingest("orders", raw, request_key="same")
+        retry = self.store.ingest("orders", raw, request_key="same")
+        self.assertTrue(retry["reused"])
+        self.assertEqual(retry["batch_id"], first["batch_id"])
+        self.assertTrue(self.store.ingest("orders", raw, request_key="other")["reused"])
+        with self.assertRaisesRegex(ValueError, "conflicts"):
+            self.store.ingest("orders", raw + b" ", request_key="same")
+        self.assertEqual(self.store.status("orders")["generation"], 1)
+
