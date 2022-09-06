@@ -124,3 +124,13 @@ class IngestTests(unittest.TestCase):
             self.store.ingest("orders", raw + b" ", request_key="same")
         self.assertEqual(self.store.status("orders")["generation"], 1)
 
+    def test_duplicate_event_at_new_offset_does_not_reapply(self):
+        self.ingest(0, [event(1)])
+        self.ingest(1, [event(2, day=2, operation="delete")], key="delete")
+        duplicate = event(1)
+        duplicate["offset"] = 3
+        result = self.ingest(2, [duplicate], key="retry-delivery")
+        self.assertEqual(result["counts"]["duplicate"], 1)
+        self.assertEqual(self.store.rows("orders")["rows"], [])
+        self.assertTrue(audit(self.store, "orders")["passed"])
+
