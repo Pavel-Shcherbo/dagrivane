@@ -134,3 +134,14 @@ class IngestTests(unittest.TestCase):
         self.assertEqual(self.store.rows("orders")["rows"], [])
         self.assertTrue(audit(self.store, "orders")["passed"])
 
+    def test_conflicting_event_identity_is_atomic(self):
+        self.ingest(0, [event(1)])
+        with self.assertRaisesRegex(ValueError, "different content"):
+            self.ingest(
+                1,
+                [event(2, key=2), event(3, amount="12", event_id="event-1")],
+                key="bad",
+            )
+        self.assertEqual(self.store.status("orders")["offset"], 1)
+        self.assertEqual(len(self.store.rows("orders")["rows"]), 1)
+
