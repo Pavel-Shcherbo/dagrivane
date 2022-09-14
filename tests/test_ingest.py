@@ -145,3 +145,14 @@ class IngestTests(unittest.TestCase):
         self.assertEqual(self.store.status("orders")["offset"], 1)
         self.assertEqual(len(self.store.rows("orders")["rows"]), 1)
 
+    def test_out_of_order_events_do_not_resurrect_deleted_state(self):
+        self.ingest(0, [event(1, day=3, operation="delete")])
+        result = self.ingest(1, [event(2, day=2)], key="stale")
+        self.assertEqual(result["counts"]["stale"], 1)
+        self.assertEqual(self.store.rows("orders")["rows"], [])
+        result = self.ingest(
+            2, [event(3, day=3, amount="15")], key="same-time-new-offset"
+        )
+        self.assertEqual(result["counts"]["applied"], 1)
+        self.assertEqual(self.store.rows("orders")["rows"][0]["amount"], "15")
+
