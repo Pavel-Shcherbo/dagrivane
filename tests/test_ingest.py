@@ -156,3 +156,22 @@ class IngestTests(unittest.TestCase):
         self.assertEqual(result["counts"]["applied"], 1)
         self.assertEqual(self.store.rows("orders")["rows"][0]["amount"], "15")
 
+    def test_watermark_boundary_and_failed_quality_leave_no_checkpoint(self):
+        custom = definition()
+        custom["allowed_lateness_seconds"] = 86400
+        self.store.register("strict", custom)
+        self.store.ingest("strict", batch(0, [event(1, day=3)]), request_key="first")
+        self.store.ingest(
+            "strict", batch(1, [event(2, key=2, day=2)]), request_key="boundary"
+        )
+        for raw in [
+            batch(2, [event(3, key=3, day=1)]),
+            batch(2, [event(3, key=3, day=3, amount="999")]),
+        ]:
+            with self.assertRaises(ValueError):
+                self.store.ingest("strict", raw, request_key="rejected")
+        status = self.store.status("strict")
+        self.assertEqual(status["offset"], 2)
+        self.assertEqual(status["generation"], 2)
+        self.assertTrue(audit(self.store, "strict")["passed"])
+
