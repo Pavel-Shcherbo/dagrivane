@@ -175,3 +175,11 @@ class IngestTests(unittest.TestCase):
         self.assertEqual(status["generation"], 2)
         self.assertTrue(audit(self.store, "strict")["passed"])
 
+    def test_offset_gap_and_empty_source_window_are_explicit(self):
+        self.ingest(0, [], through=50)
+        self.ingest(50, [event(100)], key="gapped")
+        self.assertEqual(self.store.status("orders")["offset"], 100)
+        with self.assertRaisesRegex(ValueError, "checkpoint"):
+            self.ingest(50, [event(101)], key="overlap")
+        self.assertTrue(audit(self.store, "orders")["passed"])
+
