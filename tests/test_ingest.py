@@ -183,3 +183,23 @@ class IngestTests(unittest.TestCase):
             self.ingest(50, [event(101)], key="overlap")
         self.assertTrue(audit(self.store, "orders")["passed"])
 
+    def test_invalid_contract_rows_keys_clocks_and_batch_order(self):
+        bad = [
+            {**event(1), "key": {"id": 2}},
+            {**event(1), "at": "2020-01-02T12:00:00Z"},
+            {**event(1), "operation": "drop"},
+            {**event(1), "offset": True},
+            {
+                **event(1),
+                "row": {"id": 1, "amount": 1.5, "updated_at": "2020-01-01T12:00:00Z"},
+            },
+        ]
+        for value in bad:
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                self.ingest(0, [value])
+        with self.assertRaises(ValueError):
+            self.ingest(0, [event(2), event(1)])
+        with self.assertRaises(ValueError):
+            self.ingest(0, [event(1), event(2, event_id="event-1")])
+        self.assertEqual(self.store.status("orders")["generation"], 0)
+
