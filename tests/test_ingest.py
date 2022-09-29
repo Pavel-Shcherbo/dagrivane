@@ -218,3 +218,19 @@ class IngestTests(unittest.TestCase):
             )
         self.assertEqual(len(self.store.rows("decimal")["rows"]), 1)
 
+    def test_stream_immutability_missing_store_and_unrelated_database(self):
+        self.assertEqual(self.store.register("orders", definition())["generation"], 0)
+        changed = definition()
+        changed["allowed_lateness_seconds"] = 0
+        with self.assertRaisesRegex(ValueError, "immutable"):
+            self.store.register("orders", changed)
+        missing = self.root / "missing.sqlite"
+        with self.assertRaises(ValueError):
+            IngestStore(missing)
+        self.assertFalse(missing.exists())
+        unrelated = self.root / "other.sqlite"
+        with closing(sqlite3.connect(unrelated)) as db, db:
+            db.execute("CREATE TABLE unrelated(id INTEGER)")
+        with self.assertRaisesRegex(ValueError, "unrelated"):
+            IngestStore(unrelated, create=True)
+
