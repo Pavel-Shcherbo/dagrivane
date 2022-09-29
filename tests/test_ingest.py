@@ -203,3 +203,18 @@ class IngestTests(unittest.TestCase):
             self.ingest(0, [event(1), event(2, event_id="event-1")])
         self.assertEqual(self.store.status("orders")["generation"], 0)
 
+    def test_decimal_key_normalization_and_private_context(self):
+        from decimal import localcontext
+
+        custom = definition()
+        custom["contract"]["columns"][0]["type"] = "decimal"
+        self.store.register("decimal", custom)
+        first = event(1, key="1.0")
+        second = event(2, key="1.00", day=2)
+        with localcontext() as context:
+            context.prec = 2
+            self.store.ingest(
+                "decimal", batch(0, [first, second]), request_key="decimal"
+            )
+        self.assertEqual(len(self.store.rows("decimal")["rows"]), 1)
+
