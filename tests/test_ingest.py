@@ -234,3 +234,26 @@ class IngestTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "unrelated"):
             IngestStore(unrelated, create=True)
 
+    def test_concurrent_exact_retries_and_conflicting_offsets(self):
+        raw = batch(0, [event(1)])
+
+        def retry(_):
+            return IngestStore(self.store.path).ingest(
+                "orders", raw, request_key="same"
+            )
+
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            results = list(pool.map(retry, range(8)))
+        self.assertEqual(sum(not row["reused"] for row in results), 1)
+
+        def next_batch(number):
+            try:
+                return self.ingest(1, [event(2, key=number)], key="race-" + str(number))
+            except ValueError:
+                return None
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            results = list(pool.map(next_batch, [3, 4]))
+        self.assertEqual(sum(row is not None for row in results), 1)
+        self.assertTrue(audit(self.store, "orders")["passed"])
+
