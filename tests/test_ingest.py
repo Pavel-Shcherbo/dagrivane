@@ -257,3 +257,29 @@ class IngestTests(unittest.TestCase):
         self.assertEqual(sum(row is not None for row in results), 1)
         self.assertTrue(audit(self.store, "orders")["passed"])
 
+    def test_publisher_recovers_after_catalog_commit_before_ack(self):
+        self.ingest(0, [event(1)])
+        configure_target(self.store, "orders", self.catalog)
+
+        class Crash(BaseException):
+            pass
+
+        def crash(_):
+            raise Crash()
+
+        with self.assertRaises(Crash):
+            publish_next(self.store, "orders", self.catalog, after_publish=crash)
+        self.assertEqual(
+            self.store.status("orders")["publication_counts"], {"leased": 1}
+        )
+        self.assertEqual(len(self.catalog.list_artifacts("research")["artifacts"]), 1)
+        future = datetime.now(timezone.utc) + timedelta(seconds=60)
+        with patch("dagrivane.ingest_store.utc", return_value=future):
+            result = publish_next(IngestStore(self.store.path), "orders", self.catalog)
+        self.assertTrue(result["published"])
+        self.assertEqual(len(self.catalog.list_artifacts("research")["artifacts"]), 1)
+        self.assertEqual(
+            self.store.batches("orders")["items"][0]["publication"]["attempts"], 2
+        )
+        self.assertTrue(audit(self.store, "orders", catalog=self.catalog)["passed"])
+
