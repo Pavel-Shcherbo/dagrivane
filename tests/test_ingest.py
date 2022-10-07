@@ -283,3 +283,28 @@ class IngestTests(unittest.TestCase):
         )
         self.assertTrue(audit(self.store, "orders", catalog=self.catalog)["passed"])
 
+    def test_expired_worker_ack_is_fenced(self):
+        self.ingest(0, [event(1)])
+        configure_target(self.store, "orders", self.catalog)
+        old = self.store.claim("orders", self.catalog.root, lease_seconds=1)
+        path = self.root / "bundle.json"
+        path.write_bytes(old["bundle"])
+        target = old["definition"]["target"]
+        artifact = self.catalog.publish_table(
+            target["workspace"],
+            target["dataset"],
+            1,
+            path,
+            run_id=old["request_key"],
+            request_key=old["request_key"],
+        )
+        future = datetime.now(timezone.utc) + timedelta(seconds=10)
+        with patch("dagrivane.ingest_store.utc", return_value=future):
+            with self.assertRaisesRegex(ValueError, "fenced"):
+                self.store.acknowledge(old, artifact)
+            newer = self.store.claim("orders", self.catalog.root)
+            with self.assertRaisesRegex(ValueError, "fenced"):
+                self.store.acknowledge(old, artifact)
+            self.store.acknowledge(newer, artifact)
+        self.assertTrue(audit(self.store, "orders", catalog=self.catalog)["passed"])
+
