@@ -308,3 +308,15 @@ class IngestTests(unittest.TestCase):
             self.store.acknowledge(newer, artifact)
         self.assertTrue(audit(self.store, "orders", catalog=self.catalog)["passed"])
 
+    def test_concurrent_publishers_create_one_artifact(self):
+        self.ingest(0, [event(1)])
+        configure_target(self.store, "orders", self.catalog)
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            results = list(
+                pool.map(
+                    lambda _: publish_next(self.store, "orders", self.catalog), range(4)
+                )
+            )
+        self.assertEqual(sum(row["published"] for row in results), 1)
+        self.assertEqual(len(self.catalog.list_artifacts("research")["artifacts"]), 1)
+
