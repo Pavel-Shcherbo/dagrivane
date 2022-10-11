@@ -330,3 +330,15 @@ class IngestTests(unittest.TestCase):
             publish_next(self.store, "orders", other)
         self.assertEqual(len(other.list_artifacts("research")["artifacts"]), 0)
 
+    def test_audit_detects_materialized_row_corruption(self):
+        self.ingest(0, [event(1)])
+        self.ingest(1, [event(2, key=2)], key="next")
+        self.assertFalse(audit(self.store, "orders", limit=1)["passed"])
+        with closing(sqlite3.connect(self.store.path)) as db, db:
+            db.execute(
+                "UPDATE records SET payload=replace(payload,'10','11') WHERE stream='orders'"
+            )
+        self.assertFalse(audit(self.store, "orders")["passed"])
+        with self.assertRaisesRegex(ValueError, "fingerprint"):
+            self.store.rows("orders")
+
