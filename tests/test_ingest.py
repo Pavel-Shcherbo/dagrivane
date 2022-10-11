@@ -320,3 +320,13 @@ class IngestTests(unittest.TestCase):
         self.assertEqual(sum(row["published"] for row in results), 1)
         self.assertEqual(len(self.catalog.list_artifacts("research")["artifacts"]), 1)
 
+    def test_destination_binding_is_immutable(self):
+        self.ingest(0, [event(1)])
+        configure_target(self.store, "orders", self.catalog)
+        publish_next(self.store, "orders", self.catalog)
+        other = Catalog(self.root / "other-catalog")
+        configure_target(self.store, "orders", other)
+        with self.assertRaisesRegex(ValueError, "bound"):
+            publish_next(self.store, "orders", other)
+        self.assertEqual(len(other.list_artifacts("research")["artifacts"]), 0)
+
