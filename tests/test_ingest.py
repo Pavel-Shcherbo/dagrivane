@@ -368,3 +368,24 @@ class IngestTests(unittest.TestCase):
         self.assertEqual(actual, expected)
         self.assertTrue(audit(self.store, "orders")["passed"])
 
+    def test_csv_conversion_pins_duplicates_and_create_only_output(self):
+        path = self.root / "orders.csv"
+        path.write_text(
+            "id,amount,updated_at\n1,10,2020-01-01T12:00:00Z\n2,20,2020-01-01T12:00:00Z\n"
+        )
+        normalized = self.store.status("orders")["definition"]
+        value = csv_batch(normalized, path, after=0)
+        output = self.root / "batch.json"
+        write_batch(value, output)
+        self.store.ingest_file("orders", output, request_key="csv")
+        repeated = csv_batch(normalized, path, after=2)
+        result = self.store.ingest(
+            "orders", json_bytes(repeated), request_key="csv-repeat"
+        )
+        self.assertEqual(result["counts"]["duplicate"], 2)
+        with self.assertRaises(FileExistsError):
+            write_batch(value, output)
+        with self.assertRaisesRegex(ValueError, "pinned"):
+            csv_batch(normalized, path, after=4, expected_sha256="0" * 64)
+        self.assertTrue(audit(self.store, "orders")["passed"])
+
