@@ -342,3 +342,29 @@ class IngestTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "fingerprint"):
             self.store.rows("orders")
 
+    def test_seeded_event_timeline_matches_independent_key_oracle(self):
+        import random
+
+        rng = random.Random(108)
+        events = []
+        oracle = {}
+        for number in range(1, 101):
+            key = rng.randint(1, 20)
+            day = rng.randint(1, 10)
+            op = "delete" if rng.random() < 0.2 else "upsert"
+            value = event(
+                number, key=key, amount=str(rng.randint(0, 20)), day=day, operation=op
+            )
+            events.append(value)
+            if key not in oracle or (day, number) >= oracle[key][:2]:
+                oracle[key] = (day, number, value["row"])
+        self.ingest(0, events)
+        expected = {
+            key: row["amount"]
+            for key, (_, __, row) in oracle.items()
+            if row is not None
+        }
+        actual = {row["id"]: row["amount"] for row in self.store.rows("orders")["rows"]}
+        self.assertEqual(actual, expected)
+        self.assertTrue(audit(self.store, "orders")["passed"])
+
