@@ -389,3 +389,38 @@ class IngestTests(unittest.TestCase):
             csv_batch(normalized, path, after=4, expected_sha256="0" * 64)
         self.assertTrue(audit(self.store, "orders")["passed"])
 
+    def test_cli_register_ingest_publish_and_audit(self):
+        spec = self.root / "stream.json"
+        spec.write_text(json.dumps(definition()))
+        data = self.root / "batch.json"
+        data.write_bytes(batch(0, [event(1)]))
+
+        def cli(*args, expected=0):
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "dagrivane.ingest_cli",
+                    "--database",
+                    str(self.store.path),
+                    *map(str, args),
+                ],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            self.assertEqual(result.returncode, expected, result.stderr)
+            return json.loads(result.stdout) if result.stdout else None
+
+        cli("register", "orders", spec)
+        cli("ingest", "orders", data, "--request-key", "cli")
+        cli("configure-target", "orders", "--catalog", self.catalog.root)
+        self.assertEqual(
+            len(cli("publish", "orders", "--catalog", self.catalog.root)["published"]),
+            1,
+        )
+        self.assertTrue(
+            cli("audit", "orders", "--catalog", self.catalog.root)["passed"]
+        )
+        self.assertEqual(cli("status", "orders")["offset"], 1)
+
