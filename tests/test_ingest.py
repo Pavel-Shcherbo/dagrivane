@@ -424,3 +424,18 @@ class IngestTests(unittest.TestCase):
         )
         self.assertEqual(cli("status", "orders")["offset"], 1)
 
+    def test_ordinary_publication_failure_releases_claim_and_retry_is_idempotent(self):
+        self.ingest(0, [event(1)])
+        configure_target(self.store, "orders", self.catalog)
+
+        def fail(_):
+            raise RuntimeError("injected failure before acknowledgement")
+
+        with self.assertRaisesRegex(RuntimeError, "injected"):
+            publish_next(self.store, "orders", self.catalog, after_publish=fail)
+        self.assertEqual(
+            self.store.status("orders")["publication_counts"], {"pending": 1}
+        )
+        self.assertTrue(publish_next(self.store, "orders", self.catalog)["published"])
+        self.assertEqual(len(self.catalog.list_artifacts("research")["artifacts"]), 1)
+
