@@ -454,3 +454,16 @@ class IngestTests(unittest.TestCase):
             self.store.status("orders")["publication_counts"], {"pending": 1}
         )
 
+    def test_outbox_corruption_and_raw_history_corruption_are_detected(self):
+        self.ingest(0, [event(1)])
+        configure_target(self.store, "orders", self.catalog)
+        with closing(sqlite3.connect(self.store.path)) as db, db:
+            db.execute("UPDATE batches SET bundle=?", (b"{}",))
+        with self.assertRaisesRegex(ValueError, "SHA-256"):
+            publish_next(self.store, "orders", self.catalog)
+        self.assertFalse(audit(self.store, "orders")["passed"])
+        with closing(sqlite3.connect(self.store.path)) as db, db:
+            db.execute("UPDATE batches SET raw=?", (b"{}",))
+        self.assertFalse(audit(self.store, "orders")["passed"])
+        self.assertEqual(len(self.catalog.list_artifacts("research")["artifacts"]), 0)
+
