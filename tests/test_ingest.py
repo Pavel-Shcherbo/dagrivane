@@ -439,3 +439,18 @@ class IngestTests(unittest.TestCase):
         self.assertTrue(publish_next(self.store, "orders", self.catalog)["published"])
         self.assertEqual(len(self.catalog.list_artifacts("research")["artifacts"]), 1)
 
+    def test_mismatched_target_policy_fails_before_claiming(self):
+        self.ingest(0, [event(1)])
+        other = definition()
+        other["gates"][1]["max"] = "900"
+        self.catalog.create_workspace("research")
+        self.catalog.register_policy(
+            "research", "orders", 1, other["contract"], other["gates"]
+        )
+        with self.assertRaisesRegex(ValueError, "policy differs"):
+            publish_next(self.store, "orders", self.catalog)
+        self.assertIsNone(self.store.status("orders")["target_root"])
+        self.assertEqual(
+            self.store.status("orders")["publication_counts"], {"pending": 1}
+        )
+
