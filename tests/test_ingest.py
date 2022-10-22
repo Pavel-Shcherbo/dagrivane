@@ -467,3 +467,16 @@ class IngestTests(unittest.TestCase):
         self.assertFalse(audit(self.store, "orders")["passed"])
         self.assertEqual(len(self.catalog.list_artifacts("research")["artifacts"]), 0)
 
+    def test_cold_initialization_and_unknown_schema(self):
+        path = self.root / "fresh.sqlite"
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            stores = list(pool.map(lambda _: IngestStore(path, create=True), range(8)))
+        self.assertEqual(len({store.id for store in stores}), 1)
+        with closing(sqlite3.connect(path)) as db, db:
+            db.execute("PRAGMA user_version=99")
+        with self.assertRaisesRegex(ValueError, "schema"):
+            IngestStore(path)
+
+
+if __name__ == "__main__":
+    unittest.main()
