@@ -16,7 +16,7 @@ Bundled examples are included in the wheel. Runtime state is stored outside the 
 
 ## Workbench preview
 
-![Local workbench](docs/workbench.png)
+![Saved workflow operations](docs/operations-desktop.png)
 
 ## Command line
 
@@ -28,6 +28,10 @@ python3 -m unittest discover -s tests -v
 ## Implemented
 
 Validates command graphs before execution, runs dependency-ordered tasks, persists checkpoints in SQLite, verifies declared input content hashes, retries failed tasks within a declared limit and blocks dependent work when a prerequisite fails. The bundled four-stage pipeline extracts synthetic orders, checks them, calculates an exact decimal total and verifies a release gate.
+
+## Saved workflow operations
+
+The **Run queue** screen registers reviewed workflow versions, saves idempotent submissions and executes selected runs through the fenced local worker. Inspect retained task output and events, cancel a queued or running job, retry as a linked new run and export the current inspection. Each execution copies its pinned inputs into a fresh directory. See the [workbench operations guide](docs/OPERATIONS_WORKBENCH.md) for the three control scenarios and evidence boundaries.
 
 ## Typed data pipelines
 
