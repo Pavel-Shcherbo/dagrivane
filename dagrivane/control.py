@@ -224,16 +224,19 @@ class ControlStore:
         return row
 
     def create_workspace(self, name, concurrency=2, now=None):
+        with self.transaction() as connection:
+            return self._create_workspace(connection, name, concurrency, now)
+
+    def _create_workspace(self, connection, name, concurrency=2, now=None):
         text(name, "workspace name")
         if type(concurrency) is not int or not 1 <= concurrency <= 100:
             raise ValueError("workspace concurrency must be between 1 and 100")
         now = timestamp(now)
         workspace_id = str(uuid.uuid4())
-        with self.transaction() as connection:
-            connection.execute(
-                "INSERT INTO cp_workspaces VALUES (?,?,?,?)",
-                (workspace_id, name, concurrency, now),
-            )
+        connection.execute(
+            "INSERT INTO cp_workspaces VALUES (?,?,?,?)",
+            (workspace_id, name, concurrency, now),
+        )
         return {
             "id": workspace_id,
             "name": name,
@@ -251,6 +254,14 @@ class ControlStore:
             ]
 
     def register_workflow(self, workspace_id, name, specification, directory, now=None):
+        with self.transaction() as connection:
+            return self._register_workflow(
+                connection, workspace_id, name, specification, directory, now
+            )
+
+    def _register_workflow(
+        self, connection, workspace_id, name, specification, directory, now=None
+    ):
         text(name, "workflow name")
         validate(specification)
         content = canonical(specification)
@@ -261,38 +272,37 @@ class ControlStore:
             canonical({"specification": specification, "directory": directory}).encode()
         ).hexdigest()
         now = timestamp(now)
-        with self.transaction() as connection:
-            self.workspace(connection, workspace_id)
-            workflow = connection.execute(
-                "SELECT id FROM cp_workflows WHERE workspace_id=? AND name=?",
-                (workspace_id, name),
-            ).fetchone()
-            if workflow is None:
-                workflow_id = str(uuid.uuid4())
-                connection.execute(
-                    "INSERT INTO cp_workflows VALUES (?,?,?,?)",
-                    (workflow_id, workspace_id, name, now),
-                )
-                version = 1
-            else:
-                workflow_id = workflow["id"]
-                latest = connection.execute(
-                    "SELECT * FROM cp_versions WHERE workflow_id=? ORDER BY version DESC LIMIT 1",
-                    (workflow_id,),
-                ).fetchone()
-                if latest["fingerprint"] == fingerprint:
-                    return {
-                        "id": workflow_id,
-                        "name": name,
-                        "version": latest["version"],
-                        "fingerprint": fingerprint,
-                        "changed": False,
-                    }
-                version = latest["version"] + 1
+        self.workspace(connection, workspace_id)
+        workflow = connection.execute(
+            "SELECT id FROM cp_workflows WHERE workspace_id=? AND name=?",
+            (workspace_id, name),
+        ).fetchone()
+        if workflow is None:
+            workflow_id = str(uuid.uuid4())
             connection.execute(
-                "INSERT INTO cp_versions VALUES (?,?,?,?,?,?)",
-                (workflow_id, version, content, fingerprint, directory, now),
+                "INSERT INTO cp_workflows VALUES (?,?,?,?)",
+                (workflow_id, workspace_id, name, now),
             )
+            version = 1
+        else:
+            workflow_id = workflow["id"]
+            latest = connection.execute(
+                "SELECT * FROM cp_versions WHERE workflow_id=? ORDER BY version DESC LIMIT 1",
+                (workflow_id,),
+            ).fetchone()
+            if latest["fingerprint"] == fingerprint:
+                return {
+                    "id": workflow_id,
+                    "name": name,
+                    "version": latest["version"],
+                    "fingerprint": fingerprint,
+                    "changed": False,
+                }
+            version = latest["version"] + 1
+        connection.execute(
+            "INSERT INTO cp_versions VALUES (?,?,?,?,?,?)",
+            (workflow_id, version, content, fingerprint, directory, now),
+        )
         return {
             "id": workflow_id,
             "name": name,
@@ -439,6 +449,66 @@ class ControlStore:
                 )
             return [self.public_run(row) for row in rows]
 
+    def version_page(self, workspace_id, workflow_id, *, after=0, limit=100):
+        limit_value(limit)
+        if type(after) is not int or after < 0:
+            raise ValueError("version cursor must be nonnegative")
+        with self.reading() as connection:
+            self.workspace(connection, workspace_id)
+            if (
+                connection.execute(
+                    "SELECT id FROM cp_workflows WHERE id=? AND workspace_id=?",
+                    (workflow_id, workspace_id),
+                ).fetchone()
+                is None
+            ):
+                raise NotFound("workflow not found in this workspace")
+            rows = connection.execute(
+                "SELECT version,fingerprint,created FROM cp_versions WHERE workflow_id=? AND version>? ORDER BY version LIMIT ?",
+                (workflow_id, after, limit + 1),
+            ).fetchall()
+            return {
+                "versions": [dict(row) for row in rows[:limit]],
+                "next_version": (
+                    rows[limit - 1]["version"] if len(rows) > limit else None
+                ),
+            }
+
+    def run_page(self, workspace_id, *, before=None, status=None, limit=25):
+        limit_value(limit)
+        if before is not None and (type(before) is not int or before < 1):
+            raise ValueError("run cursor must be a positive integer")
+        if status is not None and status not in STATES:
+            raise ValueError("unknown run status")
+        with self.reading() as connection:
+            self.workspace(connection, workspace_id)
+            condition = "workspace_id=?"
+            parameters = [workspace_id]
+            if before is not None:
+                condition += " AND rowid<?"
+                parameters.append(before)
+            if status is not None:
+                condition += " AND status=?"
+                parameters.append(status)
+            rows = connection.execute(
+                "SELECT rowid AS cursor,id,workflow_id,version,status,priority,created,started,finished,worker,retry_of FROM cp_runs WHERE "
+                + condition
+                + " ORDER BY rowid DESC LIMIT ?",
+                [*parameters, limit + 1],
+            ).fetchall()
+            counts = {
+                row["status"]: row["n"]
+                for row in connection.execute(
+                    "SELECT status,count(*) AS n FROM cp_runs WHERE workspace_id=? GROUP BY status",
+                    (workspace_id,),
+                )
+            }
+            return {
+                "runs": [dict(row) for row in rows[:limit]],
+                "next_cursor": rows[limit - 1]["cursor"] if len(rows) > limit else None,
+                "counts": counts,
+            }
+
     @staticmethod
     def lease_duration(seconds):
         if (
@@ -449,14 +519,29 @@ class ControlStore:
             raise ValueError("lease duration must be between 5 and 3600 seconds")
         return seconds
 
-    def claim(self, worker, lease_seconds=30, now=None):
+    def claim(
+        self, worker, lease_seconds=30, now=None, *, workspace_id=None, run_id=None
+    ):
         text(worker, "worker")
         self.lease_duration(lease_seconds)
         now = timestamp(now)
+        if run_id is not None and workspace_id is None:
+            raise ValueError("a specific run claim requires a workspace")
         with self.transaction() as connection:
+            scope = ""
+            parameters = []
+            if workspace_id is not None:
+                self.workspace(connection, workspace_id)
+                scope += " AND workspace_id=?"
+                parameters.append(workspace_id)
+            if run_id is not None:
+                self.run_record(connection, workspace_id, run_id)
+                scope += " AND id=?"
+                parameters.append(run_id)
             expired = connection.execute(
-                "SELECT id FROM cp_runs WHERE status IN ('running','cancel_requested') AND lease_until<=?",
-                (now,),
+                "SELECT id FROM cp_runs WHERE status IN ('running','cancel_requested') AND lease_until<=?"
+                + scope,
+                [now, *parameters],
             ).fetchall()
             for row in expired:
                 connection.execute(
@@ -474,7 +559,12 @@ class ControlStore:
                 """SELECT r.* FROM cp_runs r JOIN cp_workspaces w ON w.id=r.workspace_id
                 WHERE r.status='queued' AND
                 (SELECT COUNT(*) FROM cp_runs active WHERE active.workspace_id=r.workspace_id AND active.status IN ('running','cancel_requested')) < w.concurrency
-                ORDER BY r.priority DESC,r.created,r.id LIMIT 1"""
+                """
+                + scope.replace("workspace_id=", "r.workspace_id=").replace(
+                    " AND id=", " AND r.id="
+                )
+                + " ORDER BY r.priority DESC,r.created,r.id LIMIT 1",
+                parameters,
             ).fetchone()
             if row is None:
                 return None
@@ -580,23 +670,26 @@ class ControlStore:
             return {"id": run_id, "status": status}
 
     def retry(self, workspace_id, run_id, event_key, now=None):
-        now = timestamp(now)
         with self.transaction() as connection:
-            row = self.run_record(connection, workspace_id, run_id)
-            if row["status"] not in {"failed", "cancelled", "orphaned"}:
-                raise Conflict(
-                    "only failed, cancelled or orphaned runs may be explicitly retried"
-                )
-            return self._enqueue(
-                connection,
-                workspace_id,
-                row["workflow_id"],
-                row["version"],
-                event_key,
-                row["priority"],
-                now,
-                retry_of=run_id,
+            return self._retry(connection, workspace_id, run_id, event_key, now)
+
+    def _retry(self, connection, workspace_id, run_id, event_key, now=None):
+        now = timestamp(now)
+        row = self.run_record(connection, workspace_id, run_id)
+        if row["status"] not in {"failed", "cancelled", "orphaned"}:
+            raise Conflict(
+                "only failed, cancelled or orphaned runs may be explicitly retried"
             )
+        return self._enqueue(
+            connection,
+            workspace_id,
+            row["workflow_id"],
+            row["version"],
+            event_key,
+            row["priority"],
+            now,
+            retry_of=run_id,
+        )
 
     def events(self, workspace_id, run_id, after=0, limit=100):
         limit_value(limit)
