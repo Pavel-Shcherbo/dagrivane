@@ -17,6 +17,8 @@ from .data_adapter import validate_data_task, execute_data_task
 def validate(spec):
     if not isinstance(spec, dict):
         raise ValueError("specification must be an object")
+    if spec.get("execution_policy", "in_place") not in ("in_place", "isolated_inputs"):
+        raise ValueError("execution policy must be in_place or isolated_inputs")
     tasks = spec.get("tasks")
     if not isinstance(tasks, list) or not tasks:
         raise ValueError("tasks must be a non-empty list")
