@@ -25,4 +25,8 @@ PROFILES = {
 
 
 class Operations:
-    pass
+    def __init__(self, root):
+        self.root = Path(root).resolve()
+        self.database = self.root / "control.sqlite"
+        self.worker_root = self.root / "worker"
+
