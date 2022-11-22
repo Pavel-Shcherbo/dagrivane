@@ -102,3 +102,26 @@ class Operations:
             }
         return result
 
+    def _context(self, required=True):
+        if not self.database.is_file():
+            if required:
+                raise ValueError("create the local operations workspace first")
+            return None, None
+        store = ControlStore(self.database)
+        with store.reading() as db:
+            exists = db.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='wb_operations'"
+            ).fetchone()
+            row = (
+                db.execute("SELECT * FROM wb_operations WHERE singleton=1").fetchone()
+                if exists
+                else None
+            )
+            if row is None:
+                if required:
+                    raise ValueError("create the local operations workspace first")
+                return store, None
+            if row["schema_version"] != 1:
+                raise ValueError("unsupported operations workspace schema")
+            return store, dict(row)
+
