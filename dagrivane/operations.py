@@ -125,3 +125,40 @@ class Operations:
                 raise ValueError("unsupported operations workspace schema")
             return store, dict(row)
 
+    def initialize(self):
+        self.root.mkdir(mode=0o700, parents=True, exist_ok=True)
+        reviewed = self._reviewed(prepare=True)
+        store = ControlStore(self.database)
+        with store.transaction() as db:
+            db.execute(
+                "CREATE TABLE IF NOT EXISTS wb_operations(singleton INTEGER PRIMARY KEY,schema_version INTEGER NOT NULL,workspace_id TEXT NOT NULL REFERENCES cp_workspaces(id),workflow_id TEXT NOT NULL REFERENCES cp_workflows(id))"
+            )
+            db.execute(
+                "CREATE TABLE IF NOT EXISTS wb_versions(version INTEGER PRIMARY KEY,profile TEXT NOT NULL,fingerprint TEXT NOT NULL)"
+            )
+            current = db.execute(
+                "SELECT * FROM wb_operations WHERE singleton=1"
+            ).fetchone()
+            if current is not None:
+                if current["schema_version"] != 1:
+                    raise ValueError("unsupported operations workspace schema")
+            else:
+                workspace = store._create_workspace(db, "Local orders", concurrency=2)
+                template = reviewed["standard"]
+                workflow = store._register_workflow(
+                    db,
+                    workspace["id"],
+                    "Order checks",
+                    template["specification"],
+                    template["directory"],
+                )
+                db.execute(
+                    "INSERT INTO wb_operations VALUES(1,1,?,?)",
+                    (workspace["id"], workflow["id"]),
+                )
+                db.execute(
+                    "INSERT INTO wb_versions VALUES(?,?,?)",
+                    (workflow["version"], "standard", workflow["fingerprint"]),
+                )
+        return self.overview()
+
