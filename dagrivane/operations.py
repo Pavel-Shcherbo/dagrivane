@@ -162,3 +162,39 @@ class Operations:
                 )
         return self.overview()
 
+    def _version(self, store, meta, version, reviewed=None):
+        record = store.workflow(meta["workspace_id"], meta["workflow_id"], version)
+        with store.reading() as db:
+            mapping = db.execute(
+                "SELECT * FROM wb_versions WHERE version=?", (version,)
+            ).fetchone()
+        templates = reviewed if reviewed is not None else self._reviewed()
+        profile = mapping["profile"] if mapping else None
+        template = templates.get(profile)
+        approved = bool(
+            template
+            and mapping["fingerprint"]
+            == record["fingerprint"]
+            == template["fingerprint"]
+            and record["specification"] == template["specification"]
+            and record["directory"] == template["directory"]
+        )
+        spec = record["specification"]
+        return {
+            "version": version,
+            "profile": profile,
+            "label": PROFILES.get(profile, "Unreviewed workflow"),
+            "fingerprint": record["fingerprint"],
+            "approved": approved,
+            "created": record["created"],
+            "tasks": [
+                {
+                    "id": task["id"],
+                    "needs": task.get("needs", []),
+                    "kind": "dataflow" if "dataflow" in task else "command",
+                }
+                for task in spec["tasks"]
+            ],
+            "inputs": spec.get("inputs", []),
+        }, record
+
