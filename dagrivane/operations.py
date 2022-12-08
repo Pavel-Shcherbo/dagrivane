@@ -198,3 +198,38 @@ class Operations:
             "inputs": spec.get("inputs", []),
         }, record
 
+    def overview(self, *, before=None, status=None):
+        store, meta = self._context(required=False)
+        if meta is None:
+            return {
+                "initialized": False,
+                "profiles": [
+                    {"id": key, "label": label} for key, label in PROFILES.items()
+                ],
+            }
+        reviewed = self._reviewed()
+        page = store.version_page(meta["workspace_id"], meta["workflow_id"], limit=100)
+        versions = [
+            self._version(store, meta, item["version"], reviewed)[0]
+            for item in page["versions"]
+        ]
+        queue = store.run_page(
+            meta["workspace_id"], before=before, status=status, limit=25
+        )
+        return {
+            "initialized": True,
+            "workspace": {
+                "id": meta["workspace_id"],
+                "name": "Local orders",
+                "concurrency": 2,
+            },
+            "workflow": {"id": meta["workflow_id"], "name": "Order checks"},
+            "profiles": [
+                {"id": key, "label": label} for key, label in PROFILES.items()
+            ],
+            "versions": versions,
+            **queue,
+            "limits": {"versions": 100, "runs": 1000, "page": 25},
+            "execution_scope": "Reviewed installation workflows; fresh isolated inputs per run; trusted local processes, not an OS sandbox.",
+        }
+
