@@ -233,3 +233,36 @@ class Operations:
             "execution_scope": "Reviewed installation workflows; fresh isolated inputs per run; trusted local processes, not an OS sandbox.",
         }
 
+    def publish_version(self, profile, expected_version):
+        if profile not in PROFILES:
+            raise ValueError("unknown reviewed workflow profile")
+        store, meta = self._context()
+        template = self._reviewed(prepare=True)[profile]
+        with store.transaction() as db:
+            latest = db.execute(
+                "SELECT version,fingerprint FROM cp_versions WHERE workflow_id=? ORDER BY version DESC LIMIT 1",
+                (meta["workflow_id"],),
+            ).fetchone()
+            if (
+                latest["fingerprint"] != template["fingerprint"]
+                and latest["version"] != expected_version
+            ):
+                raise Conflict("workflow version changed; refresh before registering")
+            if (
+                latest["fingerprint"] != template["fingerprint"]
+                and latest["version"] >= 100
+            ):
+                raise ValueError("operations workspace reached its 100-version limit")
+            workflow = store._register_workflow(
+                db,
+                meta["workspace_id"],
+                "Order checks",
+                template["specification"],
+                template["directory"],
+            )
+            db.execute(
+                "INSERT OR IGNORE INTO wb_versions VALUES(?,?,?)",
+                (workflow["version"], profile, workflow["fingerprint"]),
+            )
+        return {"workflow": workflow, "overview": self.overview()}
+
