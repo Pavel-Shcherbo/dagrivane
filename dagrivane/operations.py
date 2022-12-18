@@ -266,3 +266,11 @@ class Operations:
             )
         return {"workflow": workflow, "overview": self.overview()}
 
+    def _approved(self, store, meta, version):
+        public, record = self._version(store, meta, version)
+        if not public["approved"]:
+            raise ValueError(
+                "workflow differs from reviewed installation templates; register a current version"
+            )
+        return public, record
+
