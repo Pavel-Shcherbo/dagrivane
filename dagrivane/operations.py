@@ -274,3 +274,31 @@ class Operations:
             )
         return public, record
 
+    def submit(self, version, event_key, priority=0):
+        store, meta = self._context()
+        self._approved(store, meta, version)
+        with store.transaction() as db:
+            prior = db.execute(
+                "SELECT id FROM cp_runs WHERE workspace_id=? AND event_key=?",
+                (meta["workspace_id"], event_key),
+            ).fetchone()
+            if (
+                prior is None
+                and db.execute(
+                    "SELECT count(*) FROM cp_runs WHERE workspace_id=?",
+                    (meta["workspace_id"],),
+                ).fetchone()[0]
+                >= 1000
+            ):
+                raise ValueError("operations workspace reached its 1,000-run limit")
+            submitted = store._enqueue(
+                db,
+                meta["workspace_id"],
+                meta["workflow_id"],
+                version,
+                event_key,
+                priority,
+                time.time(),
+            )
+        return {"submission": submitted, "detail": self.inspect(submitted["id"])}
+
