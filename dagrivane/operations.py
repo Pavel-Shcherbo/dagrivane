@@ -302,3 +302,82 @@ class Operations:
             )
         return {"submission": submitted, "detail": self.inspect(submitted["id"])}
 
+    def inspect(self, run_id, *, after=0):
+        store, meta = self._context()
+        run = store.get_run(meta["workspace_id"], run_id)
+        if run["workflow_id"] != meta["workflow_id"]:
+            raise ValueError("run does not belong to the operations workflow")
+        version, record = self._version(store, meta, run["version"])
+        events = store.events(meta["workspace_id"], run_id, after=after, limit=51)
+        history = store.events(meta["workspace_id"], run_id, after=0, limit=200)
+        tasks = {
+            task["id"]: {**task, "status": "pending", "attempts": 0, "output": ""}
+            for task in version["tasks"]
+        }
+        for event in history:
+            payload = event["payload"]
+            task = tasks.get(payload.get("task")) if isinstance(payload, dict) else None
+            if task is None:
+                continue
+            if event["kind"] == "task_started":
+                task.update(status="running", attempts=payload.get("attempt", 0))
+            elif event["kind"] == "task_finished":
+                task.update(
+                    status=payload.get("status", "unknown"),
+                    attempts=payload.get("attempt", 0),
+                )
+            elif event["kind"] == "task_blocked":
+                task["status"] = "blocked"
+            elif event["kind"] == "task_cancelled":
+                task["status"] = "cancelled"
+        for item in (run.get("result") or {}).get("tasks", []):
+            if item.get("id") in tasks:
+                tasks[item["id"]].update(item)
+        output = None
+        if (
+            tasks.get("aggregate", {}).get("status") == "succeeded"
+            and version["approved"]
+        ):
+            target = (
+                self.worker_root / "workspaces" / run_id / ".local/typed-summary.json"
+            )
+            try:
+                if any(
+                    item.is_symlink()
+                    for item in [target, *target.parents]
+                    if item.is_relative_to(self.worker_root)
+                ):
+                    raise ValueError("run output cannot be a symbolic link")
+                if target.exists():
+                    with target.open("rb") as stream:
+                        raw = stream.read(1024 * 1024 + 1)
+                    if len(raw) > 1024 * 1024:
+                        raise ValueError("run output exceeds 1 MiB")
+                    table, _ = table_bundle(raw)
+                    rules = record["specification"]["tasks"][-2]["dataflow"]["gates"]
+                    checks = [
+                        rule.evaluate(table)
+                        for rule in compile_gates(rules, table.contract)
+                    ]
+                    output = {
+                        "passed": all(check["passed"] for check in checks),
+                        "rows": table.json_rows(),
+                        "sha256": hashlib.sha256(raw).hexdigest(),
+                        "data_sha256": table.digest(),
+                        "checks": checks,
+                    }
+            except (ValueError, OSError) as error:
+                output = {"passed": False, "error": str(error)}
+        page = events[:50]
+        return {
+            "run": run,
+            "workflow": version,
+            "tasks": list(tasks.values()),
+            "events": page,
+            "event_cursor": page[-1]["sequence"] if page else after,
+            "more_events": len(events) > 50,
+            "task_history_complete": len(history) < 200,
+            "output": output,
+            "output_scope": "Current run file checked against its registered quality gates on refresh.",
+        }
+
