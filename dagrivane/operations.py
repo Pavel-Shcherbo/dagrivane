@@ -381,3 +381,27 @@ class Operations:
             "output_scope": "Current run file checked against its registered quality gates on refresh.",
         }
 
+    def work(self, run_id):
+        store, meta = self._context()
+        selected = store.get_run(meta["workspace_id"], run_id)
+        if selected["workflow_id"] != meta["workflow_id"]:
+            raise ValueError("run does not belong to the operations workflow")
+
+        def prepare(claim):
+            _, record = self._approved(store, meta, claim["version"])
+            if (
+                claim["workflow_id"] != meta["workflow_id"]
+                or claim["specification"] != record["specification"]
+                or claim["directory"] != record["directory"]
+            ):
+                raise ValueError("claimed run differs from its reviewed workflow")
+            return record["directory"]
+
+        worker = Worker(
+            store, self.worker_root, "workbench-" + uuid.uuid4().hex, lease_seconds=10
+        )
+        result = worker.run_once(
+            workspace_id=meta["workspace_id"], run_id=run_id, prepare_claim=prepare
+        )
+        return {"worker": result, "detail": self.inspect(run_id)}
+
