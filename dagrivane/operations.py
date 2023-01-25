@@ -405,3 +405,11 @@ class Operations:
         )
         return {"worker": result, "detail": self.inspect(run_id)}
 
+    def cancel(self, run_id):
+        store, meta = self._context()
+        selected = store.get_run(meta["workspace_id"], run_id)
+        if selected["workflow_id"] != meta["workflow_id"]:
+            raise ValueError("run does not belong to the operations workflow")
+        store.cancel(meta["workspace_id"], run_id)
+        return self.inspect(run_id)
+
