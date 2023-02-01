@@ -413,3 +413,25 @@ class Operations:
         store.cancel(meta["workspace_id"], run_id)
         return self.inspect(run_id)
 
+    def retry(self, run_id, event_key):
+        store, meta = self._context()
+        prior = store.get_run(meta["workspace_id"], run_id)
+        if prior["workflow_id"] != meta["workflow_id"]:
+            raise ValueError("run does not belong to the operations workflow")
+        self._approved(store, meta, prior["version"])
+        with store.transaction() as db:
+            prior_request = db.execute(
+                "SELECT id FROM cp_runs WHERE workspace_id=? AND event_key=?",
+                (meta["workspace_id"], event_key),
+            ).fetchone()
+            if (
+                prior_request is None
+                and db.execute(
+                    "SELECT count(*) FROM cp_runs WHERE workspace_id=?",
+                    (meta["workspace_id"],),
+                ).fetchone()[0]
+                >= 1000
+            ):
+                raise ValueError("operations workspace reached its 1,000-run limit")
+            submitted = store._retry(db, meta["workspace_id"], run_id, event_key)
+        return {"submission": submitted, "detail": self.inspect(submitted["id"])}
