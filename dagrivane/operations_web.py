@@ -19,3 +19,14 @@ FIELDS = {
 }
 
 
+def positive(value, label, *, zero=False):
+    if type(value) is not int or not (0 if zero else 1) <= value <= 9223372036854775807:
+        raise ValueError(
+            label
+            + " requires a "
+            + ("nonnegative" if zero else "positive")
+            + " integer"
+        )
+    return value
+
+
