@@ -14,7 +14,8 @@
         <div class="brand">Dagrivane</div>
         <p class="caption">Workflow execution and release gates</p>
         <nav aria-label="Workspace">
-          <a href="#workflow">Workflow</a><a href="#tasks">Task results</a
+          <a href="#queue" aria-current="location">Run queue</a
+          ><a href="#workflow">Workflow</a><a href="#tasks">Task results</a
           ><a href="#releases">Release checks</a
           ><a href="#contract">Execution contract</a>
         </nav>
@@ -26,9 +27,125 @@
           ><span class="context">Local environment</span>
         </div>
         <div id="error" class="error" role="alert" hidden></div>
+        <section id="queue" class="section operations">
+          <header class="pagehead">
+            <div>
+              <h1>Workflow operations</h1>
+              <p>Saved runs with pinned workflow versions</p>
+            </div>
+            <button id="ops-refresh">Refresh queue</button>
+          </header>
+          <div id="ops-error" class="error" role="alert" hidden></div>
+          <p id="ops-status" class="secondary" role="status">
+            Reading local workspace…
+          </p>
+          <button id="ops-init" class="primary" hidden>
+            Create local workspace
+          </button>
+          <div id="ops-ready" hidden>
+            <div class="panel panelbody ops-submit">
+              <label>Workflow version<select id="ops-version"></select></label>
+              <label
+                >Priority<select id="ops-priority">
+                  <option value="0">Normal</option>
+                  <option value="10">High</option>
+                  <option value="-10">Low</option>
+                </select></label
+              >
+              <button id="ops-submit" class="primary">Queue run</button>
+              <details class="ops-register">
+                <summary>Register a reviewed version</summary>
+                <label>Scenario<select id="ops-profile"></select></label
+                ><button id="ops-publish">Register version</button>
+                <p class="notice">
+                  Existing runs retain their registered version.
+                </p>
+              </details>
+            </div>
+            <div class="ops-layout section">
+              <div class="panel">
+                <div class="panelhead">
+                  <h2>Run queue</h2>
+                  <label class="ops-filter"
+                    >State<select id="ops-filter">
+                      <option value="">All states</option>
+                      <option value="queued">Queued</option>
+                      <option value="running">Running</option>
+                      <option value="succeeded">Succeeded</option>
+                      <option value="failed">Failed</option>
+                      <option value="cancel_requested">Stopping</option>
+                      <option value="cancelled">Cancelled</option>
+                      <option value="orphaned">Needs reconciliation</option>
+                    </select></label
+                  >
+                </div>
+                <div class="tablewrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Run</th>
+                        <th>Version</th>
+                        <th>State</th>
+                        <th class="ops-created">Submitted</th>
+                      </tr>
+                    </thead>
+                    <tbody id="ops-runs"></tbody>
+                  </table>
+                </div>
+                <div class="panelbody">
+                  <p id="ops-empty" class="secondary">
+                    No runs yet. Queue a workflow version to begin.
+                  </p>
+                  <button id="ops-older" hidden>Load older runs</button>
+                </div>
+              </div>
+              <section class="panel ops-inspector" aria-label="Run inspection">
+                <div class="panelhead">
+                  <h2 id="ops-title">Run inspection</h2>
+                </div>
+                <div class="panelbody">
+                  <p id="ops-selection" class="secondary">
+                    Select a run to inspect its recorded tasks and events.
+                  </p>
+                  <div id="ops-detail" hidden>
+                    <p id="ops-identity" class="mono notice"></p>
+                    <div class="actions ops-actions">
+                      <button id="ops-work" class="primary">
+                        Execute selected run</button
+                      ><button id="ops-cancel">Cancel run</button
+                      ><button id="ops-retry">Retry as new run</button
+                      ><button id="ops-export">Export inspection</button>
+                    </div>
+                    <p class="notice">
+                      Reloading keeps the queue. Cancellation keeps completed
+                      outputs.
+                    </p>
+                    <div id="ops-tasks" class="ops-tasks"></div>
+                    <h3 id="ops-log-title">Task output</h3>
+                    <pre id="ops-log">Select a task to inspect its output.</pre>
+                    <div id="ops-output"></div>
+                    <details>
+                      <summary>Workflow inputs and fingerprint</summary>
+                      <pre id="ops-pins"></pre>
+                    </details>
+                    <h3 class="section">Recorded events</h3>
+                    <ol id="ops-events" class="ops-events"></ol>
+                    <button id="ops-events-more" hidden>
+                      Load more events
+                    </button>
+                  </div>
+                </div>
+              </section>
+            </div>
+            <p class="notice">
+              Reviewed local workflows · Two concurrent runs · Fresh input
+              copies per run. Processes execute with local user permissions.
+            </p>
+          </div>
+        </section>
         <header class="pagehead" id="workflow">
           <div>
-            <h1>Order summary release</h1>
+            <h2>Order summary release</h2>
             <p>Validated order data with a checked release total</p>
           </div>
           <button id="run" class="primary">Run pipeline</button>
