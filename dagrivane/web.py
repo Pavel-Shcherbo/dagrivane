@@ -5,6 +5,7 @@ from shutil import copy2
 
 from .engine import run
 from .release_web import evaluate_release
+from .operations_web import evaluate_operations
 from .httpapp import serve
 from .resources import examples_directory, state_directory
 
@@ -14,6 +15,8 @@ def example():
 
 
 def evaluate(params):
+    if params.get("mode") == "control":
+        return evaluate_operations(params)
     if params.get("mode") == "release":
         return evaluate_release(params)
     mode = params.get("mode", "commands")
