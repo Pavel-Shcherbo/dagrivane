@@ -1,10 +1,12 @@
 """Claim a durable run and execute it while retaining fenced ownership."""
 
 import threading
+import copy
 from pathlib import Path
 
 from .control import Conflict, LostLease, text
 from .engine import run
+from .run_workspace import create_run_workspace
 
 
 class Worker:
@@ -17,8 +19,12 @@ class Worker:
         self.state_directory = Path(state_directory)
         self.state_directory.mkdir(parents=True, exist_ok=True)
 
-    def run_once(self):
-        claimed = self.store.claim(self.identity, self.lease_seconds)
+    def run_once(self, *, workspace_id=None, run_id=None, prepare_claim=None):
+        if prepare_claim is not None and not callable(prepare_claim):
+            raise ValueError("claim preparation must be callable")
+        claimed = self.store.claim(
+            self.identity, self.lease_seconds, workspace_id=workspace_id, run_id=run_id
+        )
         if claimed is None:
             return None
         run_id, token = claimed["id"], claimed["lease_token"]
@@ -48,20 +54,60 @@ class Worker:
         status = "failed"
         try:
             try:
+                directory = (
+                    prepare_claim(copy.deepcopy(claimed))
+                    if prepare_claim is not None
+                    else claimed["directory"]
+                )
+                if (
+                    not isinstance(directory, (str, Path))
+                    or not Path(directory).is_dir()
+                ):
+                    raise ValueError(
+                        "claim preparation must return an existing source directory"
+                    )
+                workspace = None
+                policy = claimed["specification"].get("execution_policy", "in_place")
+                if policy == "isolated_inputs":
+                    parent = self.state_directory / "workspaces"
+                    parent.mkdir(mode=0o700, exist_ok=True)
+                    workspace = create_run_workspace(
+                        claimed["specification"], directory, parent / run_id
+                    )
+                    directory = workspace["directory"]
+                    event(
+                        "workspace_prepared",
+                        {
+                            "policy": policy,
+                            "inputs": workspace["inputs"],
+                            "bytes": workspace["bytes"],
+                        },
+                    )
                 tasks = run(
                     claimed["specification"],
                     self.state_directory / f"{run_id}.sqlite",
                     run_id,
-                    claimed["directory"],
+                    directory,
                     should_cancel=cancel.is_set,
                     on_event=event,
                 )
-                result = {
-                    "tasks": [
-                        {key: task[key] for key in ["id", "status", "attempts"]}
-                        for task in tasks
-                    ]
-                }
+                remaining = 65536
+                saved_tasks = []
+                for task in tasks:
+                    raw = task.get("output", "").encode("utf-8")
+                    cap = min(8192, remaining)
+                    output = raw[-cap:].decode("utf-8", errors="ignore") if cap else ""
+                    remaining = max(0, remaining - len(output.encode("utf-8")))
+                    saved_tasks.append(
+                        {
+                            **{key: task[key] for key in ("id", "status", "attempts")},
+                            "output": output,
+                            "output_truncated": len(raw) > cap,
+                        }
+                    )
+                result = {"tasks": saved_tasks, "execution_policy": policy}
+                if workspace is not None:
+                    result["input_pins"] = workspace["inputs"]
                 status = (
                     "cancelled"
                     if any(task["status"] == "cancelled" for task in tasks)
