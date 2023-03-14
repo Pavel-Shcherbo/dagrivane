@@ -1,0 +1,40 @@
+{
+  "passed": true,
+  "desktop_viewport": [
+    1440,
+    1100
+  ],
+  "mobile_viewport": [
+    390,
+    844
+  ],
+  "mobile_no_horizontal_overflow": true,
+  "real_ui_success_and_quality_failure": true,
+  "queued_and_running_cancellation": true,
+  "retry_is_new_record": true,
+  "reload_preserves_five_runs": true,
+  "actual_database_states": {
+    "cancelled": 2,
+    "failed": 1,
+    "succeeded": 2
+  },
+  "keyboard_and_delayed_response": {
+    "keyboard_selection": true,
+    "delayed_response_ignored": true,
+    "selected_version": 1
+  },
+  "independent_export_check": {
+    "run_id": "26176b46-6a62-429e-955f-d86f60ae0f4f",
+    "sha256": "13acfea5d0bcff5f6b798177ddd32df85060ba8113da39e3cfbce04e769e98df",
+    "result_matches_durable_database": true,
+    "raw_csv_rows": 4,
+    "independent_decimal_total": "112.00",
+    "input_hashes_match": true,
+    "output_hash_matches": true
+  },
+  "screenshots": [
+    "operations-desktop.png",
+    "operations-mobile.png"
+  ],
+  "full_portfolio_acceptance": false
+}
