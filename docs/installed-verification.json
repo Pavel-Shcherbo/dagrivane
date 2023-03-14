@@ -1,5 +1,5 @@
 {
-  "wheel_sha256": "4b6d5f14c667290e065a8a4c35892fe4ade5795dab6d868cc78d9c6ed0c95310",
+  "wheel_sha256": "017691c4f172ac14cff75a9ad975195f164f65093f45365cd23dd3ab2c2fdd13",
   "examples_exported": [
     "dataflow.json",
     "incremental-changes.json",
@@ -21,5 +21,6 @@
   "typed_workbench_success_and_failure_passed": true,
   "artifact_release_cli_and_offline_export_passed": true,
   "release_http_healthy_and_blocked_passed": true,
-  "incremental_ingestion_and_ordered_catalog_publication_passed": true
+  "incremental_ingestion_and_ordered_catalog_publication_passed": true,
+  "durable_operations_http_controls_passed": true
 }
