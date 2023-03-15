@@ -1,0 +1,777 @@
+{
+  "passed": true,
+  "installed_outside_checkout": true,
+  "idempotent_submission": true,
+  "pinned_versions": true,
+  "quality_failure_blocks_dependents": true,
+  "cancelled_run_not_executed": true,
+  "explicit_retry_retains_original": true,
+  "succeeded": {
+    "run": {
+      "id": "5b88e9b1-72ef-4000-b077-e2edf27cc80c",
+      "workspace_id": "137fca56-cf17-4960-be95-031ad453cf6b",
+      "workflow_id": "b4154ca2-5046-45fc-9cb8-a0343fadb4e7",
+      "version": 1,
+      "event_key": "installed-operations",
+      "status": "succeeded",
+      "priority": 0,
+      "created": 1793773274.4481668,
+      "started": 1793773274.4592798,
+      "finished": 1793773274.5819168,
+      "worker": "workbench-a9f5f4c729234a47944059ed80336905",
+      "lease_until": 1793773284.5813491,
+      "result": {
+        "execution_policy": "isolated_inputs",
+        "input_pins": [
+          {
+            "path": "orders.csv",
+            "sha256": "06b879f46634bef0f6b5e5a63a4cf379b459c91eae5e37c44da3aaecce07c2ad"
+          },
+          {
+            "path": "release_typed.py",
+            "sha256": "b3fbbbb30bc082d492330049989513cd6928eaffe0b614b95c0df2dfaaae5de3"
+          }
+        ],
+        "tasks": [
+          {
+            "attempts": 1,
+            "id": "validate",
+            "output": "{\n  \"passed\": true,\n  \"plan_sha256\": \"a1e57224331ab1d3e5c96395d053ac39823bd4896fbb269652f4bfd7fb5e1f05\",\n  \"output_node\": \"orders\",\n  \"output\": {\n    \"rows\": 4,\n    \"columns\": 3,\n    \"contract\": {\n      \"name\": \"orders\",\n      \"version\": 1,\n      \"columns\": [\n        {\n          \"name\": \"id\",\n          \"type\": \"string\",\n          \"nullable\": false\n        },\n        {\n          \"name\": \"amount\",\n          \"type\": \"decimal\",\n          \"nullable\": false,\n          \"min\": \"0\"\n        },\n        {\n          \"name\": \"currency\",\n          \"type\": \"string\",\n          \"nullable\": false,\n          \"enum\": [\n            \"USD\",\n            \"EUR\"\n          ]\n        }\n      ]\n    },\n    \"data_sha256\": \"0ec2625802dee6e254f31616613d377d8e5c9f876570387f0159e23fde12bee1\",\n    \"source_sha256\": [\n      \"06b879f46634bef0f6b5e5a63a4cf379b459c91eae5e37c44da3aaecce07c2ad\"\n    ]\n  },\n  \"checks\": [\n    {\n      \"id\": \"unique_orders\",\n      \"kind\": \"unique\",\n      \"passed\": true,\n      \"failure_count\": 0,\n      \"sample_record_numbers\": []\n    },\n    {\n      \"id\": \"row_count\",\n      \"kind\": \"row_count\",\n      \"passed\": true,\n      \"observed\": 4,\n      \"min\": 4,\n      \"max\": 4\n    },\n    {\n      \"id\": \"source_total\",\n      \"kind\": \"sum\",\n      \"passed\": true,\n      \"observed\": \"112.00\",\n      \"min\": \"112.00\",\n      \"max\": \"112.00\"\n    }\n  ],\n  \"nodes\": [\n    {\n      \"id\": \"orders\",\n      \"rows\": 4,\n      \"columns\": 3,\n      \"contract\": {\n        \"name\": \"orders\",\n        \"version\": 1,\n        \"columns\": [\n          {\n            \"name\": \"id\",\n            \"type\": \"string\",\n            \"nullable\": false\n          },\n          {\n            \"name\": \"amount\",\n            \"type\": \"decimal\",\n            \"nullable\": false,\n            \"min\": \"0\"\n          },\n          {\n            \"name\": \"currency\",\n            \"type\": \"string\",\n            \"nullable\": false,\n            \"enum\": [\n              \"USD\",\n              \"EUR\"\n            ]\n          }\n        ]\n      },\n      \"data_sha256\": \"0ec2625802dee6e254f31616613d377d8e5c9f876570387f0159e23fde12bee1\",\n      \"source_sha256\": [\n        \"06b879f46634bef0f6b5e5a63a4cf379b459c91eae5e37c44da3aaecce07c2ad\"\n      ]\n    }\n  ],\n  \"artifact\": \".local/typed-orders.json\"\n}\n",
+            "output_truncated": false,
+            "status": "succeeded"
+          },
+          {
+            "attempts": 1,
+            "id": "aggregate",
+            "output": "{\n  \"passed\": true,\n  \"plan_sha256\": \"e9133d90fd29426f4f2d7d9992883cfb6c274b739e27ceb8033b46e403ede89a\",\n  \"output_node\": \"summary\",\n  \"output\": {\n    \"rows\": 1,\n    \"columns\": 3,\n    \"contract\": {\n      \"name\": \"orders\",\n      \"version\": 1,\n      \"columns\": [\n        {\n          \"name\": \"currency\",\n          \"type\": \"string\",\n          \"nullable\": false,\n          \"enum\": [\n            \"USD\",\n            \"EUR\"\n          ]\n        },\n        {\n          \"name\": \"revenue\",\n          \"type\": \"decimal\",\n          \"nullable\": true\n        },\n        {\n          \"name\": \"orders\",\n          \"type\": \"integer\",\n          \"nullable\": false\n        }\n      ]\n    },\n    \"data_sha256\": \"eef0971ad1bfeb029c984ba001a04694e7dab5d2a04b6fed5fe9da34862b6884\",\n    \"source_sha256\": [\n      \"06b879f46634bef0f6b5e5a63a4cf379b459c91eae5e37c44da3aaecce07c2ad\"\n    ]\n  },\n  \"checks\": [\n    {\n      \"id\": \"currencies\",\n      \"kind\": \"unique\",\n      \"passed\": true,\n      \"failure_count\": 0,\n      \"sample_record_numbers\": []\n    },\n    {\n      \"id\": \"total\",\n      \"kind\": \"sum\",\n      \"passed\": true,\n      \"observed\": \"112.00\",\n      \"min\": \"112.00\",\n      \"max\": \"112.00\"\n    }\n  ],\n  \"nodes\": [\n    {\n      \"id\": \"orders\",\n      \"rows\": 4,\n      \"columns\": 3,\n      \"contract\": {\n        \"name\": \"orders\",\n        \"version\": 1,\n        \"columns\": [\n          {\n            \"name\": \"id\",\n            \"type\": \"string\",\n            \"nullable\": false\n          },\n          {\n            \"name\": \"amount\",\n            \"type\": \"decimal\",\n            \"nullable\": false,\n            \"min\": \"0\"\n          },\n          {\n            \"name\": \"currency\",\n            \"type\": \"string\",\n            \"nullable\": false,\n            \"enum\": [\n              \"USD\",\n              \"EUR\"\n            ]\n          }\n        ]\n      },\n      \"data_sha256\": \"0ec2625802dee6e254f31616613d377d8e5c9f876570387f0159e23fde12bee1\",\n      \"source_sha256\": [\n        \"06b879f46634bef0f6b5e5a63a4cf379b459c91eae5e37c44da3aaecce07c2ad\"\n      ]\n    },\n    {\n      \"id\": \"summary\",\n      \"rows\": 1,\n      \"columns\": 3,\n      \"contract\": {\n        \"name\": \"orders\",\n        \"version\": 1,\n        \"columns\": [\n          {\n            \"name\": \"currency\",\n            \"type\": \"string\",\n            \"nullable\": false,\n            \"enum\": [\n              \"USD\",\n              \"EUR\"\n            ]\n          },\n          {\n            \"name\": \"revenue\",\n            \"type\": \"decimal\",\n            \"nullable\": true\n          },\n          {\n            \"name\": \"orders\",\n            \"type\": \"integer\",\n            \"nullable\": false\n          }\n        ]\n      },\n      \"data_sha256\": \"eef0971ad1bfeb029c984ba001a04694e7dab5d2a04b6fed5fe9da34862b6884\",\n      \"source_sha256\": [\n        \"06b879f46634bef0f6b5e5a63a4cf379b459c91eae5e37c44da3aaecce07c2ad\"\n      ]\n    }\n  ],\n  \"artifact\": \".local/typed-summary.json\"\n}\n",
+            "output_truncated": false,
+            "status": "succeeded"
+          },
+          {
+            "attempts": 1,
+            "id": "release-check",
+            "output": "{\n  \"passed\": true,\n  \"checks\": {\n    \"source_quality\": true,\n    \"summary_quality\": true,\n    \"same_pinned_source\": true,\n    \"source_row_count\": true,\n    \"currency_summary\": true\n  }\n}\n",
+            "output_truncated": false,
+            "status": "succeeded"
+          }
+        ]
+      },
+      "retry_of": null
+    },
+    "workflow": {
+      "version": 1,
+      "profile": "standard",
+      "label": "Order checks",
+      "fingerprint": "525347e8d454fa097e00059333dbb184f64c09687c731a707c774c02f6275654",
+      "approved": true,
+      "created": 1793773274.4420831,
+      "tasks": [
+        {
+          "id": "validate",
+          "needs": [],
+          "kind": "dataflow"
+        },
+        {
+          "id": "aggregate",
+          "needs": [
+            "validate"
+          ],
+          "kind": "dataflow"
+        },
+        {
+          "id": "release-check",
+          "needs": [
+            "aggregate"
+          ],
+          "kind": "command"
+        }
+      ],
+      "inputs": [
+        {
+          "path": "orders.csv",
+          "sha256": "06b879f46634bef0f6b5e5a63a4cf379b459c91eae5e37c44da3aaecce07c2ad"
+        },
+        {
+          "path": "release_typed.py",
+          "sha256": "b3fbbbb30bc082d492330049989513cd6928eaffe0b614b95c0df2dfaaae5de3"
+        }
+      ]
+    },
+    "tasks": [
+      {
+        "id": "validate",
+        "needs": [],
+        "kind": "dataflow",
+        "status": "succeeded",
+        "attempts": 1,
+        "output": "{\n  \"passed\": true,\n  \"plan_sha256\": \"a1e57224331ab1d3e5c96395d053ac39823bd4896fbb269652f4bfd7fb5e1f05\",\n  \"output_node\": \"orders\",\n  \"output\": {\n    \"rows\": 4,\n    \"columns\": 3,\n    \"contract\": {\n      \"name\": \"orders\",\n      \"version\": 1,\n      \"columns\": [\n        {\n          \"name\": \"id\",\n          \"type\": \"string\",\n          \"nullable\": false\n        },\n        {\n          \"name\": \"amount\",\n          \"type\": \"decimal\",\n          \"nullable\": false,\n          \"min\": \"0\"\n        },\n        {\n          \"name\": \"currency\",\n          \"type\": \"string\",\n          \"nullable\": false,\n          \"enum\": [\n            \"USD\",\n            \"EUR\"\n          ]\n        }\n      ]\n    },\n    \"data_sha256\": \"0ec2625802dee6e254f31616613d377d8e5c9f876570387f0159e23fde12bee1\",\n    \"source_sha256\": [\n      \"06b879f46634bef0f6b5e5a63a4cf379b459c91eae5e37c44da3aaecce07c2ad\"\n    ]\n  },\n  \"checks\": [\n    {\n      \"id\": \"unique_orders\",\n      \"kind\": \"unique\",\n      \"passed\": true,\n      \"failure_count\": 0,\n      \"sample_record_numbers\": []\n    },\n    {\n      \"id\": \"row_count\",\n      \"kind\": \"row_count\",\n      \"passed\": true,\n      \"observed\": 4,\n      \"min\": 4,\n      \"max\": 4\n    },\n    {\n      \"id\": \"source_total\",\n      \"kind\": \"sum\",\n      \"passed\": true,\n      \"observed\": \"112.00\",\n      \"min\": \"112.00\",\n      \"max\": \"112.00\"\n    }\n  ],\n  \"nodes\": [\n    {\n      \"id\": \"orders\",\n      \"rows\": 4,\n      \"columns\": 3,\n      \"contract\": {\n        \"name\": \"orders\",\n        \"version\": 1,\n        \"columns\": [\n          {\n            \"name\": \"id\",\n            \"type\": \"string\",\n            \"nullable\": false\n          },\n          {\n            \"name\": \"amount\",\n            \"type\": \"decimal\",\n            \"nullable\": false,\n            \"min\": \"0\"\n          },\n          {\n            \"name\": \"currency\",\n            \"type\": \"string\",\n            \"nullable\": false,\n            \"enum\": [\n              \"USD\",\n              \"EUR\"\n            ]\n          }\n        ]\n      },\n      \"data_sha256\": \"0ec2625802dee6e254f31616613d377d8e5c9f876570387f0159e23fde12bee1\",\n      \"source_sha256\": [\n        \"06b879f46634bef0f6b5e5a63a4cf379b459c91eae5e37c44da3aaecce07c2ad\"\n      ]\n    }\n  ],\n  \"artifact\": \".local/typed-orders.json\"\n}\n",
+        "output_truncated": false
+      },
+      {
+        "id": "aggregate",
+        "needs": [
+          "validate"
+        ],
+        "kind": "dataflow",
+        "status": "succeeded",
+        "attempts": 1,
+        "output": "{\n  \"passed\": true,\n  \"plan_sha256\": \"e9133d90fd29426f4f2d7d9992883cfb6c274b739e27ceb8033b46e403ede89a\",\n  \"output_node\": \"summary\",\n  \"output\": {\n    \"rows\": 1,\n    \"columns\": 3,\n    \"contract\": {\n      \"name\": \"orders\",\n      \"version\": 1,\n      \"columns\": [\n        {\n          \"name\": \"currency\",\n          \"type\": \"string\",\n          \"nullable\": false,\n          \"enum\": [\n            \"USD\",\n            \"EUR\"\n          ]\n        },\n        {\n          \"name\": \"revenue\",\n          \"type\": \"decimal\",\n          \"nullable\": true\n        },\n        {\n          \"name\": \"orders\",\n          \"type\": \"integer\",\n          \"nullable\": false\n        }\n      ]\n    },\n    \"data_sha256\": \"eef0971ad1bfeb029c984ba001a04694e7dab5d2a04b6fed5fe9da34862b6884\",\n    \"source_sha256\": [\n      \"06b879f46634bef0f6b5e5a63a4cf379b459c91eae5e37c44da3aaecce07c2ad\"\n    ]\n  },\n  \"checks\": [\n    {\n      \"id\": \"currencies\",\n      \"kind\": \"unique\",\n      \"passed\": true,\n      \"failure_count\": 0,\n      \"sample_record_numbers\": []\n    },\n    {\n      \"id\": \"total\",\n      \"kind\": \"sum\",\n      \"passed\": true,\n      \"observed\": \"112.00\",\n      \"min\": \"112.00\",\n      \"max\": \"112.00\"\n    }\n  ],\n  \"nodes\": [\n    {\n      \"id\": \"orders\",\n      \"rows\": 4,\n      \"columns\": 3,\n      \"contract\": {\n        \"name\": \"orders\",\n        \"version\": 1,\n        \"columns\": [\n          {\n            \"name\": \"id\",\n            \"type\": \"string\",\n            \"nullable\": false\n          },\n          {\n            \"name\": \"amount\",\n            \"type\": \"decimal\",\n            \"nullable\": false,\n            \"min\": \"0\"\n          },\n          {\n            \"name\": \"currency\",\n            \"type\": \"string\",\n            \"nullable\": false,\n            \"enum\": [\n              \"USD\",\n              \"EUR\"\n            ]\n          }\n        ]\n      },\n      \"data_sha256\": \"0ec2625802dee6e254f31616613d377d8e5c9f876570387f0159e23fde12bee1\",\n      \"source_sha256\": [\n        \"06b879f46634bef0f6b5e5a63a4cf379b459c91eae5e37c44da3aaecce07c2ad\"\n      ]\n    },\n    {\n      \"id\": \"summary\",\n      \"rows\": 1,\n      \"columns\": 3,\n      \"contract\": {\n        \"name\": \"orders\",\n        \"version\": 1,\n        \"columns\": [\n          {\n            \"name\": \"currency\",\n            \"type\": \"string\",\n            \"nullable\": false,\n            \"enum\": [\n              \"USD\",\n              \"EUR\"\n            ]\n          },\n          {\n            \"name\": \"revenue\",\n            \"type\": \"decimal\",\n            \"nullable\": true\n          },\n          {\n            \"name\": \"orders\",\n            \"type\": \"integer\",\n            \"nullable\": false\n          }\n        ]\n      },\n      \"data_sha256\": \"eef0971ad1bfeb029c984ba001a04694e7dab5d2a04b6fed5fe9da34862b6884\",\n      \"source_sha256\": [\n        \"06b879f46634bef0f6b5e5a63a4cf379b459c91eae5e37c44da3aaecce07c2ad\"\n      ]\n    }\n  ],\n  \"artifact\": \".local/typed-summary.json\"\n}\n",
+        "output_truncated": false
+      },
+      {
+        "id": "release-check",
+        "needs": [
+          "aggregate"
+        ],
+        "kind": "command",
+        "status": "succeeded",
+        "attempts": 1,
+        "output": "{\n  \"passed\": true,\n  \"checks\": {\n    \"source_quality\": true,\n    \"summary_quality\": true,\n    \"same_pinned_source\": true,\n    \"source_row_count\": true,\n    \"currency_summary\": true\n  }\n}\n",
+        "output_truncated": false
+      }
+    ],
+    "events": [
+      {
+        "sequence": 1,
+        "run_id": "5b88e9b1-72ef-4000-b077-e2edf27cc80c",
+        "kind": "submitted",
+        "payload": {
+          "priority": 0,
+          "retry_of": null,
+          "version": 1
+        },
+        "created": 1793773274.4481668
+      },
+      {
+        "sequence": 2,
+        "run_id": "5b88e9b1-72ef-4000-b077-e2edf27cc80c",
+        "kind": "claimed",
+        "payload": {
+          "lease_until": 1793773284.4592798,
+          "worker": "workbench-a9f5f4c729234a47944059ed80336905"
+        },
+        "created": 1793773274.4592798
+      },
+      {
+        "sequence": 3,
+        "run_id": "5b88e9b1-72ef-4000-b077-e2edf27cc80c",
+        "kind": "workspace_prepared",
+        "payload": {
+          "bytes": 1243,
+          "inputs": [
+            {
+              "path": "orders.csv",
+              "sha256": "06b879f46634bef0f6b5e5a63a4cf379b459c91eae5e37c44da3aaecce07c2ad"
+            },
+            {
+              "path": "release_typed.py",
+              "sha256": "b3fbbbb30bc082d492330049989513cd6928eaffe0b614b95c0df2dfaaae5de3"
+            }
+          ],
+          "policy": "isolated_inputs"
+        },
+        "created": 1793773274.461545
+      },
+      {
+        "sequence": 4,
+        "run_id": "5b88e9b1-72ef-4000-b077-e2edf27cc80c",
+        "kind": "task_started",
+        "payload": {
+          "attempt": 1,
+          "task": "validate"
+        },
+        "created": 1793773274.463598
+      },
+      {
+        "sequence": 5,
+        "run_id": "5b88e9b1-72ef-4000-b077-e2edf27cc80c",
+        "kind": "task_finished",
+        "payload": {
+          "attempt": 1,
+          "status": "succeeded",
+          "task": "validate"
+        },
+        "created": 1793773274.507047
+      },
+      {
+        "sequence": 6,
+        "run_id": "5b88e9b1-72ef-4000-b077-e2edf27cc80c",
+        "kind": "task_started",
+        "payload": {
+          "attempt": 1,
+          "task": "aggregate"
+        },
+        "created": 1793773274.5082371
+      },
+      {
+        "sequence": 7,
+        "run_id": "5b88e9b1-72ef-4000-b077-e2edf27cc80c",
+        "kind": "task_finished",
+        "payload": {
+          "attempt": 1,
+          "status": "succeeded",
+          "task": "aggregate"
+        },
+        "created": 1793773274.552567
+      },
+      {
+        "sequence": 8,
+        "run_id": "5b88e9b1-72ef-4000-b077-e2edf27cc80c",
+        "kind": "task_started",
+        "payload": {
+          "attempt": 1,
+          "task": "release-check"
+        },
+        "created": 1793773274.5539122
+      },
+      {
+        "sequence": 9,
+        "run_id": "5b88e9b1-72ef-4000-b077-e2edf27cc80c",
+        "kind": "task_finished",
+        "payload": {
+          "attempt": 1,
+          "status": "succeeded",
+          "task": "release-check"
+        },
+        "created": 1793773274.5804741
+      },
+      {
+        "sequence": 10,
+        "run_id": "5b88e9b1-72ef-4000-b077-e2edf27cc80c",
+        "kind": "finished",
+        "payload": {
+          "status": "succeeded"
+        },
+        "created": 1793773274.5819168
+      }
+    ],
+    "event_cursor": 10,
+    "more_events": false,
+    "task_history_complete": true,
+    "output": {
+      "passed": true,
+      "rows": [
+        {
+          "currency": "USD",
+          "revenue": "112.00",
+          "orders": 4
+        }
+      ],
+      "sha256": "e701267b9ea025e4c17aca903a5810cbffec1c442ff4f0146f8308f0a5de981e",
+      "data_sha256": "eef0971ad1bfeb029c984ba001a04694e7dab5d2a04b6fed5fe9da34862b6884",
+      "checks": [
+        {
+          "id": "currencies",
+          "kind": "unique",
+          "passed": true,
+          "failure_count": 0,
+          "sample_record_numbers": []
+        },
+        {
+          "id": "total",
+          "kind": "sum",
+          "passed": true,
+          "observed": "112.00",
+          "min": "112.00",
+          "max": "112.00"
+        }
+      ]
+    },
+    "output_scope": "Current run file checked against its registered quality gates on refresh."
+  },
+  "failed": {
+    "run": {
+      "id": "4cec7f31-d417-4cfb-a02f-c40a950a7600",
+      "workspace_id": "137fca56-cf17-4960-be95-031ad453cf6b",
+      "workflow_id": "b4154ca2-5046-45fc-9cb8-a0343fadb4e7",
+      "version": 2,
+      "event_key": "installed-bad",
+      "status": "failed",
+      "priority": 0,
+      "created": 1793773274.600526,
+      "started": 1793773274.605856,
+      "finished": 1793773274.6577542,
+      "worker": "workbench-154b81f58a65440d96a2d5cc1f2f04ec",
+      "lease_until": 1793773284.657248,
+      "result": {
+        "execution_policy": "isolated_inputs",
+        "input_pins": [
+          {
+            "path": "orders.csv",
+            "sha256": "06b879f46634bef0f6b5e5a63a4cf379b459c91eae5e37c44da3aaecce07c2ad"
+          },
+          {
+            "path": "release_typed.py",
+            "sha256": "b3fbbbb30bc082d492330049989513cd6928eaffe0b614b95c0df2dfaaae5de3"
+          }
+        ],
+        "tasks": [
+          {
+            "attempts": 1,
+            "id": "validate",
+            "output": "{\n  \"passed\": false,\n  \"plan_sha256\": \"569308b46574126864ac4b9321abc669c376aef21bb80437243f1ba327010713\",\n  \"output_node\": \"orders\",\n  \"output\": {\n    \"rows\": 4,\n    \"columns\": 3,\n    \"contract\": {\n      \"name\": \"orders\",\n      \"version\": 1,\n      \"columns\": [\n        {\n          \"name\": \"id\",\n          \"type\": \"string\",\n          \"nullable\": false\n        },\n        {\n          \"name\": \"amount\",\n          \"type\": \"decimal\",\n          \"nullable\": false,\n          \"min\": \"0\"\n        },\n        {\n          \"name\": \"currency\",\n          \"type\": \"string\",\n          \"nullable\": false,\n          \"enum\": [\n            \"USD\",\n            \"EUR\"\n          ]\n        }\n      ]\n    },\n    \"data_sha256\": \"0ec2625802dee6e254f31616613d377d8e5c9f876570387f0159e23fde12bee1\",\n    \"source_sha256\": [\n      \"06b879f46634bef0f6b5e5a63a4cf379b459c91eae5e37c44da3aaecce07c2ad\"\n    ]\n  },\n  \"checks\": [\n    {\n      \"id\": \"unique_orders\",\n      \"kind\": \"unique\",\n      \"passed\": true,\n      \"failure_count\": 0,\n      \"sample_record_numbers\": []\n    },\n    {\n      \"id\": \"row_count\",\n      \"kind\": \"row_count\",\n      \"passed\": false,\n      \"observed\": 4,\n      \"min\": 5,\n      \"max\": 5\n    },\n    {\n      \"id\": \"source_total\",\n      \"kind\": \"sum\",\n      \"passed\": true,\n      \"observed\": \"112.00\",\n      \"min\": \"112.00\",\n      \"max\": \"112.00\"\n    }\n  ],\n  \"nodes\": [\n    {\n      \"id\": \"orders\",\n      \"rows\": 4,\n      \"columns\": 3,\n      \"contract\": {\n        \"name\": \"orders\",\n        \"version\": 1,\n        \"columns\": [\n          {\n            \"name\": \"id\",\n            \"type\": \"string\",\n            \"nullable\": false\n          },\n          {\n            \"name\": \"amount\",\n            \"type\": \"decimal\",\n            \"nullable\": false,\n            \"min\": \"0\"\n          },\n          {\n            \"name\": \"currency\",\n            \"type\": \"string\",\n            \"nullable\": false,\n            \"enum\": [\n              \"USD\",\n              \"EUR\"\n            ]\n          }\n        ]\n      },\n      \"data_sha256\": \"0ec2625802dee6e254f31616613d377d8e5c9f876570387f0159e23fde12bee1\",\n      \"source_sha256\": [\n        \"06b879f46634bef0f6b5e5a63a4cf379b459c91eae5e37c44da3aaecce07c2ad\"\n      ]\n    }\n  ]\n}\n",
+            "output_truncated": false,
+            "status": "failed"
+          },
+          {
+            "attempts": 0,
+            "id": "aggregate",
+            "output": "dependency failed",
+            "output_truncated": false,
+            "status": "blocked"
+          },
+          {
+            "attempts": 0,
+            "id": "release-check",
+            "output": "dependency failed",
+            "output_truncated": false,
+            "status": "blocked"
+          }
+        ]
+      },
+      "retry_of": null
+    },
+    "workflow": {
+      "version": 2,
+      "profile": "quality-failure",
+      "label": "Quality failure control",
+      "fingerprint": "a1c79e55ed321eddd0a3a55b886186b24b7bb43cbdd8f6fdb3033ec90f84267e",
+      "approved": true,
+      "created": 1793773274.5934348,
+      "tasks": [
+        {
+          "id": "validate",
+          "needs": [],
+          "kind": "dataflow"
+        },
+        {
+          "id": "aggregate",
+          "needs": [
+            "validate"
+          ],
+          "kind": "dataflow"
+        },
+        {
+          "id": "release-check",
+          "needs": [
+            "aggregate"
+          ],
+          "kind": "command"
+        }
+      ],
+      "inputs": [
+        {
+          "path": "orders.csv",
+          "sha256": "06b879f46634bef0f6b5e5a63a4cf379b459c91eae5e37c44da3aaecce07c2ad"
+        },
+        {
+          "path": "release_typed.py",
+          "sha256": "b3fbbbb30bc082d492330049989513cd6928eaffe0b614b95c0df2dfaaae5de3"
+        }
+      ]
+    },
+    "tasks": [
+      {
+        "id": "validate",
+        "needs": [],
+        "kind": "dataflow",
+        "status": "failed",
+        "attempts": 1,
+        "output": "{\n  \"passed\": false,\n  \"plan_sha256\": \"569308b46574126864ac4b9321abc669c376aef21bb80437243f1ba327010713\",\n  \"output_node\": \"orders\",\n  \"output\": {\n    \"rows\": 4,\n    \"columns\": 3,\n    \"contract\": {\n      \"name\": \"orders\",\n      \"version\": 1,\n      \"columns\": [\n        {\n          \"name\": \"id\",\n          \"type\": \"string\",\n          \"nullable\": false\n        },\n        {\n          \"name\": \"amount\",\n          \"type\": \"decimal\",\n          \"nullable\": false,\n          \"min\": \"0\"\n        },\n        {\n          \"name\": \"currency\",\n          \"type\": \"string\",\n          \"nullable\": false,\n          \"enum\": [\n            \"USD\",\n            \"EUR\"\n          ]\n        }\n      ]\n    },\n    \"data_sha256\": \"0ec2625802dee6e254f31616613d377d8e5c9f876570387f0159e23fde12bee1\",\n    \"source_sha256\": [\n      \"06b879f46634bef0f6b5e5a63a4cf379b459c91eae5e37c44da3aaecce07c2ad\"\n    ]\n  },\n  \"checks\": [\n    {\n      \"id\": \"unique_orders\",\n      \"kind\": \"unique\",\n      \"passed\": true,\n      \"failure_count\": 0,\n      \"sample_record_numbers\": []\n    },\n    {\n      \"id\": \"row_count\",\n      \"kind\": \"row_count\",\n      \"passed\": false,\n      \"observed\": 4,\n      \"min\": 5,\n      \"max\": 5\n    },\n    {\n      \"id\": \"source_total\",\n      \"kind\": \"sum\",\n      \"passed\": true,\n      \"observed\": \"112.00\",\n      \"min\": \"112.00\",\n      \"max\": \"112.00\"\n    }\n  ],\n  \"nodes\": [\n    {\n      \"id\": \"orders\",\n      \"rows\": 4,\n      \"columns\": 3,\n      \"contract\": {\n        \"name\": \"orders\",\n        \"version\": 1,\n        \"columns\": [\n          {\n            \"name\": \"id\",\n            \"type\": \"string\",\n            \"nullable\": false\n          },\n          {\n            \"name\": \"amount\",\n            \"type\": \"decimal\",\n            \"nullable\": false,\n            \"min\": \"0\"\n          },\n          {\n            \"name\": \"currency\",\n            \"type\": \"string\",\n            \"nullable\": false,\n            \"enum\": [\n              \"USD\",\n              \"EUR\"\n            ]\n          }\n        ]\n      },\n      \"data_sha256\": \"0ec2625802dee6e254f31616613d377d8e5c9f876570387f0159e23fde12bee1\",\n      \"source_sha256\": [\n        \"06b879f46634bef0f6b5e5a63a4cf379b459c91eae5e37c44da3aaecce07c2ad\"\n      ]\n    }\n  ]\n}\n",
+        "output_truncated": false
+      },
+      {
+        "id": "aggregate",
+        "needs": [
+          "validate"
+        ],
+        "kind": "dataflow",
+        "status": "blocked",
+        "attempts": 0,
+        "output": "dependency failed",
+        "output_truncated": false
+      },
+      {
+        "id": "release-check",
+        "needs": [
+          "aggregate"
+        ],
+        "kind": "command",
+        "status": "blocked",
+        "attempts": 0,
+        "output": "dependency failed",
+        "output_truncated": false
+      }
+    ],
+    "events": [
+      {
+        "sequence": 11,
+        "run_id": "4cec7f31-d417-4cfb-a02f-c40a950a7600",
+        "kind": "submitted",
+        "payload": {
+          "priority": 0,
+          "retry_of": null,
+          "version": 2
+        },
+        "created": 1793773274.600526
+      },
+      {
+        "sequence": 12,
+        "run_id": "4cec7f31-d417-4cfb-a02f-c40a950a7600",
+        "kind": "claimed",
+        "payload": {
+          "lease_until": 1793773284.605856,
+          "worker": "workbench-154b81f58a65440d96a2d5cc1f2f04ec"
+        },
+        "created": 1793773274.605856
+      },
+      {
+        "sequence": 13,
+        "run_id": "4cec7f31-d417-4cfb-a02f-c40a950a7600",
+        "kind": "workspace_prepared",
+        "payload": {
+          "bytes": 1243,
+          "inputs": [
+            {
+              "path": "orders.csv",
+              "sha256": "06b879f46634bef0f6b5e5a63a4cf379b459c91eae5e37c44da3aaecce07c2ad"
+            },
+            {
+              "path": "release_typed.py",
+              "sha256": "b3fbbbb30bc082d492330049989513cd6928eaffe0b614b95c0df2dfaaae5de3"
+            }
+          ],
+          "policy": "isolated_inputs"
+        },
+        "created": 1793773274.608573
+      },
+      {
+        "sequence": 14,
+        "run_id": "4cec7f31-d417-4cfb-a02f-c40a950a7600",
+        "kind": "task_started",
+        "payload": {
+          "attempt": 1,
+          "task": "validate"
+        },
+        "created": 1793773274.6108649
+      },
+      {
+        "sequence": 15,
+        "run_id": "4cec7f31-d417-4cfb-a02f-c40a950a7600",
+        "kind": "task_finished",
+        "payload": {
+          "attempt": 1,
+          "status": "failed",
+          "task": "validate"
+        },
+        "created": 1793773274.654279
+      },
+      {
+        "sequence": 16,
+        "run_id": "4cec7f31-d417-4cfb-a02f-c40a950a7600",
+        "kind": "task_blocked",
+        "payload": {
+          "task": "aggregate"
+        },
+        "created": 1793773274.655448
+      },
+      {
+        "sequence": 17,
+        "run_id": "4cec7f31-d417-4cfb-a02f-c40a950a7600",
+        "kind": "task_blocked",
+        "payload": {
+          "task": "release-check"
+        },
+        "created": 1793773274.6565068
+      },
+      {
+        "sequence": 18,
+        "run_id": "4cec7f31-d417-4cfb-a02f-c40a950a7600",
+        "kind": "finished",
+        "payload": {
+          "status": "failed"
+        },
+        "created": 1793773274.6577542
+      }
+    ],
+    "event_cursor": 18,
+    "more_events": false,
+    "task_history_complete": true,
+    "output": null,
+    "output_scope": "Current run file checked against its registered quality gates on refresh."
+  },
+  "retry": {
+    "run": {
+      "id": "11cad237-5a8d-40bc-8ae9-cc8b5283e94c",
+      "workspace_id": "137fca56-cf17-4960-be95-031ad453cf6b",
+      "workflow_id": "b4154ca2-5046-45fc-9cb8-a0343fadb4e7",
+      "version": 1,
+      "event_key": "installed-retry",
+      "status": "succeeded",
+      "priority": 0,
+      "created": 1793773274.6814332,
+      "started": 1793773274.686668,
+      "finished": 1793773274.809699,
+      "worker": "workbench-6a708c84429d4528955dd50101fbfdb3",
+      "lease_until": 1793773284.809084,
+      "result": {
+        "execution_policy": "isolated_inputs",
+        "input_pins": [
+          {
+            "path": "orders.csv",
+            "sha256": "06b879f46634bef0f6b5e5a63a4cf379b459c91eae5e37c44da3aaecce07c2ad"
+          },
+          {
+            "path": "release_typed.py",
+            "sha256": "b3fbbbb30bc082d492330049989513cd6928eaffe0b614b95c0df2dfaaae5de3"
+          }
+        ],
+        "tasks": [
+          {
+            "attempts": 1,
+            "id": "validate",
+            "output": "{\n  \"passed\": true,\n  \"plan_sha256\": \"a1e57224331ab1d3e5c96395d053ac39823bd4896fbb269652f4bfd7fb5e1f05\",\n  \"output_node\": \"orders\",\n  \"output\": {\n    \"rows\": 4,\n    \"columns\": 3,\n    \"contract\": {\n      \"name\": \"orders\",\n      \"version\": 1,\n      \"columns\": [\n        {\n          \"name\": \"id\",\n          \"type\": \"string\",\n          \"nullable\": false\n        },\n        {\n          \"name\": \"amount\",\n          \"type\": \"decimal\",\n          \"nullable\": false,\n          \"min\": \"0\"\n        },\n        {\n          \"name\": \"currency\",\n          \"type\": \"string\",\n          \"nullable\": false,\n          \"enum\": [\n            \"USD\",\n            \"EUR\"\n          ]\n        }\n      ]\n    },\n    \"data_sha256\": \"0ec2625802dee6e254f31616613d377d8e5c9f876570387f0159e23fde12bee1\",\n    \"source_sha256\": [\n      \"06b879f46634bef0f6b5e5a63a4cf379b459c91eae5e37c44da3aaecce07c2ad\"\n    ]\n  },\n  \"checks\": [\n    {\n      \"id\": \"unique_orders\",\n      \"kind\": \"unique\",\n      \"passed\": true,\n      \"failure_count\": 0,\n      \"sample_record_numbers\": []\n    },\n    {\n      \"id\": \"row_count\",\n      \"kind\": \"row_count\",\n      \"passed\": true,\n      \"observed\": 4,\n      \"min\": 4,\n      \"max\": 4\n    },\n    {\n      \"id\": \"source_total\",\n      \"kind\": \"sum\",\n      \"passed\": true,\n      \"observed\": \"112.00\",\n      \"min\": \"112.00\",\n      \"max\": \"112.00\"\n    }\n  ],\n  \"nodes\": [\n    {\n      \"id\": \"orders\",\n      \"rows\": 4,\n      \"columns\": 3,\n      \"contract\": {\n        \"name\": \"orders\",\n        \"version\": 1,\n        \"columns\": [\n          {\n            \"name\": \"id\",\n            \"type\": \"string\",\n            \"nullable\": false\n          },\n          {\n            \"name\": \"amount\",\n            \"type\": \"decimal\",\n            \"nullable\": false,\n            \"min\": \"0\"\n          },\n          {\n            \"name\": \"currency\",\n            \"type\": \"string\",\n            \"nullable\": false,\n            \"enum\": [\n              \"USD\",\n              \"EUR\"\n            ]\n          }\n        ]\n      },\n      \"data_sha256\": \"0ec2625802dee6e254f31616613d377d8e5c9f876570387f0159e23fde12bee1\",\n      \"source_sha256\": [\n        \"06b879f46634bef0f6b5e5a63a4cf379b459c91eae5e37c44da3aaecce07c2ad\"\n      ]\n    }\n  ],\n  \"artifact\": \".local/typed-orders.json\"\n}\n",
+            "output_truncated": false,
+            "status": "succeeded"
+          },
+          {
+            "attempts": 1,
+            "id": "aggregate",
+            "output": "{\n  \"passed\": true,\n  \"plan_sha256\": \"e9133d90fd29426f4f2d7d9992883cfb6c274b739e27ceb8033b46e403ede89a\",\n  \"output_node\": \"summary\",\n  \"output\": {\n    \"rows\": 1,\n    \"columns\": 3,\n    \"contract\": {\n      \"name\": \"orders\",\n      \"version\": 1,\n      \"columns\": [\n        {\n          \"name\": \"currency\",\n          \"type\": \"string\",\n          \"nullable\": false,\n          \"enum\": [\n            \"USD\",\n            \"EUR\"\n          ]\n        },\n        {\n          \"name\": \"revenue\",\n          \"type\": \"decimal\",\n          \"nullable\": true\n        },\n        {\n          \"name\": \"orders\",\n          \"type\": \"integer\",\n          \"nullable\": false\n        }\n      ]\n    },\n    \"data_sha256\": \"eef0971ad1bfeb029c984ba001a04694e7dab5d2a04b6fed5fe9da34862b6884\",\n    \"source_sha256\": [\n      \"06b879f46634bef0f6b5e5a63a4cf379b459c91eae5e37c44da3aaecce07c2ad\"\n    ]\n  },\n  \"checks\": [\n    {\n      \"id\": \"currencies\",\n      \"kind\": \"unique\",\n      \"passed\": true,\n      \"failure_count\": 0,\n      \"sample_record_numbers\": []\n    },\n    {\n      \"id\": \"total\",\n      \"kind\": \"sum\",\n      \"passed\": true,\n      \"observed\": \"112.00\",\n      \"min\": \"112.00\",\n      \"max\": \"112.00\"\n    }\n  ],\n  \"nodes\": [\n    {\n      \"id\": \"orders\",\n      \"rows\": 4,\n      \"columns\": 3,\n      \"contract\": {\n        \"name\": \"orders\",\n        \"version\": 1,\n        \"columns\": [\n          {\n            \"name\": \"id\",\n            \"type\": \"string\",\n            \"nullable\": false\n          },\n          {\n            \"name\": \"amount\",\n            \"type\": \"decimal\",\n            \"nullable\": false,\n            \"min\": \"0\"\n          },\n          {\n            \"name\": \"currency\",\n            \"type\": \"string\",\n            \"nullable\": false,\n            \"enum\": [\n              \"USD\",\n              \"EUR\"\n            ]\n          }\n        ]\n      },\n      \"data_sha256\": \"0ec2625802dee6e254f31616613d377d8e5c9f876570387f0159e23fde12bee1\",\n      \"source_sha256\": [\n        \"06b879f46634bef0f6b5e5a63a4cf379b459c91eae5e37c44da3aaecce07c2ad\"\n      ]\n    },\n    {\n      \"id\": \"summary\",\n      \"rows\": 1,\n      \"columns\": 3,\n      \"contract\": {\n        \"name\": \"orders\",\n        \"version\": 1,\n        \"columns\": [\n          {\n            \"name\": \"currency\",\n            \"type\": \"string\",\n            \"nullable\": false,\n            \"enum\": [\n              \"USD\",\n              \"EUR\"\n            ]\n          },\n          {\n            \"name\": \"revenue\",\n            \"type\": \"decimal\",\n            \"nullable\": true\n          },\n          {\n            \"name\": \"orders\",\n            \"type\": \"integer\",\n            \"nullable\": false\n          }\n        ]\n      },\n      \"data_sha256\": \"eef0971ad1bfeb029c984ba001a04694e7dab5d2a04b6fed5fe9da34862b6884\",\n      \"source_sha256\": [\n        \"06b879f46634bef0f6b5e5a63a4cf379b459c91eae5e37c44da3aaecce07c2ad\"\n      ]\n    }\n  ],\n  \"artifact\": \".local/typed-summary.json\"\n}\n",
+            "output_truncated": false,
+            "status": "succeeded"
+          },
+          {
+            "attempts": 1,
+            "id": "release-check",
+            "output": "{\n  \"passed\": true,\n  \"checks\": {\n    \"source_quality\": true,\n    \"summary_quality\": true,\n    \"same_pinned_source\": true,\n    \"source_row_count\": true,\n    \"currency_summary\": true\n  }\n}\n",
+            "output_truncated": false,
+            "status": "succeeded"
+          }
+        ]
+      },
+      "retry_of": "378f09d5-a7ff-46a8-b6dc-688115d6ec1a"
+    },
+    "workflow": {
+      "version": 1,
+      "profile": "standard",
+      "label": "Order checks",
+      "fingerprint": "525347e8d454fa097e00059333dbb184f64c09687c731a707c774c02f6275654",
+      "approved": true,
+      "created": 1793773274.4420831,
+      "tasks": [
+        {
+          "id": "validate",
+          "needs": [],
+          "kind": "dataflow"
+        },
+        {
+          "id": "aggregate",
+          "needs": [
+            "validate"
+          ],
+          "kind": "dataflow"
+        },
+        {
+          "id": "release-check",
+          "needs": [
+            "aggregate"
+          ],
+          "kind": "command"
+        }
+      ],
+      "inputs": [
+        {
+          "path": "orders.csv",
+          "sha256": "06b879f46634bef0f6b5e5a63a4cf379b459c91eae5e37c44da3aaecce07c2ad"
+        },
+        {
+          "path": "release_typed.py",
+          "sha256": "b3fbbbb30bc082d492330049989513cd6928eaffe0b614b95c0df2dfaaae5de3"
+        }
+      ]
+    },
+    "tasks": [
+      {
+        "id": "validate",
+        "needs": [],
+        "kind": "dataflow",
+        "status": "succeeded",
+        "attempts": 1,
+        "output": "{\n  \"passed\": true,\n  \"plan_sha256\": \"a1e57224331ab1d3e5c96395d053ac39823bd4896fbb269652f4bfd7fb5e1f05\",\n  \"output_node\": \"orders\",\n  \"output\": {\n    \"rows\": 4,\n    \"columns\": 3,\n    \"contract\": {\n      \"name\": \"orders\",\n      \"version\": 1,\n      \"columns\": [\n        {\n          \"name\": \"id\",\n          \"type\": \"string\",\n          \"nullable\": false\n        },\n        {\n          \"name\": \"amount\",\n          \"type\": \"decimal\",\n          \"nullable\": false,\n          \"min\": \"0\"\n        },\n        {\n          \"name\": \"currency\",\n          \"type\": \"string\",\n          \"nullable\": false,\n          \"enum\": [\n            \"USD\",\n            \"EUR\"\n          ]\n        }\n      ]\n    },\n    \"data_sha256\": \"0ec2625802dee6e254f31616613d377d8e5c9f876570387f0159e23fde12bee1\",\n    \"source_sha256\": [\n      \"06b879f46634bef0f6b5e5a63a4cf379b459c91eae5e37c44da3aaecce07c2ad\"\n    ]\n  },\n  \"checks\": [\n    {\n      \"id\": \"unique_orders\",\n      \"kind\": \"unique\",\n      \"passed\": true,\n      \"failure_count\": 0,\n      \"sample_record_numbers\": []\n    },\n    {\n      \"id\": \"row_count\",\n      \"kind\": \"row_count\",\n      \"passed\": true,\n      \"observed\": 4,\n      \"min\": 4,\n      \"max\": 4\n    },\n    {\n      \"id\": \"source_total\",\n      \"kind\": \"sum\",\n      \"passed\": true,\n      \"observed\": \"112.00\",\n      \"min\": \"112.00\",\n      \"max\": \"112.00\"\n    }\n  ],\n  \"nodes\": [\n    {\n      \"id\": \"orders\",\n      \"rows\": 4,\n      \"columns\": 3,\n      \"contract\": {\n        \"name\": \"orders\",\n        \"version\": 1,\n        \"columns\": [\n          {\n            \"name\": \"id\",\n            \"type\": \"string\",\n            \"nullable\": false\n          },\n          {\n            \"name\": \"amount\",\n            \"type\": \"decimal\",\n            \"nullable\": false,\n            \"min\": \"0\"\n          },\n          {\n            \"name\": \"currency\",\n            \"type\": \"string\",\n            \"nullable\": false,\n            \"enum\": [\n              \"USD\",\n              \"EUR\"\n            ]\n          }\n        ]\n      },\n      \"data_sha256\": \"0ec2625802dee6e254f31616613d377d8e5c9f876570387f0159e23fde12bee1\",\n      \"source_sha256\": [\n        \"06b879f46634bef0f6b5e5a63a4cf379b459c91eae5e37c44da3aaecce07c2ad\"\n      ]\n    }\n  ],\n  \"artifact\": \".local/typed-orders.json\"\n}\n",
+        "output_truncated": false
+      },
+      {
+        "id": "aggregate",
+        "needs": [
+          "validate"
+        ],
+        "kind": "dataflow",
+        "status": "succeeded",
+        "attempts": 1,
+        "output": "{\n  \"passed\": true,\n  \"plan_sha256\": \"e9133d90fd29426f4f2d7d9992883cfb6c274b739e27ceb8033b46e403ede89a\",\n  \"output_node\": \"summary\",\n  \"output\": {\n    \"rows\": 1,\n    \"columns\": 3,\n    \"contract\": {\n      \"name\": \"orders\",\n      \"version\": 1,\n      \"columns\": [\n        {\n          \"name\": \"currency\",\n          \"type\": \"string\",\n          \"nullable\": false,\n          \"enum\": [\n            \"USD\",\n            \"EUR\"\n          ]\n        },\n        {\n          \"name\": \"revenue\",\n          \"type\": \"decimal\",\n          \"nullable\": true\n        },\n        {\n          \"name\": \"orders\",\n          \"type\": \"integer\",\n          \"nullable\": false\n        }\n      ]\n    },\n    \"data_sha256\": \"eef0971ad1bfeb029c984ba001a04694e7dab5d2a04b6fed5fe9da34862b6884\",\n    \"source_sha256\": [\n      \"06b879f46634bef0f6b5e5a63a4cf379b459c91eae5e37c44da3aaecce07c2ad\"\n    ]\n  },\n  \"checks\": [\n    {\n      \"id\": \"currencies\",\n      \"kind\": \"unique\",\n      \"passed\": true,\n      \"failure_count\": 0,\n      \"sample_record_numbers\": []\n    },\n    {\n      \"id\": \"total\",\n      \"kind\": \"sum\",\n      \"passed\": true,\n      \"observed\": \"112.00\",\n      \"min\": \"112.00\",\n      \"max\": \"112.00\"\n    }\n  ],\n  \"nodes\": [\n    {\n      \"id\": \"orders\",\n      \"rows\": 4,\n      \"columns\": 3,\n      \"contract\": {\n        \"name\": \"orders\",\n        \"version\": 1,\n        \"columns\": [\n          {\n            \"name\": \"id\",\n            \"type\": \"string\",\n            \"nullable\": false\n          },\n          {\n            \"name\": \"amount\",\n            \"type\": \"decimal\",\n            \"nullable\": false,\n            \"min\": \"0\"\n          },\n          {\n            \"name\": \"currency\",\n            \"type\": \"string\",\n            \"nullable\": false,\n            \"enum\": [\n              \"USD\",\n              \"EUR\"\n            ]\n          }\n        ]\n      },\n      \"data_sha256\": \"0ec2625802dee6e254f31616613d377d8e5c9f876570387f0159e23fde12bee1\",\n      \"source_sha256\": [\n        \"06b879f46634bef0f6b5e5a63a4cf379b459c91eae5e37c44da3aaecce07c2ad\"\n      ]\n    },\n    {\n      \"id\": \"summary\",\n      \"rows\": 1,\n      \"columns\": 3,\n      \"contract\": {\n        \"name\": \"orders\",\n        \"version\": 1,\n        \"columns\": [\n          {\n            \"name\": \"currency\",\n            \"type\": \"string\",\n            \"nullable\": false,\n            \"enum\": [\n              \"USD\",\n              \"EUR\"\n            ]\n          },\n          {\n            \"name\": \"revenue\",\n            \"type\": \"decimal\",\n            \"nullable\": true\n          },\n          {\n            \"name\": \"orders\",\n            \"type\": \"integer\",\n            \"nullable\": false\n          }\n        ]\n      },\n      \"data_sha256\": \"eef0971ad1bfeb029c984ba001a04694e7dab5d2a04b6fed5fe9da34862b6884\",\n      \"source_sha256\": [\n        \"06b879f46634bef0f6b5e5a63a4cf379b459c91eae5e37c44da3aaecce07c2ad\"\n      ]\n    }\n  ],\n  \"artifact\": \".local/typed-summary.json\"\n}\n",
+        "output_truncated": false
+      },
+      {
+        "id": "release-check",
+        "needs": [
+          "aggregate"
+        ],
+        "kind": "command",
+        "status": "succeeded",
+        "attempts": 1,
+        "output": "{\n  \"passed\": true,\n  \"checks\": {\n    \"source_quality\": true,\n    \"summary_quality\": true,\n    \"same_pinned_source\": true,\n    \"source_row_count\": true,\n    \"currency_summary\": true\n  }\n}\n",
+        "output_truncated": false
+      }
+    ],
+    "events": [
+      {
+        "sequence": 21,
+        "run_id": "11cad237-5a8d-40bc-8ae9-cc8b5283e94c",
+        "kind": "submitted",
+        "payload": {
+          "priority": 0,
+          "retry_of": "378f09d5-a7ff-46a8-b6dc-688115d6ec1a",
+          "version": 1
+        },
+        "created": 1793773274.6814332
+      },
+      {
+        "sequence": 22,
+        "run_id": "11cad237-5a8d-40bc-8ae9-cc8b5283e94c",
+        "kind": "claimed",
+        "payload": {
+          "lease_until": 1793773284.686668,
+          "worker": "workbench-6a708c84429d4528955dd50101fbfdb3"
+        },
+        "created": 1793773274.686668
+      },
+      {
+        "sequence": 23,
+        "run_id": "11cad237-5a8d-40bc-8ae9-cc8b5283e94c",
+        "kind": "workspace_prepared",
+        "payload": {
+          "bytes": 1243,
+          "inputs": [
+            {
+              "path": "orders.csv",
+              "sha256": "06b879f46634bef0f6b5e5a63a4cf379b459c91eae5e37c44da3aaecce07c2ad"
+            },
+            {
+              "path": "release_typed.py",
+              "sha256": "b3fbbbb30bc082d492330049989513cd6928eaffe0b614b95c0df2dfaaae5de3"
+            }
+          ],
+          "policy": "isolated_inputs"
+        },
+        "created": 1793773274.688959
+      },
+      {
+        "sequence": 24,
+        "run_id": "11cad237-5a8d-40bc-8ae9-cc8b5283e94c",
+        "kind": "task_started",
+        "payload": {
+          "attempt": 1,
+          "task": "validate"
+        },
+        "created": 1793773274.690915
+      },
+      {
+        "sequence": 25,
+        "run_id": "11cad237-5a8d-40bc-8ae9-cc8b5283e94c",
+        "kind": "task_finished",
+        "payload": {
+          "attempt": 1,
+          "status": "succeeded",
+          "task": "validate"
+        },
+        "created": 1793773274.7352178
+      },
+      {
+        "sequence": 26,
+        "run_id": "11cad237-5a8d-40bc-8ae9-cc8b5283e94c",
+        "kind": "task_started",
+        "payload": {
+          "attempt": 1,
+          "task": "aggregate"
+        },
+        "created": 1793773274.7363598
+      },
+      {
+        "sequence": 27,
+        "run_id": "11cad237-5a8d-40bc-8ae9-cc8b5283e94c",
+        "kind": "task_finished",
+        "payload": {
+          "attempt": 1,
+          "status": "succeeded",
+          "task": "aggregate"
+        },
+        "created": 1793773274.7804182
+      },
+      {
+        "sequence": 28,
+        "run_id": "11cad237-5a8d-40bc-8ae9-cc8b5283e94c",
+        "kind": "task_started",
+        "payload": {
+          "attempt": 1,
+          "task": "release-check"
+        },
+        "created": 1793773274.7818
+      },
+      {
+        "sequence": 29,
+        "run_id": "11cad237-5a8d-40bc-8ae9-cc8b5283e94c",
+        "kind": "task_finished",
+        "payload": {
+          "attempt": 1,
+          "status": "succeeded",
+          "task": "release-check"
+        },
+        "created": 1793773274.8082602
+      },
+      {
+        "sequence": 30,
+        "run_id": "11cad237-5a8d-40bc-8ae9-cc8b5283e94c",
+        "kind": "finished",
+        "payload": {
+          "status": "succeeded"
+        },
+        "created": 1793773274.809699
+      }
+    ],
+    "event_cursor": 30,
+    "more_events": false,
+    "task_history_complete": true,
+    "output": {
+      "passed": true,
+      "rows": [
+        {
+          "currency": "USD",
+          "revenue": "112.00",
+          "orders": 4
+        }
+      ],
+      "sha256": "e701267b9ea025e4c17aca903a5810cbffec1c442ff4f0146f8308f0a5de981e",
+      "data_sha256": "eef0971ad1bfeb029c984ba001a04694e7dab5d2a04b6fed5fe9da34862b6884",
+      "checks": [
+        {
+          "id": "currencies",
+          "kind": "unique",
+          "passed": true,
+          "failure_count": 0,
+          "sample_record_numbers": []
+        },
+        {
+          "id": "total",
+          "kind": "sum",
+          "passed": true,
+          "observed": "112.00",
+          "min": "112.00",
+          "max": "112.00"
+        }
+      ]
+    },
+    "output_scope": "Current run file checked against its registered quality gates on refresh."
+  },
+  "full_portfolio_acceptance": false
+}
