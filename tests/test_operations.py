@@ -18,4 +18,9 @@ from dagrivane.web import evaluate
 
 
 class OperationTests(unittest.TestCase):
-    pass
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name) / "ops"
+        self.operations = Operations(self.root)
+
