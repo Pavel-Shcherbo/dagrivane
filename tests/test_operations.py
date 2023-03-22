@@ -24,3 +24,7 @@ class OperationTests(unittest.TestCase):
         self.root = Path(self.temp.name) / "ops"
         self.operations = Operations(self.root)
 
+    def initialize(self):
+        state = self.operations.initialize()
+        return state, ControlStore(self.operations.database)
+
