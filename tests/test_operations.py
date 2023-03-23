@@ -28,3 +28,13 @@ class OperationTests(unittest.TestCase):
         state = self.operations.initialize()
         return state, ControlStore(self.operations.database)
 
+    def test_overview_does_not_initialize_and_bootstrap_is_atomic(self):
+        self.assertFalse(self.operations.overview()["initialized"])
+        self.assertFalse(self.root.exists())
+        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
+            states = list(pool.map(lambda _: self.operations.initialize(), range(4)))
+        self.assertEqual(len({state["workspace"]["id"] for state in states}), 1)
+        store = ControlStore(self.operations.database)
+        self.assertEqual(len(store.list_workspaces()), 1)
+        self.assertEqual(len(states[0]["versions"]), 1)
+
