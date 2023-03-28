@@ -38,3 +38,21 @@ class OperationTests(unittest.TestCase):
         self.assertEqual(len(store.list_workspaces()), 1)
         self.assertEqual(len(states[0]["versions"]), 1)
 
+    def test_pinned_version_executes_and_reopen_retains_actual_result(self):
+        state, store = self.initialize()
+        submitted = self.operations.submit(1, "one")["submission"]
+        result = self.operations.work(submitted["id"])
+        self.assertEqual(result["detail"]["run"]["status"], "succeeded")
+        self.assertTrue(result["detail"]["output"]["passed"])
+        self.assertEqual(
+            result["detail"]["output"]["rows"],
+            [{"currency": "USD", "revenue": "112.00", "orders": 4}],
+        )
+        reopened = Operations(self.root).inspect(submitted["id"])
+        self.assertEqual(reopened["run"]["result"], result["detail"]["run"]["result"])
+        self.assertTrue(
+            any(event["kind"] == "workspace_prepared" for event in reopened["events"])
+        )
+        self.assertNotIn("lease_token", json.dumps(reopened))
+        self.assertEqual(self.operations.work(submitted["id"])["worker"], None)
+
