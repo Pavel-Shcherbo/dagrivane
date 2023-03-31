@@ -56,3 +56,20 @@ class OperationTests(unittest.TestCase):
         self.assertNotIn("lease_token", json.dumps(reopened))
         self.assertEqual(self.operations.work(submitted["id"])["worker"], None)
 
+    def test_output_recheck_detects_later_damage_without_rewriting_run_outcome(self):
+        self.initialize()
+        run_id = self.operations.submit(1, "damaged-output")["submission"]["id"]
+        self.assertTrue(self.operations.work(run_id)["detail"]["output"]["passed"])
+        output = (
+            self.operations.worker_root
+            / "workspaces"
+            / run_id
+            / ".local/typed-summary.json"
+        )
+        document = json.loads(output.read_text())
+        document["rows"][0]["revenue"] = "999.00"
+        output.write_text(json.dumps(document))
+        current = self.operations.inspect(run_id)
+        self.assertEqual(current["run"]["status"], "succeeded")
+        self.assertFalse(current["output"]["passed"])
+
