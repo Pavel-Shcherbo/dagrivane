@@ -73,3 +73,33 @@ class OperationTests(unittest.TestCase):
         self.assertEqual(current["run"]["status"], "succeeded")
         self.assertFalse(current["output"]["passed"])
 
+    def test_retained_multibyte_output_obeys_per_task_and_total_byte_budgets(self):
+        state, store = self.initialize()
+        workflow = store.register_workflow(
+            state["workspace"]["id"],
+            "Bounded logs",
+            {
+                "tasks": [
+                    {
+                        "id": "log-" + str(index),
+                        "command": [sys.executable, "-c", "print('€' * 3000 + 'TAIL')"],
+                    }
+                    for index in range(9)
+                ]
+            },
+            self.root,
+        )
+        run_id = store.enqueue(
+            state["workspace"]["id"], workflow["id"], workflow["version"], "multibyte"
+        )["id"]
+        worked = Worker(store, self.root / "log-worker", "log-check").run_once(
+            workspace_id=state["workspace"]["id"], run_id=run_id
+        )
+        self.assertEqual(worked["status"], "succeeded")
+        tasks = store.get_run(state["workspace"]["id"], run_id)["result"]["tasks"]
+        sizes = [len(task["output"].encode("utf-8")) for task in tasks]
+        self.assertTrue(all(size <= 8192 for size in sizes))
+        self.assertLessEqual(sum(sizes), 65536)
+        self.assertTrue(all(task["output_truncated"] for task in tasks))
+        self.assertTrue(tasks[0]["output"].endswith("TAIL\n"))
+
