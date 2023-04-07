@@ -103,3 +103,21 @@ class OperationTests(unittest.TestCase):
         self.assertTrue(all(task["output_truncated"] for task in tasks))
         self.assertTrue(tasks[0]["output"].endswith("TAIL\n"))
 
+    def test_two_runs_use_fresh_directories_and_source_template_stays_unmodified(self):
+        self.initialize()
+        first = self.operations.submit(1, "first")["submission"]["id"]
+        second = self.operations.submit(1, "second")["submission"]["id"]
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
+            results = list(pool.map(self.operations.work, [first, second]))
+        self.assertTrue(
+            all(row["detail"]["run"]["status"] == "succeeded" for row in results)
+        )
+        roots = [
+            self.operations.worker_root / "workspaces" / run_id
+            for run_id in [first, second]
+        ]
+        self.assertTrue(
+            all((root / ".local/typed-summary.json").is_file() for root in roots)
+        )
+        self.assertFalse(list((self.root / "templates").rglob(".local")))
+
