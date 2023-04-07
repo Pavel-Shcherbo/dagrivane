@@ -121,3 +121,26 @@ class OperationTests(unittest.TestCase):
         )
         self.assertFalse(list((self.root / "templates").rglob(".local")))
 
+    def test_failed_version_keeps_old_success_and_blocks_dependents(self):
+        self.initialize()
+        published = self.operations.publish_version("quality-failure", 1)
+        self.assertEqual(published["workflow"]["version"], 2)
+        first = self.operations.submit(1, "old")["submission"]["id"]
+        second = self.operations.submit(2, "new")["submission"]["id"]
+        self.assertEqual(
+            self.operations.work(first)["detail"]["run"]["status"], "succeeded"
+        )
+        failed = self.operations.work(second)["detail"]
+        self.assertEqual(failed["run"]["status"], "failed")
+        self.assertEqual(
+            [task["status"] for task in failed["tasks"]],
+            ["failed", "blocked", "blocked"],
+        )
+        self.assertTrue(failed["tasks"][0]["output"])
+        self.assertIsNone(failed["output"])
+        with self.assertRaises(Conflict):
+            self.operations.publish_version("standard", 1)
+        self.assertFalse(
+            self.operations.publish_version("quality-failure", 1)["workflow"]["changed"]
+        )
+
