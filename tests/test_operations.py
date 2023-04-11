@@ -163,3 +163,34 @@ class OperationTests(unittest.TestCase):
             self.operations.inspect(retried["id"])["run"]["retry_of"], original
         )
 
+    def test_running_cancellation_records_remaining_tasks_without_release_output(self):
+        self.initialize()
+        self.operations.publish_version("cancellation", 1)
+        run_id = self.operations.submit(2, "slow")["submission"]["id"]
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+            future = pool.submit(self.operations.work, run_id)
+            deadline = time.monotonic() + 5
+            while time.monotonic() < deadline:
+                detail = self.operations.inspect(run_id)
+                if any(
+                    task["id"] == "pause" and task["status"] == "running"
+                    for task in detail["tasks"]
+                ):
+                    break
+                time.sleep(0.02)
+            else:
+                self.fail("cancellation control never entered running pause")
+            self.operations.cancel(run_id)
+            result = future.result(timeout=8)["detail"]
+        self.assertEqual(result["run"]["status"], "cancelled")
+        self.assertEqual(result["tasks"][0]["status"], "cancelled")
+        self.assertIsNone(result["output"])
+        self.assertFalse(
+            (
+                self.operations.worker_root
+                / "workspaces"
+                / run_id
+                / ".local/typed-summary.json"
+            ).exists()
+        )
+
