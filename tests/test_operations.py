@@ -144,3 +144,22 @@ class OperationTests(unittest.TestCase):
             self.operations.publish_version("quality-failure", 1)["workflow"]["changed"]
         )
 
+    def test_queued_cancel_and_explicit_retry_create_separate_pinned_run(self):
+        self.initialize()
+        original = self.operations.submit(1, "queued")["submission"]["id"]
+        self.assertEqual(self.operations.cancel(original)["run"]["status"], "cancelled")
+        retried = self.operations.retry(original, "retry")["submission"]
+        self.assertNotEqual(retried["id"], original)
+        self.assertEqual(
+            self.operations.retry(original, "retry")["submission"]["id"], retried["id"]
+        )
+        self.assertEqual(
+            self.operations.work(retried["id"])["detail"]["run"]["status"], "succeeded"
+        )
+        self.assertEqual(
+            self.operations.inspect(original)["run"]["status"], "cancelled"
+        )
+        self.assertEqual(
+            self.operations.inspect(retried["id"])["run"]["retry_of"], original
+        )
+
