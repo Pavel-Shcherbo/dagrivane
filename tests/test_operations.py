@@ -194,3 +194,35 @@ class OperationTests(unittest.TestCase):
             ).exists()
         )
 
+    def test_unknown_workflow_is_not_executed_or_cancelled_by_operations(self):
+        state, store = self.initialize()
+        workspace = state["workspace"]["id"]
+        marker = self.root / "unexpected"
+        workflow = store.register_workflow(
+            workspace,
+            "Other",
+            {
+                "tasks": [
+                    {
+                        "id": "write",
+                        "command": [
+                            sys.executable,
+                            "-c",
+                            f"open({str(marker)!r},'w').write('bad')",
+                        ],
+                    }
+                ]
+            },
+            self.root,
+        )
+        other = store.enqueue(workspace, workflow["id"], 1, "other")
+        for action in [self.operations.work, self.operations.cancel]:
+            with self.assertRaisesRegex(ValueError, "does not belong"):
+                action(other["id"])
+        run_id = self.operations.submit(1, "own")["submission"]["id"]
+        self.assertEqual(
+            self.operations.work(run_id)["detail"]["run"]["status"], "succeeded"
+        )
+        self.assertEqual(store.get_run(workspace, other["id"])["status"], "queued")
+        self.assertFalse(marker.exists())
+
