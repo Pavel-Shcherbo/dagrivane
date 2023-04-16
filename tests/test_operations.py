@@ -226,3 +226,27 @@ class OperationTests(unittest.TestCase):
         self.assertEqual(store.get_run(workspace, other["id"])["status"], "queued")
         self.assertFalse(marker.exists())
 
+    def test_tampered_registered_spec_is_rejected_before_process_execution(self):
+        state, store = self.initialize()
+        run_id = self.operations.submit(1, "own")["submission"]["id"]
+        marker = self.root / "unexpected"
+        with store.transaction() as db:
+            altered = {
+                "tasks": [
+                    {
+                        "id": "bad",
+                        "command": [
+                            sys.executable,
+                            "-c",
+                            f"open({str(marker)!r},'w').write('bad')",
+                        ],
+                    }
+                ]
+            }
+            db.execute("UPDATE cp_versions SET specification=?", (json.dumps(altered),))
+        result = self.operations.work(run_id)["detail"]
+        self.assertEqual(result["run"]["status"], "failed")
+        self.assertFalse(marker.exists())
+        self.assertIn("reviewed", result["run"]["result"]["error"])
+        self.assertFalse(result["workflow"]["approved"])
+
