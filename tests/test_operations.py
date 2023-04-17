@@ -250,3 +250,22 @@ class OperationTests(unittest.TestCase):
         self.assertIn("reviewed", result["run"]["result"]["error"])
         self.assertFalse(result["workflow"]["approved"])
 
+    def test_event_and_run_pages_have_stable_cursors(self):
+        self.initialize()
+        for index in range(27):
+            self.operations.submit(1, "run-" + str(index))
+        latest = self.operations.overview()
+        older = self.operations.overview(before=latest["next_cursor"])
+        self.assertEqual(len(latest["runs"]), 25)
+        self.assertEqual(len(older["runs"]), 2)
+        self.assertIsNone(older["next_cursor"])
+        self.assertFalse(
+            {row["id"] for row in latest["runs"]} & {row["id"] for row in older["runs"]}
+        )
+        run_id = latest["runs"][0]["id"]
+        self.operations.work(run_id)
+        first = self.operations.inspect(run_id)
+        self.assertEqual(
+            self.operations.inspect(run_id, after=first["event_cursor"])["events"], []
+        )
+
