@@ -320,4 +320,27 @@ class OperationTests(unittest.TestCase):
 
 
 class ScopedWorkspaceTests(unittest.TestCase):
-    pass
+    def test_scoped_claim_never_reaps_or_claims_another_workspace(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            store = ControlStore(root / "control.sqlite")
+            a = store.create_workspace("A")["id"]
+            b = store.create_workspace("B")["id"]
+            spec = {
+                "tasks": [{"id": "noop", "command": [sys.executable, "-c", "pass"]}]
+            }
+            wa = store.register_workflow(a, "A", spec, root)
+            wb = store.register_workflow(b, "B", spec, root)
+            rb = store.enqueue(b, wb["id"], 1, "B", now=0)
+            claimed = store.claim("B-worker", 5, now=1, workspace_id=b, run_id=rb["id"])
+            ra = store.enqueue(a, wa["id"], 1, "A", now=10)
+            selected = store.claim(
+                "A-worker", 5, now=10, workspace_id=a, run_id=ra["id"]
+            )
+            self.assertEqual(selected["id"], ra["id"])
+            self.assertEqual(store.get_run(b, rb["id"])["status"], "running")
+            with self.assertRaises(ValueError):
+                store.claim("bad", run_id=rb["id"])
+            with self.assertRaises(NotFound):
+                store.claim("bad", workspace_id=a, run_id=rb["id"])
+
