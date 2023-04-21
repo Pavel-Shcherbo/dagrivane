@@ -269,3 +269,55 @@ class OperationTests(unittest.TestCase):
             self.operations.inspect(run_id, after=first["event_cursor"])["events"], []
         )
 
+    def test_web_rejects_injected_commands_and_bad_fields_before_state_creation(self):
+        root = Path(self.temp.name) / "web-state"
+        with patch.dict("os.environ", {"DAGRIVANE_STATE_DIR": str(root)}):
+            for request in [
+                {"mode": "control", "action": "work", "run_id": "../../outside"},
+                {"mode": "control", "action": "initialize", "command": ["bad"]},
+                {"mode": "control", "action": "overview", "status": []},
+                {"mode": "control", "action": "overview", "before": 2**64},
+                {
+                    "mode": "control",
+                    "action": "inspect",
+                    "run_id": "00000000-0000-0000-0000-000000000001",
+                    "after": 2**64,
+                },
+                {
+                    "mode": "control",
+                    "action": "submit",
+                    "version": True,
+                    "event_key": "bad",
+                },
+                {
+                    "mode": "control",
+                    "action": "publish",
+                    "profile": "shell",
+                    "expected_version": 1,
+                },
+            ]:
+                with self.subTest(request=request), self.assertRaises(ValueError):
+                    evaluate(request)
+            self.assertFalse(root.exists())
+            initialized = evaluate({"mode": "control", "action": "initialize"})
+            self.assertTrue(initialized["initialized"])
+            submitted = evaluate(
+                {
+                    "mode": "control",
+                    "action": "submit",
+                    "version": 1,
+                    "event_key": "http",
+                }
+            )
+            result = evaluate(
+                {
+                    "mode": "control",
+                    "action": "work",
+                    "run_id": submitted["submission"]["id"],
+                }
+            )
+            self.assertEqual(result["detail"]["run"]["status"], "succeeded")
+
+
+class ScopedWorkspaceTests(unittest.TestCase):
+    pass
