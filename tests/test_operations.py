@@ -344,3 +344,33 @@ class ScopedWorkspaceTests(unittest.TestCase):
             with self.assertRaises(NotFound):
                 store.claim("bad", workspace_id=a, run_id=rb["id"])
 
+    def test_workspace_copy_checks_hashes_paths_and_preserves_existing_destination(
+        self,
+    ):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            source = root / "source"
+            source.mkdir()
+            (source / "input").write_bytes(b"original")
+            destination = root / "run"
+            spec = {
+                "inputs": [
+                    {"path": "input", "sha256": hashlib.sha256(b"original").hexdigest()}
+                ]
+            }
+            cloned = create_run_workspace(spec, source, destination)
+            self.assertEqual((destination / "input").read_bytes(), b"original")
+            self.assertEqual(cloned["bytes"], 8)
+            with self.assertRaises(FileExistsError):
+                create_run_workspace(spec, source, destination)
+            (source / "input").write_bytes(b"changed")
+            with self.assertRaisesRegex(ValueError, "pinned"):
+                create_run_workspace(spec, source, root / "rejected")
+            self.assertFalse((root / "rejected").exists())
+            spec["inputs"][0]["path"] = "../outside"
+            with self.assertRaisesRegex(ValueError, "inside"):
+                create_run_workspace(spec, source, root / "escaped")
+
+
+if __name__ == "__main__":
+    unittest.main()
