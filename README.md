@@ -45,6 +45,10 @@ The adapter provides typed contracts, explicit decimal calculations, filters, bo
 
 The [artifact guide](docs/ARTIFACTS.md) covers immutable policies, dataset versions, lineage, generation conflicts and independently verifiable release exports. `python3 -m dagrivane.catalog_cli --help` exposes the persistent operator interface.
 
+## HTTP data sources
+
+`python3 -m dagrivane.http_source --help` exposes bounded JSON API extraction with saved raw pages, exact typed row mapping, opaque cursor checkpoints, lease heartbeats, quality rejection/review and restart recovery. Accepted data uses the existing ordered catalog outbox. The [HTTP source guide](docs/HTTP_SOURCES.md) includes a complete loopback control, real API configuration fields, retry behavior and audit limits.
+
 ## Boundaries
 
 Task execution within each workflow run is local and sequential. Commands are trusted local programs, not sandboxed workloads. Captured output is not a secret store. A process crash may leave external effects with an unknown outcome; the runner refuses to silently retry a task marked running. The durable control plane supports versioned workflow registration, idempotent submission, worker leases, cancellation, event cursors and pinned interval schedules through the operator CLI. Tasks within each run remain sequential. Remote executors, connector SDKs, CI promotion and authenticated multi-user operation remain planned.
