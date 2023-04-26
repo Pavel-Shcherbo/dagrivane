@@ -9,3 +9,6 @@ include examples/summary_app.py
 include examples/incremental-stream.json
 include examples/incremental-orders.csv
 include examples/incremental-changes.json
+include examples/http_orders_server.py
+include examples/http-change-source.json
+include examples/http-row-source.json
