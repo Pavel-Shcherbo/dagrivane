@@ -20,4 +20,20 @@ REDIRECTS = frozenset({301, 302, 303, 307, 308})
 
 
 class HTTPSourceError(ValueError):
+    def __init__(
+        self, code, *, status=None, retryable=False, retry_at=None, attempts=0
+    ):
+        self.code = code
+        self.status = status
+        self.retryable = retryable
+        self.retry_at = retry_at
+        self.attempts = attempts
+        super().__init__(
+            "HTTP source "
+            + code
+            + ((" (status " + str(status) + ")") if status is not None else "")
+        )
+
+
+class FetchCancelled(HTTPSourceError):
     pass
