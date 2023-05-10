@@ -36,4 +36,13 @@ class HTTPSourceError(ValueError):
 
 
 class FetchCancelled(HTTPSourceError):
-    pass
+    def __init__(self):
+        super().__init__("cancelled")
+
+
+@dataclass(frozen=True)
+class HTTPPage:
+    raw: bytes
+    metadata: dict
+
+
