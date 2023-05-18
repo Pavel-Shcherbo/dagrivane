@@ -46,3 +46,20 @@ class HTTPPage:
     metadata: dict
 
 
+def retry_delay(value, wall):
+    if value is None:
+        return None
+    value = value.strip()
+    if len(value) > 128:
+        return None
+    if re.fullmatch(r"[0-9]{1,12}", value):
+        return float(int(value))
+    try:
+        parsed = parsedate_to_datetime(value)
+        if parsed.tzinfo is None:
+            return None
+        return max(0.0, parsed.astimezone(timezone.utc).timestamp() - wall)
+    except (ValueError, TypeError, OverflowError):
+        return None
+
+
