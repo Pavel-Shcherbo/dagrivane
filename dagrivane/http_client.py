@@ -63,3 +63,23 @@ def retry_delay(value, wall):
         return None
 
 
+def headers(config):
+    result = {
+        "Accept": "application/json",
+        "Accept-Encoding": "identity",
+        "User-Agent": "Dagrivane/0.2",
+    }
+    auth = config["authentication"]
+    if auth is not None:
+        secret = os.environ.get(auth["environment"])
+        if (
+            not isinstance(secret, str)
+            or not secret
+            or len(secret) > 8192
+            or any(ord(c) < 32 or ord(c) > 126 for c in secret)
+        ):
+            raise HTTPSourceError("authentication_environment_unavailable_or_invalid")
+        result[auth["header"]] = auth["prefix"] + secret
+    return result
+
+
