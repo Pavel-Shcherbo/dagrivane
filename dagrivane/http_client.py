@@ -83,3 +83,10 @@ def headers(config):
     return result
 
 
+def _check(cancel, deadline):
+    if cancel and cancel():
+        raise FetchCancelled()
+    if time.monotonic() >= deadline:
+        raise HTTPSourceError("deadline_exceeded", retryable=True)
+
+
