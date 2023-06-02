@@ -90,3 +90,134 @@ def _check(cancel, deadline):
         raise HTTPSourceError("deadline_exceeded", retryable=True)
 
 
+def _request(config, url, request_headers, cancel, deadline):
+    start = time.monotonic()
+    original_origin = origin(url)
+    redirects = 0
+    while True:
+        _check(cancel, deadline)
+        parsed = urlsplit(url)
+        remaining = max(
+            0.001,
+            min(config["request"]["timeout_seconds"], deadline - time.monotonic()),
+        )
+        connection = (
+            http.client.HTTPSConnection(
+                parsed.hostname,
+                parsed.port,
+                timeout=remaining,
+                context=ssl.create_default_context(),
+            )
+            if parsed.scheme == "https"
+            else http.client.HTTPConnection(
+                parsed.hostname, parsed.port, timeout=remaining
+            )
+        )
+        response = None
+        try:
+            connection.request(
+                "GET",
+                parsed.path + ("?" + parsed.query if parsed.query else ""),
+                headers=request_headers,
+            )
+            response = connection.getresponse()
+            status = response.status
+            if status in REDIRECTS:
+                location = response.getheader("Location")
+                if (
+                    redirects >= config["request"]["redirects"]
+                    or not location
+                    or len(location) > 4096
+                ):
+                    raise HTTPSourceError(
+                        "redirect_limit_or_missing_location", status=status
+                    )
+                try:
+                    target = endpoint(urljoin(url, location))
+                except (ValueError, UnicodeError):
+                    raise HTTPSourceError("invalid_redirect", status=status) from None
+                if origin(target) != original_origin:
+                    raise HTTPSourceError(
+                        "cross_origin_redirect_rejected", status=status
+                    )
+                required = parse_qs(urlsplit(url).query, keep_blank_values=True)
+                redirected = parse_qs(urlsplit(target).query, keep_blank_values=True)
+                if any(
+                    redirected.get(key) != values for key, values in required.items()
+                ):
+                    raise HTTPSourceError("redirect_changed_query_scope", status=status)
+                url = target
+                redirects += 1
+                continue
+            if status not in (200, 204):
+                delay = (
+                    retry_delay(response.getheader("Retry-After"), time.time())
+                    if status in RETRYABLE
+                    else None
+                )
+                raise HTTPSourceError(
+                    "response_rejected",
+                    status=status,
+                    retryable=status in RETRYABLE,
+                    retry_at=time.time() + delay if delay is not None else None,
+                )
+            encoding = (
+                response.getheader("Content-Encoding", "identity").strip().lower()
+            )
+            if encoding not in ("", "identity"):
+                raise HTTPSourceError("content_encoding_not_supported", status=status)
+            declared = response.getheader("Content-Length")
+            transfer = response.getheader("Transfer-Encoding")
+            if transfer is not None and (
+                transfer.strip().lower() != "chunked" or declared is not None
+            ):
+                raise HTTPSourceError(
+                    "ambiguous_or_unsupported_transfer_encoding", status=status
+                )
+            if declared is not None:
+                if (
+                    not re.fullmatch(r"[0-9]{1,12}", declared)
+                    or int(declared) > config["limits"]["page_bytes"]
+                ):
+                    raise HTTPSourceError(
+                        "declared_body_exceeds_limit_or_invalid", status=status
+                    )
+            chunks = []
+            size = 0
+            while True:
+                _check(cancel, deadline)
+                chunk = response.read1(
+                    min(65536, config["limits"]["page_bytes"] + 1 - size)
+                )
+                if not chunk:
+                    break
+                chunks.append(chunk)
+                size += len(chunk)
+                if size > config["limits"]["page_bytes"]:
+                    raise HTTPSourceError("body_exceeds_limit", status=status)
+            _check(cancel, deadline)
+            if declared is not None and size != int(declared):
+                raise HTTPSourceError(
+                    "incomplete_response_body", status=status, retryable=True
+                )
+            if status == 204 and size:
+                raise HTTPSourceError("no_content_response_has_body", status=status)
+            raw = b"".join(chunks)
+            return HTTPPage(
+                raw,
+                {
+                    "status": status,
+                    "content_type": response.getheader("Content-Type", "")[:256],
+                    "entity_bytes": len(raw),
+                    "entity_sha256": hashlib.sha256(raw).hexdigest(),
+                    "request_url_sha256": hashlib.sha256(url.encode()).hexdigest(),
+                    "redirects": redirects,
+                    "elapsed_seconds": time.monotonic() - start,
+                },
+            )
+        finally:
+            if response is not None:
+                response.close()
+            connection.close()
+
+
