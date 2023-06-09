@@ -221,3 +221,75 @@ def _request(config, url, request_headers, cancel, deadline):
             connection.close()
 
 
+def fetch_page(config, cursor, *, should_cancel=None, deadline=None):
+    if should_cancel is not None and not callable(should_cancel):
+        raise ValueError("HTTP cancellation must be callable")
+    if deadline is None:
+        deadline = time.monotonic() + 60
+    if type(deadline) not in (int, float) or not math.isfinite(deadline):
+        raise ValueError("HTTP deadline must be finite")
+    url = request_url(config, cursor)
+    request_headers = headers(config)
+    policy = config["request"]
+    for attempt in range(1, policy["attempts"] + 1):
+        _check(should_cancel, deadline)
+        try:
+            page = _request(
+                config,
+                url,
+                request_headers,
+                should_cancel,
+                min(deadline, time.monotonic() + policy["timeout_seconds"]),
+            )
+            return HTTPPage(page.raw, {**page.metadata, "attempts": attempt})
+        except FetchCancelled:
+            raise
+        except ssl.SSLCertVerificationError:
+            raise HTTPSourceError(
+                "tls_certificate_validation_failed", attempts=attempt
+            ) from None
+        except (
+            TimeoutError,
+            socket.timeout,
+            http.client.HTTPException,
+            OSError,
+        ) as error:
+            problem = HTTPSourceError(
+                (
+                    "transport_timeout"
+                    if isinstance(error, TimeoutError)
+                    else "transport_failure"
+                ),
+                retryable=True,
+                attempts=attempt,
+            )
+        except HTTPSourceError as error:
+            problem = error
+            problem.attempts = attempt
+        if not problem.retryable:
+            raise problem from None
+        backoff = policy["retry_base_seconds"] * 2 ** (attempt - 1)
+        delay = max(
+            backoff,
+            (
+                max(0, problem.retry_at - time.time())
+                if problem.retry_at is not None
+                else 0
+            ),
+        )
+        if (
+            attempt == policy["attempts"]
+            or delay > policy["max_inline_wait_seconds"]
+            or time.monotonic() + delay >= deadline
+        ):
+            problem.retry_at = (
+                max(problem.retry_at or 0, time.time() + delay)
+                if delay
+                else problem.retry_at
+            )
+            raise problem from None
+        until = time.monotonic() + delay
+        while time.monotonic() < until:
+            _check(should_cancel, deadline)
+            time.sleep(min(0.05, until - time.monotonic()))
+    raise RuntimeError("unreachable HTTP retry state")
