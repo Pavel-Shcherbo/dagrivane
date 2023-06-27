@@ -31,3 +31,18 @@ def pointer(value):
     return tuple(parts)
 
 
+def extract(value, path):
+    for part in pointer(path):
+        if isinstance(value, dict) and part in value:
+            value = value[part]
+        elif (
+            isinstance(value, list)
+            and re.fullmatch(r"0|[1-9][0-9]{0,8}", part)
+            and int(part) < len(value)
+        ):
+            value = value[int(part)]
+        else:
+            raise ValueError("required HTTP JSON pointer is missing")
+    return value
+
+
