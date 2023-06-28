@@ -46,3 +46,19 @@ def extract(value, path):
     return value
 
 
+def opaque(value):
+    if value is None:
+        return None
+    if type(value) is int and 0 <= value < 2**63:
+        return value
+    if (
+        isinstance(value, str)
+        and 1 <= len(value.encode("utf-8")) <= 2048
+        and not any(ord(c) < 32 or ord(c) == 127 for c in value)
+    ):
+        return value
+    raise ValueError(
+        "pagination cursor must be null, bounded text or a nonnegative 64-bit integer"
+    )
+
+
