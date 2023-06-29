@@ -62,3 +62,38 @@ def opaque(value):
     )
 
 
+def endpoint(value):
+    if (
+        not isinstance(value, str)
+        or not 1 <= len(value) <= 4096
+        or any(ord(c) <= 32 or ord(c) == 127 for c in value)
+        or "\\" in value
+    ):
+        raise ValueError("HTTP endpoint requires a bounded absolute URL")
+    parsed = urlsplit(value)
+    if (
+        parsed.scheme not in ("http", "https")
+        or not parsed.hostname
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.fragment
+    ):
+        raise ValueError("endpoint must be HTTP(S), without credentials or a fragment")
+    host = parsed.hostname.encode("idna").decode().lower()
+    port = parsed.port
+    if port is not None and not 1 <= port <= 65535:
+        raise ValueError("invalid HTTP endpoint port")
+    authority = ("[" + host + "]" if ":" in host else host) + (
+        ":" + str(port) if port is not None else ""
+    )
+    return urlunsplit(
+        (
+            parsed.scheme,
+            authority,
+            quote(parsed.path or "/", safe="/%:@!$&'()*+,;=-._~"),
+            urlencode(parse_qsl(parsed.query, keep_blank_values=True)),
+            "",
+        )
+    )
+
+
