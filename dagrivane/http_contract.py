@@ -97,3 +97,12 @@ def endpoint(value):
     )
 
 
+def origin(url):
+    parsed = urlsplit(endpoint(url))
+    return (
+        parsed.scheme,
+        parsed.hostname,
+        parsed.port or (443 if parsed.scheme == "https" else 80),
+    )
+
+
