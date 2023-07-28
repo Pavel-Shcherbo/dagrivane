@@ -106,3 +106,131 @@ def origin(url):
     )
 
 
+def definition(value, stream):
+    fields = {
+        "version",
+        "url",
+        "allow_http",
+        "cursor_parameter",
+        "initial_cursor",
+        "response",
+        "request",
+        "authentication",
+        "limits",
+    }
+    if (
+        not isinstance(value, dict)
+        or set(value) != fields
+        or type(value["version"]) is not int
+        or value["version"] != 1
+    ):
+        raise ValueError(
+            "HTTP source requires version 1 and explicit URL/cursor/response/request/authentication/limits"
+        )
+    result = copy.deepcopy(value)
+    result["url"] = endpoint(value["url"])
+    if (
+        type(value["allow_http"]) is not bool
+        or urlsplit(result["url"]).scheme == "http"
+        and not value["allow_http"]
+    ):
+        raise ValueError("plain HTTP requires explicit allow_http=true")
+    parameter = value["cursor_parameter"]
+    if not isinstance(parameter, str) or not re.fullmatch(
+        r"[A-Za-z][A-Za-z0-9_.-]{0,63}", parameter
+    ):
+        raise ValueError("cursor parameter must be a bounded identifier")
+    query = parse_qsl(urlsplit(result["url"]).query, keep_blank_values=True)
+    if any(key == parameter for key, _ in query):
+        raise ValueError("endpoint query already contains the cursor parameter")
+    result["initial_cursor"] = opaque(value["initial_cursor"])
+    response = value["response"]
+    if (
+        not isinstance(response, dict)
+        or set(response)
+        != {"items", "next_cursor", "more", "mode", "columns", "event_id"}
+        or response["mode"] not in ("rows", "events")
+    ):
+        raise ValueError(
+            "HTTP response requires item/cursor pointers and an explicit rows/events mode"
+        )
+    for key in ("items", "next_cursor"):
+        pointer(response[key])
+    for key in ("more", "event_id"):
+        if response[key] is not None:
+            pointer(response[key])
+    if response["mode"] == "rows":
+        columns = response["columns"]
+        contract = Contract.compile(stream["contract"])
+        if not isinstance(columns, dict) or set(columns) != set(contract.names):
+            raise ValueError("HTTP row mapping must cover the typed contract exactly")
+        for path in columns.values():
+            pointer(path)
+    elif response["columns"] is not None or response["event_id"] is not None:
+        raise ValueError(
+            "event envelopes provide their own keys, rows and revision IDs"
+        )
+    request = value["request"]
+    if not isinstance(request, dict) or set(request) != {
+        "timeout_seconds",
+        "attempts",
+        "retry_base_seconds",
+        "max_inline_wait_seconds",
+        "redirects",
+    }:
+        raise ValueError("HTTP request requires explicit timeout/retry/redirect bounds")
+    for key, minimum, maximum in [
+        ("timeout_seconds", 0.05, 30),
+        ("retry_base_seconds", 0, 5),
+        ("max_inline_wait_seconds", 0, 30),
+    ]:
+        number = request[key]
+        if (
+            type(number) not in (int, float)
+            or not math.isfinite(number)
+            or not minimum <= number <= maximum
+        ):
+            raise ValueError("invalid HTTP request timing limit: " + key)
+    if (
+        type(request["attempts"]) is not int
+        or not 1 <= request["attempts"] <= 5
+        or type(request["redirects"]) is not int
+        or not 0 <= request["redirects"] <= 5
+    ):
+        raise ValueError("HTTP retries/redirects exceed their bounded limits")
+    authentication = value["authentication"]
+    if authentication is not None:
+        if (
+            not isinstance(authentication, dict)
+            or set(authentication) != {"header", "environment", "prefix"}
+            or authentication["header"] not in ("Authorization", "X-API-Key")
+        ):
+            raise ValueError(
+                "authentication requires an approved header and environment reference"
+            )
+        if not isinstance(authentication["environment"], str) or not re.fullmatch(
+            r"[A-Z][A-Z0-9_]{0,79}", authentication["environment"]
+        ):
+            raise ValueError(
+                "authentication environment must be an uppercase identifier"
+            )
+        if (
+            not isinstance(authentication["prefix"], str)
+            or len(authentication["prefix"]) > 32
+            or any(ord(c) < 32 or ord(c) > 126 for c in authentication["prefix"])
+        ):
+            raise ValueError("authentication prefix must be bounded printable ASCII")
+    limits = value["limits"]
+    if (
+        not isinstance(limits, dict)
+        or set(limits) != {"page_bytes", "journal_bytes"}
+        or type(limits["page_bytes"]) is not int
+        or not 1 <= limits["page_bytes"] <= MAX_BATCH_BYTES
+        or type(limits["journal_bytes"]) is not int
+        or not limits["page_bytes"] <= limits["journal_bytes"] <= 512 * 1024 * 1024
+    ):
+        raise ValueError("HTTP page/journal byte limits are invalid")
+    json_bytes(result, 65536)
+    return result
+
+
