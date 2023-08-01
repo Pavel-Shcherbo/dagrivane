@@ -234,3 +234,11 @@ def definition(value, stream):
     return result
 
 
+def request_url(config, cursor):
+    parsed = urlsplit(config["url"])
+    query = parse_qsl(parsed.query, keep_blank_values=True)
+    if cursor is not None:
+        query.append((config["cursor_parameter"], str(opaque(cursor))))
+    return urlunsplit((parsed.scheme, parsed.netloc, parsed.path, urlencode(query), ""))
+
+
