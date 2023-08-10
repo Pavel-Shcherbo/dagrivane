@@ -242,3 +242,43 @@ def request_url(config, cursor):
     return urlunsplit((parsed.scheme, parsed.netloc, parsed.path, urlencode(query), ""))
 
 
+def decode_page(raw):
+    if not isinstance(raw, bytes) or len(raw) > MAX_BATCH_BYTES:
+        raise ValueError("HTTP JSON entity exceeds 4 MiB")
+
+    def unique(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError("duplicate HTTP JSON key")
+            result[key] = value
+        return result
+
+    def reject(_):
+        raise ValueError("non-finite HTTP JSON number")
+
+    try:
+        value = json.loads(
+            raw, parse_float=Decimal, parse_constant=reject, object_pairs_hook=unique
+        )
+    except (
+        UnicodeError,
+        json.JSONDecodeError,
+        RecursionError,
+        InvalidOperation,
+    ) as error:
+        raise ValueError("invalid or excessively nested HTTP JSON") from error
+    pending = [(value, 0)]
+    count = 0
+    while pending:
+        item, depth = pending.pop()
+        count += 1
+        if depth > 32 or count > 250000:
+            raise ValueError("HTTP JSON exceeds depth/node budget")
+        if isinstance(item, dict):
+            pending.extend((child, depth + 1) for child in item.values())
+        elif isinstance(item, list):
+            pending.extend((child, depth + 1) for child in item)
+    return value
+
+
