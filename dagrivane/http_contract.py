@@ -282,3 +282,138 @@ def decode_page(raw):
     return value
 
 
+def adapt_page(
+    config,
+    stream,
+    raw,
+    *,
+    name,
+    after,
+    request_cursor,
+    content_type="application/json",
+    status=200,
+):
+    if status == 204:
+        if raw:
+            raise ValueError("HTTP 204 page cannot contain an entity")
+        return {
+            "batch": None,
+            "through": offset(after),
+            "next_cursor": request_cursor,
+            "more": False,
+            "items": 0,
+        }
+    mime = content_type.split(";", 1)[0].strip().lower()
+    if mime != "application/json" and not (
+        mime.startswith("application/") and mime.endswith("+json")
+    ):
+        raise ValueError("HTTP page must declare a JSON content type")
+    value = decode_page(raw)
+    response = config["response"]
+    items = extract(value, response["items"])
+    if not isinstance(items, list) or len(items) > 10000:
+        raise ValueError("HTTP page requires at most 10,000 items")
+    next_cursor = opaque(extract(value, response["next_cursor"]))
+    more = (
+        extract(value, response["more"])
+        if response["more"] is not None
+        else next_cursor is not None
+    )
+    if (
+        type(more) is not bool
+        or more
+        and (next_cursor is None or next_cursor == request_cursor)
+    ):
+        raise ValueError("continuing HTTP pages require an advancing non-null cursor")
+    after = offset(after)
+    through = offset(after + len(items))
+    contract = Contract.compile(stream["contract"])
+    events = []
+    for index, item in enumerate(items, 1):
+        if response["mode"] == "rows":
+            row = contract.parse_row(
+                {
+                    column: extract(item, path)
+                    for column, path in response["columns"].items()
+                }
+            )
+            row = {key: encode(part) for key, part in row.items()}
+            key = {column: row[column] for column in stream["keys"]}
+            at = instant(row[stream["event_time_column"]])
+            operation = "upsert"
+            revision = (
+                extract(item, response["event_id"])
+                if response["event_id"] is not None
+                else None
+            )
+        else:
+            if not isinstance(item, dict) or set(item) != {
+                "id",
+                "operation",
+                "key",
+                "at",
+                "row",
+            }:
+                raise ValueError("HTTP events require id, operation, key, at and row")
+            revision = item["id"]
+            operation = item["operation"]
+            at = instant(item["at"])
+            key = normalized_key(contract, stream["keys"], item["key"])[1]
+            if operation == "upsert":
+                row = {
+                    column: encode(part)
+                    for column, part in contract.parse_row(item["row"]).items()
+                }
+            elif operation == "delete" and item["row"] is None:
+                row = None
+            else:
+                raise ValueError(
+                    "HTTP operation must be upsert or delete with a null row"
+                )
+        if revision is None and (
+            response["mode"] == "events" or response["event_id"] is not None
+        ):
+            raise ValueError("provider revision ID cannot be null")
+        if revision is None:
+            identity = {"operation": operation, "key": key, "at": at, "row": row}
+        else:
+            if (
+                isinstance(revision, bool)
+                or not isinstance(revision, (str, int))
+                or isinstance(revision, str)
+                and len(revision) > 1024
+            ):
+                raise ValueError(
+                    "provider revision ID must be bounded text or an integer"
+                )
+            identity = {"provider_revision": revision}
+        events.append(
+            {
+                "id": "http-" + fingerprint([name, identity]),
+                "offset": after + index,
+                "operation": operation,
+                "key": key,
+                "at": at,
+                "row": row,
+            }
+        )
+    batch = (
+        {
+            "version": 1,
+            "after": after,
+            "through": through,
+            "events": events,
+            "source_sha256": [hashlib.sha256(raw).hexdigest()],
+        }
+        if events
+        else None
+    )
+    if batch is not None:
+        json_bytes(batch, MAX_BATCH_BYTES)
+    return {
+        "batch": batch,
+        "through": through,
+        "next_cursor": next_cursor,
+        "more": more,
+        "items": len(items),
+    }
