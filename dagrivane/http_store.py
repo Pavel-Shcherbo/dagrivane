@@ -41,4 +41,6 @@ def moment(value=None):
 
 
 class HTTPSourceStore:
-    pass
+    def __init__(self, ingestion):
+        self.ingestion = ingestion
+
