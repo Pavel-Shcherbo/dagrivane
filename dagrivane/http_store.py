@@ -44,3 +44,31 @@ class HTTPSourceStore:
     def __init__(self, ingestion):
         self.ingestion = ingestion
 
+    def _source(self, db, name):
+        token(name, "HTTP source")
+        if (
+            db.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='http_meta'"
+            ).fetchone()
+            is None
+        ):
+            raise ValueError(
+                "HTTP sources are not initialized; register one explicitly"
+            )
+        version = db.execute(
+            "SELECT version FROM http_meta WHERE singleton=1"
+        ).fetchone()
+        if version is None or version[0] != 1:
+            raise ValueError("unsupported HTTP journal schema")
+        row = db.execute("SELECT * FROM http_sources WHERE name=?", (name,)).fetchone()
+        if row is None:
+            raise ValueError("unknown HTTP source")
+        stream, stream_def = self.ingestion._stream(db, row["stream"])
+        config = definition(parse_json(row["configuration"].encode()), stream_def)
+        if (
+            fingerprint(config) != row["configuration_sha"]
+            or stream["definition_sha256"] != row["stream_sha"]
+        ):
+            raise ValueError("HTTP source or stream definition identity mismatch")
+        return dict(row), config, stream, stream_def
+
