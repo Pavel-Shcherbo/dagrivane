@@ -33,3 +33,12 @@ class SourceLeaseLost(ValueError):
     pass
 
 
+def moment(value=None):
+    value = time.time() if value is None else value
+    if type(value) not in (int, float) or not math.isfinite(value) or value < 0:
+        raise ValueError("HTTP lease time must be finite and nonnegative")
+    return value
+
+
+class HTTPSourceStore:
+    pass
