@@ -72,3 +72,57 @@ class HTTPSourceStore:
             raise ValueError("HTTP source or stream definition identity mismatch")
         return dict(row), config, stream, stream_def
 
+    def register(self, name, stream_name, config):
+        token(name, "HTTP source")
+        token(stream_name, "stream")
+        status = self.ingestion.status(stream_name)
+        config = definition(config, status["definition"])
+        encoded = json_bytes(config).decode()
+        sha = fingerprint(config)
+        with self.ingestion._tx() as db:
+            for statement in SCHEMA:
+                db.execute(statement)
+            db.execute("INSERT OR IGNORE INTO http_meta VALUES(1,1)")
+            version = db.execute(
+                "SELECT version FROM http_meta WHERE singleton=1"
+            ).fetchone()[0]
+            if version != 1:
+                raise ValueError("unsupported HTTP journal schema")
+            existing = db.execute(
+                "SELECT * FROM http_sources WHERE name=?", (name,)
+            ).fetchone()
+            if existing is not None:
+                if (
+                    existing["configuration_sha"] != sha
+                    or existing["stream"] != stream_name
+                ):
+                    raise ValueError("HTTP source configuration is immutable")
+                return self._public(db, name)
+            if db.execute("SELECT count(*) FROM http_sources").fetchone()[0] >= 1000:
+                raise ValueError("store exceeds 1,000 HTTP sources")
+            if db.execute(
+                "SELECT name FROM http_sources WHERE stream=?", (stream_name,)
+            ).fetchone():
+                raise ValueError("stream already belongs to another HTTP source")
+            current = self.ingestion._status(db, stream_name)
+            cursor = json_bytes(config["initial_cursor"]).decode()
+            db.execute(
+                "INSERT INTO http_sources VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,NULL,NULL,NULL,NULL,NULL,NULL,0,0)",
+                (
+                    name,
+                    stream_name,
+                    encoded,
+                    sha,
+                    current["definition_sha256"],
+                    current["offset"],
+                    current["generation"],
+                    cursor,
+                    current["offset"],
+                    current["generation"],
+                    cursor,
+                    0,
+                    fingerprint([]),
+                ),
+            )
+            return self._public(db, name)
+
