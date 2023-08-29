@@ -126,3 +126,36 @@ class HTTPSourceStore:
             )
             return self._public(db, name)
 
+    def _public(self, db, name):
+        source, config, stream, _ = self._source(db, name)
+        pending = None
+        if source["pending"]:
+            row = db.execute(
+                "SELECT id,seq,state,error,received_at FROM http_pages WHERE source=? AND id=?",
+                (name, source["pending"]),
+            ).fetchone()
+            if row is None:
+                raise ValueError("HTTP pending page is missing")
+            pending = dict(row)
+        return {
+            "name": name,
+            "stream": source["stream"],
+            "configuration_sha256": source["configuration_sha"],
+            "stream_definition_sha256": source["stream_sha"],
+            "offset": source["offset"],
+            "generation": source["generation"],
+            "stream_synchronized": stream["offset"] == source["offset"]
+            and stream["generation"] == source["generation"],
+            "cursor_sha256": fingerprint(parse_json(source["cursor"].encode())),
+            "round": source["round"],
+            "chain_sha256": source["chain"],
+            "pending": pending,
+            "lease_active": source["claim"] is not None
+            and source["lease_until"] > time.time(),
+            "not_before": source["not_before"],
+            "last_error": source["last_error"],
+            "retained_pages": source["pages"],
+            "journal_bytes": source["journal_bytes"],
+            "mode": config["response"]["mode"],
+        }
+
