@@ -159,3 +159,7 @@ class HTTPSourceStore:
             "mode": config["response"]["mode"],
         }
 
+    def status(self, name):
+        with self.ingestion._tx(False) as db:
+            return self._public(db, name)
+
