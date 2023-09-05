@@ -205,3 +205,18 @@ class HTTPSourceStore:
                 "lease_seconds": lease_seconds,
             }
 
+    def _held(self, db, claim, now=None):
+        source, config, stream, stream_def = self._source(db, claim["name"])
+        if (
+            source["claim"] != claim["token"]
+            or source["owner"] != claim["owner"]
+            or source["lease_until"] <= moment(now)
+        ):
+            raise SourceLeaseLost("HTTP source lease expired or was replaced")
+        if (
+            stream["offset"] != source["offset"]
+            or stream["generation"] != source["generation"]
+        ):
+            raise ValueError("stream was advanced outside its HTTP connector")
+        return source, config, stream, stream_def
+
