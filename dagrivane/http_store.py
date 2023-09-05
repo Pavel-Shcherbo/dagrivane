@@ -163,3 +163,45 @@ class HTTPSourceStore:
         with self.ingestion._tx(False) as db:
             return self._public(db, name)
 
+    def claim(self, name, owner, *, lease_seconds=30, now=None):
+        token(owner, "HTTP worker")
+        if type(lease_seconds) is not int or not 1 <= lease_seconds <= 300:
+            raise ValueError("HTTP lease must be 1–300 seconds")
+        now = moment(now)
+        with self.ingestion._tx() as db:
+            source, _, stream, _ = self._source(db, name)
+            if (
+                stream["offset"] != source["offset"]
+                or stream["generation"] != source["generation"]
+            ):
+                raise ValueError("stream was advanced outside its HTTP connector")
+            if (
+                source["claim"] is not None
+                and source["lease_until"] > now
+                or source["not_before"] is not None
+                and source["not_before"] > now
+            ):
+                return None
+            if source["pending"]:
+                page = db.execute(
+                    "SELECT state FROM http_pages WHERE id=? AND source=?",
+                    (source["pending"], name),
+                ).fetchone()
+                if page is None:
+                    raise ValueError("HTTP pending page is missing")
+                if page["state"] == "blocked":
+                    return None
+                if page["state"] != "fetched":
+                    raise ValueError("HTTP pending page has an invalid state")
+            claim = uuid.uuid4().hex
+            db.execute(
+                "UPDATE http_sources SET claim=?,owner=?,lease_until=?,not_before=NULL WHERE name=?",
+                (claim, owner, now + lease_seconds, name),
+            )
+            return {
+                "name": name,
+                "token": claim,
+                "owner": owner,
+                "lease_seconds": lease_seconds,
+            }
+
