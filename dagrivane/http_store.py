@@ -220,3 +220,12 @@ class HTTPSourceStore:
             raise ValueError("stream was advanced outside its HTTP connector")
         return source, config, stream, stream_def
 
+    def heartbeat(self, claim, *, now=None):
+        now = moment(now)
+        with self.ingestion._tx() as db:
+            self._held(db, claim, now)
+            db.execute(
+                "UPDATE http_sources SET lease_until=? WHERE name=?",
+                (now + claim["lease_seconds"], claim["name"]),
+            )
+
