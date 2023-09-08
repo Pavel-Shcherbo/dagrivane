@@ -229,3 +229,17 @@ class HTTPSourceStore:
                 (now + claim["lease_seconds"], claim["name"]),
             )
 
+    def checkpoint(self, claim):
+        with self.ingestion._tx(False) as db:
+            source, config, _, stream_def = self._held(db, claim)
+            return {
+                "offset": source["offset"],
+                "generation": source["generation"],
+                "cursor": parse_json(source["cursor"].encode()),
+                "round": source["round"],
+                "chain": source["chain"],
+                "pending": source["pending"],
+                "configuration": config,
+                "stream_definition": stream_def,
+            }
+
