@@ -243,3 +243,69 @@ class HTTPSourceStore:
                 "stream_definition": stream_def,
             }
 
+    def stage(self, claim, checkpoint, page):
+        if not isinstance(page, HTTPPage) or not isinstance(page.raw, bytes):
+            raise ValueError("HTTP stage requires received page bytes")
+        raw_sha = hashlib.sha256(page.raw).hexdigest()
+        if (
+            page.metadata.get("entity_sha256") != raw_sha
+            or page.metadata.get("entity_bytes") != len(page.raw)
+            or page.metadata.get("status") not in (200, 204)
+        ):
+            raise ValueError("HTTP response metadata differs from entity bytes")
+        metadata = json_bytes(page.metadata, 8192).decode()
+        with self.ingestion._tx() as db:
+            source, config, _, _ = self._held(db, claim)
+            for key in ("offset", "generation", "round", "chain"):
+                if checkpoint[key] != source[key]:
+                    raise ValueError("HTTP fetch checkpoint changed before staging")
+            if json_bytes(checkpoint["cursor"]).decode() != source["cursor"]:
+                raise ValueError("HTTP cursor changed before staging")
+            page_id = fingerprint(
+                [
+                    self.ingestion.id,
+                    claim["name"],
+                    source["round"],
+                    source["offset"],
+                    source["generation"],
+                    source["cursor"],
+                    source["chain"],
+                    raw_sha,
+                    fingerprint(page.metadata),
+                ]
+            )
+            if source["pending"]:
+                if source["pending"] == page_id:
+                    return page_id
+                raise ValueError(
+                    "another HTTP entity is already pending at this checkpoint"
+                )
+            if (
+                len(page.raw) > config["limits"]["page_bytes"]
+                or source["journal_bytes"] + len(page.raw)
+                > config["limits"]["journal_bytes"]
+                or source["pages"] >= 10000
+            ):
+                raise ValueError("HTTP source page or retained journal quota exceeded")
+            db.execute(
+                "INSERT INTO http_pages(id,source,offset,generation,round,cursor,previous_chain,raw,raw_sha,metadata,state,received_at) VALUES(?,?,?,?,?,?,?,?,?,?,'fetched',?)",
+                (
+                    page_id,
+                    claim["name"],
+                    source["offset"],
+                    source["generation"],
+                    source["round"],
+                    source["cursor"],
+                    source["chain"],
+                    page.raw,
+                    raw_sha,
+                    metadata,
+                    time.time(),
+                ),
+            )
+            db.execute(
+                "UPDATE http_sources SET pending=?,pages=pages+1,journal_bytes=journal_bytes+? WHERE name=?",
+                (page_id, len(page.raw), claim["name"]),
+            )
+            return page_id
+
