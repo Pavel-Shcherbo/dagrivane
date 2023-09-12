@@ -337,3 +337,116 @@ class HTTPSourceStore:
             raise ValueError("HTTP page checkpoint identity mismatch")
         return result
 
+    def apply(self, claim, page_id):
+        with self.ingestion._tx() as db:
+            source, config, _, stream_def = self._held(db, claim)
+            page = self._page(db, claim["name"], page_id)
+            if page["state"] == "applied":
+                return {**parse_json(page["receipt"].encode()), "reused": True}
+            if source["pending"] != page_id or page["state"] != "fetched":
+                raise ValueError("HTTP page is not ready to apply")
+            if (
+                any(
+                    page[key] != source[key]
+                    for key in ("offset", "generation", "round", "cursor")
+                )
+                or page["previous_chain"] != source["chain"]
+            ):
+                raise ValueError(
+                    "retained HTTP page no longer matches its source checkpoint"
+                )
+            meta = parse_json(page["metadata"].encode())
+            cursor = parse_json(source["cursor"].encode())
+            adapted = adapt_page(
+                config,
+                stream_def,
+                page["raw"],
+                name=claim["name"],
+                after=source["offset"],
+                request_cursor=cursor,
+                content_type=meta["content_type"],
+                status=meta["status"],
+            )
+            if adapted["more"]:
+                next_raw = json_bytes(adapted["next_cursor"]).decode()
+                if db.execute(
+                    "SELECT id FROM http_pages WHERE source=? AND round=? AND state='applied' AND cursor=? LIMIT 1",
+                    (claim["name"], source["round"], next_raw),
+                ).fetchone():
+                    raise ValueError("HTTP pagination cursor cycle detected")
+            receipt = None
+            checks = None
+            generation = source["generation"]
+            if adapted["batch"] is not None:
+                adapted["batch"]["source_sha256"].append(source["chain"])
+                receipt = self.ingestion._ingest(
+                    db,
+                    source["stream"],
+                    json_bytes(adapted["batch"], 4 * 1024 * 1024),
+                    request_key="http-" + page_id,
+                )
+                generation = receipt["generation"]
+            else:
+                records = self.ingestion._records(db, source["stream"])
+                if (
+                    fingerprint(
+                        [{"key": key, **records[key]} for key in sorted(records)]
+                    )
+                    != self.ingestion._stream(db, source["stream"])[0]["state_sha256"]
+                ):
+                    raise ValueError("materialized stream state fingerprint mismatch")
+                contract = Contract.compile(stream_def["contract"])
+                rows = [
+                    records[key]["row"]
+                    for key in sorted(records)
+                    if records[key]["row"] is not None
+                ]
+                table = Table(
+                    contract,
+                    tuple(tuple(row[name] for name in contract.names) for row in rows),
+                )
+                checks = [
+                    gate.evaluate(table)
+                    for gate in compile_gates(stream_def["gates"], contract)
+                ]
+                if not all(check["passed"] for check in checks):
+                    raise ValueError(
+                        "empty HTTP page leaves a stream that fails quality gates"
+                    )
+            result = {
+                "source": claim["name"],
+                "page_id": page_id,
+                "offset_before": source["offset"],
+                "offset_after": adapted["through"],
+                "generation": generation,
+                "items": adapted["items"],
+                "more": adapted["more"],
+                "cursor_sha256": fingerprint(adapted["next_cursor"]),
+                "ingestion": receipt,
+                "unchanged_quality_checks": checks,
+            }
+            if source["lease_until"] <= moment():
+                raise SourceLeaseLost(
+                    "HTTP source lease expired during processing; page checkpoint was not committed"
+                )
+            encoded = json_bytes(result).decode()
+            chain = fingerprint(
+                [source["chain"], page_id, "applied", fingerprint(result)]
+            )
+            db.execute(
+                "UPDATE http_pages SET state='applied',receipt=?,error=NULL WHERE id=?",
+                (encoded, page_id),
+            )
+            db.execute(
+                "UPDATE http_sources SET offset=?,generation=?,cursor=?,round=round+?,chain=?,pending=NULL,last_error=NULL WHERE name=?",
+                (
+                    adapted["through"],
+                    generation,
+                    json_bytes(adapted["next_cursor"]).decode(),
+                    int(not adapted["more"]),
+                    chain,
+                    claim["name"],
+                ),
+            )
+            return {**result, "reused": False}
+
