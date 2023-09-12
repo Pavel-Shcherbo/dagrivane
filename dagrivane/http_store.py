@@ -309,3 +309,31 @@ class HTTPSourceStore:
             )
             return page_id
 
+    def _page(self, db, name, page_id):
+        token(page_id, "HTTP page")
+        row = db.execute(
+            "SELECT * FROM http_pages WHERE source=? AND id=?", (name, page_id)
+        ).fetchone()
+        if row is None:
+            raise ValueError("unknown HTTP page in this source")
+        result = dict(row)
+        result["raw"] = bytes(row["raw"])
+        if hashlib.sha256(result["raw"]).hexdigest() != row["raw_sha"]:
+            raise ValueError("HTTP raw page identity mismatch")
+        expected = fingerprint(
+            [
+                self.ingestion.id,
+                name,
+                row["round"],
+                row["offset"],
+                row["generation"],
+                row["cursor"],
+                row["previous_chain"],
+                row["raw_sha"],
+                fingerprint(parse_json(row["metadata"].encode())),
+            ]
+        )
+        if expected != page_id:
+            raise ValueError("HTTP page checkpoint identity mismatch")
+        return result
+
