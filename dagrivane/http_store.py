@@ -450,3 +450,18 @@ class HTTPSourceStore:
             )
             return {**result, "reused": False}
 
+    def block(self, claim, page_id, error):
+        with self.ingestion._tx() as db:
+            source, _, _, _ = self._held(db, claim)
+            if source["pending"] != page_id:
+                raise ValueError("HTTP pending page changed before rejection")
+            text = str(error)[:2048]
+            db.execute(
+                "UPDATE http_pages SET state='blocked',error=? WHERE source=? AND id=? AND state='fetched'",
+                (text, claim["name"], page_id),
+            )
+            db.execute(
+                "UPDATE http_sources SET last_error=? WHERE name=?",
+                (text, claim["name"]),
+            )
+
