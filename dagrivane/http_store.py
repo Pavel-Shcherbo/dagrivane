@@ -465,3 +465,17 @@ class HTTPSourceStore:
                 (text, claim["name"]),
             )
 
+    def release(self, claim, *, error=None, retry_at=None):
+        if retry_at is not None:
+            moment(retry_at)
+        with self.ingestion._tx() as db:
+            self._held(db, claim)
+            db.execute(
+                "UPDATE http_sources SET claim=NULL,owner=NULL,lease_until=NULL,not_before=?,last_error=? WHERE name=?",
+                (
+                    retry_at,
+                    str(error)[:2048] if error is not None else None,
+                    claim["name"],
+                ),
+            )
+
