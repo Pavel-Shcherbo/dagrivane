@@ -479,3 +479,38 @@ class HTTPSourceStore:
                 ),
             )
 
+    def discard(self, name, page_id, reason, *, now=None):
+        if not isinstance(reason, str) or not reason.strip() or len(reason) > 512:
+            raise ValueError("discard requires a review reason of 1–512 characters")
+        now = moment(now)
+        with self.ingestion._tx() as db:
+            source, _, _, _ = self._source(db, name)
+            page = self._page(db, name, page_id)
+            if source["claim"] is not None and source["lease_until"] > now:
+                raise ValueError(
+                    "HTTP source has an active worker; wait for release or lease expiry"
+                )
+            if source["pending"] != page_id or page["state"] not in (
+                "fetched",
+                "blocked",
+            ):
+                raise ValueError(
+                    "only the current retained unapplied page can be discarded"
+                )
+            chain = fingerprint([source["chain"], page_id, "discarded", reason])
+            db.execute(
+                "UPDATE http_pages SET state='discarded',reason=? WHERE id=?",
+                (reason, page_id),
+            )
+            db.execute(
+                "UPDATE http_sources SET pending=NULL,chain=?,last_error=NULL,claim=NULL,owner=NULL,lease_until=NULL WHERE name=?",
+                (chain, name),
+            )
+            return {
+                "source": name,
+                "page_id": page_id,
+                "discarded": True,
+                "offset_unchanged": source["offset"],
+                "reason": reason,
+            }
+
