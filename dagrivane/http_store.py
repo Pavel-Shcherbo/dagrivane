@@ -514,3 +514,35 @@ class HTTPSourceStore:
                 "reason": reason,
             }
 
+    def page(self, name, page_id, *, include_raw=False):
+        with self.ingestion._tx(False) as db:
+            self._source(db, name)
+            value = self._page(db, name, page_id)
+            result = {
+                key: value[key]
+                for key in (
+                    "id",
+                    "seq",
+                    "source",
+                    "offset",
+                    "generation",
+                    "round",
+                    "previous_chain",
+                    "raw_sha",
+                    "state",
+                    "error",
+                    "reason",
+                    "received_at",
+                )
+            }
+            result.update(
+                cursor_sha256=fingerprint(parse_json(value["cursor"].encode())),
+                metadata=parse_json(value["metadata"].encode()),
+                receipt=(
+                    parse_json(value["receipt"].encode()) if value["receipt"] else None
+                ),
+            )
+            if include_raw:
+                result["raw"] = value["raw"]
+            return result
+
