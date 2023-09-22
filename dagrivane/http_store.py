@@ -546,3 +546,21 @@ class HTTPSourceStore:
                 result["raw"] = value["raw"]
             return result
 
+    def pages(self, name, *, after=0, limit=25):
+        if (
+            type(after) is not int
+            or not 0 <= after < 2**63
+            or type(limit) is not int
+            or not 1 <= limit <= 100
+        ):
+            raise ValueError("invalid HTTP page cursor or limit")
+        with self.ingestion._tx(False) as db:
+            self._source(db, name)
+            rows = db.execute(
+                "SELECT id,seq,state,offset,generation,round,raw_sha,error,received_at FROM http_pages WHERE source=? AND seq>? ORDER BY seq LIMIT ?",
+                (name, after, limit + 1),
+            ).fetchall()
+            return {
+                "items": [dict(row) for row in rows[:limit]],
+                "next_cursor": rows[limit - 1]["seq"] if len(rows) > limit else None,
+            }
