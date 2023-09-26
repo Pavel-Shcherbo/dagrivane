@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "url": "http://127.0.0.1:8421/changes",
+  "allow_http": true,
+  "cursor_parameter": "cursor",
+  "initial_cursor": null,
+  "response": {
+    "items": "/events",
+    "next_cursor": "/next_cursor",
+    "more": "/has_more",
+    "mode": "events",
+    "columns": null,
+    "event_id": null
+  },
+  "request": {
+    "timeout_seconds": 5,
+    "attempts": 3,
+    "retry_base_seconds": 0.05,
+    "max_inline_wait_seconds": 0.5,
+    "redirects": 2
+  },
+  "authentication": null,
+  "limits": {
+    "page_bytes": 1048576,
+    "journal_bytes": 134217728
+  }
+}
