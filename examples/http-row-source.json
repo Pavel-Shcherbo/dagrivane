@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "url": "http://127.0.0.1:8421/orders",
+  "allow_http": true,
+  "cursor_parameter": "cursor",
+  "initial_cursor": null,
+  "response": {
+    "items": "/data",
+    "next_cursor": "/next_cursor",
+    "more": "/has_more",
+    "mode": "rows",
+    "columns": {
+      "id": "/id",
+      "amount": "/amount",
+      "updated_at": "/updated_at"
+    },
+    "event_id": "/revision"
+  },
+  "request": {
+    "timeout_seconds": 5,
+    "attempts": 3,
+    "retry_base_seconds": 0.05,
+    "max_inline_wait_seconds": 0.5,
+    "redirects": 2
+  },
+  "authentication": null,
+  "limits": {
+    "page_bytes": 1048576,
+    "journal_bytes": 134217728
+  }
+}
