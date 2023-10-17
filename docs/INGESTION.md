@@ -80,7 +80,7 @@ Default lease: 30 seconds. `publish --lease-seconds N` supports 1–300 seconds;
 
 `csv-batch STREAM CSV --after N --output NEW.json` creates an upsert event for each of 1–10,000 CSV rows. Contract headers, values and the source hash use the existing bounded CSV loader. `--sha256 HASH` can pin the source bytes. Event IDs derive from exact CSV bytes and record number, so redelivering the same revision at new offsets is deduplicated. A changed file revision creates new IDs; event-time staleness rules still determine whether rows change.
 
-A CSV is not treated as a full replacement: rows absent from it are not deleted. Deletions require explicit events. An empty CSV cannot infer an advancing source offset and is rejected by this adapter. The generated batch includes the original file SHA-256 and is validated before create-only output publication. No watched-directory daemon, automatic file deletion or network extraction is performed.
+A CSV is not treated as a full replacement: rows absent from it are not deleted. Deletions require explicit events. An empty CSV cannot infer an advancing source offset and is rejected by this adapter. The generated batch includes the original file SHA-256 and is validated before create-only output publication. The CSV adapter does not watch directories, delete files or extract network data. The separate [HTTP source adapter](HTTP_SOURCES.md) supports explicit JSON APIs with durable raw-page/cursor recovery.
 
 ## Status and verification
 
@@ -94,4 +94,4 @@ The SQLite schema version is 1. New database files are owner-readable/writable, 
 
 ## Remaining work
 
-Remote CDC/API connectors, signed provenance, controlled schema migration/backfill, retention/compaction, a continuously running publisher, distributed ownership, browser ingestion management and deployment adapters remain open. No external service is configured by this block. Full platform scope and 20,000 useful production SLOC remain open.
+Provider-specific CDC/API adapters, signed provenance, controlled schema migration/backfill, retention/compaction, a continuously running publisher, distributed ownership, browser ingestion management and deployment adapters remain open. No external service is configured by this block. Full platform scope and 20,000 useful production SLOC remain open.
