@@ -1,0 +1,62 @@
+{
+  "scope": "Clean installed synthetic loopback HTTP extraction and catalog publication; no external provider or source-authenticity claim",
+  "passed": true,
+  "bounded_resume_exit_code": 3,
+  "typed_offset": 5,
+  "generation": 2,
+  "rows": [
+    {
+      "amount": "15",
+      "id": 1,
+      "updated_at": "2020-01-02T12:00:00Z"
+    },
+    {
+      "amount": "30",
+      "id": 3,
+      "updated_at": "2020-01-02T12:00:00Z"
+    }
+  ],
+  "tombstones": 1,
+  "independent_decimal_total": "45",
+  "independent_raw_change_reduction_passed": true,
+  "idle_did_not_create_ingestion_generation": true,
+  "transient_retry_attempts": 2,
+  "rejected_entity_retained": true,
+  "blocked_source_not_refetched": true,
+  "catalog_parent_chain_passed": true,
+  "catalog_blob_sha256": "da29f289ab6a9ef00580e34d8f1dfbbf9610ffa4d85505122f8c365e92e10e19",
+  "catalog_blob_base64": "eyJmb3JtYXQiOiJkYWdyaXZhbmUudGFibGUudjEiLCJyZXBvcnQiOnsiY2hlY2tzIjpbeyJmYWlsdXJlX2NvdW50IjowLCJpZCI6ImlkcyIsImtpbmQiOiJ1bmlxdWUiLCJwYXNzZWQiOnRydWUsInNhbXBsZV9yZWNvcmRfbnVtYmVycyI6W119LHsiaWQiOiJidWRnZXQiLCJraW5kIjoic3VtIiwibWF4IjoiMTAwMCIsIm1pbiI6bnVsbCwib2JzZXJ2ZWQiOiI0NSIsInBhc3NlZCI6dHJ1ZX1dLCJvdXRwdXQiOnsiY29sdW1ucyI6MywiY29udHJhY3QiOnsiY29sdW1ucyI6W3sibmFtZSI6ImlkIiwibnVsbGFibGUiOmZhbHNlLCJ0eXBlIjoiaW50ZWdlciJ9LHsibWluIjoiMCIsIm5hbWUiOiJhbW91bnQiLCJudWxsYWJsZSI6ZmFsc2UsInR5cGUiOiJkZWNpbWFsIn0seyJuYW1lIjoidXBkYXRlZF9hdCIsIm51bGxhYmxlIjpmYWxzZSwidHlwZSI6InRpbWVzdGFtcCJ9XSwibmFtZSI6Im9yZGVycyIsInZlcnNpb24iOjF9LCJkYXRhX3NoYTI1NiI6IjQxYzAzMWI0OGM4MzUyYWFiMmM4NDQzYWRhOTJlZmY2MjEyNzhiZThlNWIwOTE3YjA2ZTgyNTFhMmEyYjg4ZTUiLCJyb3dzIjoyLCJzb3VyY2Vfc2hhMjU2IjpbImQ3NDMxNzkwNTcxZjJjZWQ1N2I2OWFjY2EwMjQxNzY2YTIxZGZiNjc4YjJiMDFjYTE4Mjc2MTYwYmNkODYzMTIiLCJlOTRmZGM4NDYxODNmMWJhN2ViMTM4YzllM2I3NTFjYWJjYTkxNjYxOTBlYTU0NWMzY2VhYTkxMDAyY2MyMTJhIiwiZWJkZDNiYjllYzE3YjNjNzFjMWZhNThkZjE0MmQxOWQ3YTAyOTVlYWMzYmEwN2FiYzEyNTQxZjYzZTVhMjJhMSIsImQzZDY2ZDZjN2I0ZDg5Yjc1YjdjMGI3ODNjZjQwMmZjOThkYWRiODc3Y2Q2M2ZhN2ZiYWRmYmZmMmQwNGQ1MzEiXX0sInBhc3NlZCI6dHJ1ZSwicGxhbl9zaGEyNTYiOiIyZTU3MTM5MmE1NGE0NDRhYTM1ZGFjOGYzZjg2YmIxNTNjMDVlMTYzOTcwYjJkNjhhZmEwMzZjZTJhZTI0YTNkIn0sInJvd3MiOlt7ImFtb3VudCI6IjE1IiwiaWQiOjEsInVwZGF0ZWRfYXQiOiIyMDIwLTAxLTAyVDEyOjAwOjAwWiJ9LHsiYW1vdW50IjoiMzAiLCJpZCI6MywidXBkYXRlZF9hdCI6IjIwMjAtMDEtMDJUMTI6MDA6MDBaIn1dfQ==",
+  "raw_entities": [
+    {
+      "sha256": "16dac89dcb55d9e27c5cb0d3f68e366a7d93a6c0a009ab52ed9fd4aca88c2ca4",
+      "base64": "eyJldmVudHMiOlt7ImlkIjoiY2hhbmdlLTEiLCJvcGVyYXRpb24iOiJ1cHNlcnQiLCJrZXkiOnsiaWQiOjF9LCJhdCI6IjIwMjAtMDEtMDFUMTI6MDA6MDBaIiwicm93Ijp7ImlkIjoxLCJhbW91bnQiOiIxMCIsInVwZGF0ZWRfYXQiOiIyMDIwLTAxLTAxVDEyOjAwOjAwWiJ9fSx7ImlkIjoiY2hhbmdlLTIiLCJvcGVyYXRpb24iOiJ1cHNlcnQiLCJrZXkiOnsiaWQiOjJ9LCJhdCI6IjIwMjAtMDEtMDFUMTI6MDA6MDBaIiwicm93Ijp7ImlkIjoyLCJhbW91bnQiOiIyMCIsInVwZGF0ZWRfYXQiOiIyMDIwLTAxLTAxVDEyOjAwOjAwWiJ9fV0sIm5leHRfY3Vyc29yIjoicGFnZTIiLCJoYXNfbW9yZSI6dHJ1ZX0="
+    },
+    {
+      "sha256": "e94fdc846183f1ba7eb138c9e3b751cabca9166190ea545c3ceaa91002cc212a",
+      "base64": "eyJldmVudHMiOlt7ImlkIjoiY2hhbmdlLTMiLCJvcGVyYXRpb24iOiJ1cHNlcnQiLCJrZXkiOnsiaWQiOjF9LCJhdCI6IjIwMjAtMDEtMDJUMTI6MDA6MDBaIiwicm93Ijp7ImlkIjoxLCJhbW91bnQiOiIxNSIsInVwZGF0ZWRfYXQiOiIyMDIwLTAxLTAyVDEyOjAwOjAwWiJ9fSx7ImlkIjoiY2hhbmdlLTQiLCJvcGVyYXRpb24iOiJkZWxldGUiLCJrZXkiOnsiaWQiOjJ9LCJhdCI6IjIwMjAtMDEtMDJUMTI6MDA6MDBaIiwicm93IjpudWxsfSx7ImlkIjoiY2hhbmdlLTUiLCJvcGVyYXRpb24iOiJ1cHNlcnQiLCJrZXkiOnsiaWQiOjN9LCJhdCI6IjIwMjAtMDEtMDJUMTI6MDA6MDBaIiwicm93Ijp7ImlkIjozLCJhbW91bnQiOiIzMCIsInVwZGF0ZWRfYXQiOiIyMDIwLTAxLTAyVDEyOjAwOjAwWiJ9fV0sIm5leHRfY3Vyc29yIjoidGFpbCIsImhhc19tb3JlIjpmYWxzZX0="
+    },
+    {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "base64": ""
+    }
+  ],
+  "source_audit": {
+    "passed": true,
+    "complete": true,
+    "checked_pages": 3,
+    "checked_entity_bytes": 781,
+    "pending_page": null,
+    "findings": [],
+    "ingestion_audit": {
+      "passed": true,
+      "complete": true,
+      "checked_batches": 2,
+      "replayed_events": 5,
+      "raw_bytes": 1472,
+      "catalog_checked": false,
+      "errors": []
+    },
+    "scope": "Local raw-page/checkpoint/ingestion replay consistency; not source authenticity or remote completeness."
+  },
+  "full_portfolio_acceptance": false
+}
