@@ -1,7 +1,10 @@
 {
-  "wheel_sha256": "017691c4f172ac14cff75a9ad975195f164f65093f45365cd23dd3ab2c2fdd13",
+  "wheel_sha256": "54c0da7a889c6c4cd93633cfbfc1775d9a6e5bc30d9328fdaa763080c9dda6f1",
   "examples_exported": [
     "dataflow.json",
+    "http-change-source.json",
+    "http-row-source.json",
+    "http_orders_server.py",
     "incremental-changes.json",
     "incremental-orders.csv",
     "incremental-stream.json",
@@ -22,5 +25,6 @@
   "artifact_release_cli_and_offline_export_passed": true,
   "release_http_healthy_and_blocked_passed": true,
   "incremental_ingestion_and_ordered_catalog_publication_passed": true,
-  "durable_operations_http_controls_passed": true
+  "durable_operations_http_controls_passed": true,
+  "http_extraction_cursor_recovery_and_publication_passed": true
 }
