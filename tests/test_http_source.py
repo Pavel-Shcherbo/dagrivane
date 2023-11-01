@@ -44,3 +44,11 @@ def row(number=1, amount="10", day=1):
     }
 
 
+def payload(rows=None, next_cursor=None, more=False):
+    return {
+        "data": rows if rows is not None else [row()],
+        "next": next_cursor,
+        "more": more,
+    }
+
+
