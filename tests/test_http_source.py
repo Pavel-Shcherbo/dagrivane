@@ -52,3 +52,30 @@ def payload(rows=None, next_cursor=None, more=False):
     }
 
 
+def configuration(url):
+    return {
+        "version": 1,
+        "url": url,
+        "allow_http": True,
+        "cursor_parameter": "cursor",
+        "initial_cursor": None,
+        "response": {
+            "items": "/data",
+            "next_cursor": "/next",
+            "more": "/more",
+            "mode": "rows",
+            "columns": {"id": "/id", "amount": "/amount", "updated_at": "/updated_at"},
+            "event_id": None,
+        },
+        "request": {
+            "timeout_seconds": 1,
+            "attempts": 2,
+            "retry_base_seconds": 0,
+            "max_inline_wait_seconds": 0,
+            "redirects": 2,
+        },
+        "authentication": None,
+        "limits": {"page_bytes": 1048576, "journal_bytes": 8388608},
+    }
+
+
