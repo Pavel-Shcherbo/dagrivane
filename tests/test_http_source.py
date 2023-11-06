@@ -79,3 +79,54 @@ def configuration(url):
     }
 
 
+@contextmanager
+def provider(handler):
+    requests = []
+    lock = threading.Lock()
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            parsed = urlsplit(self.path)
+            with lock:
+                requests.append(
+                    {
+                        "path": parsed.path,
+                        "query": parse_qs(parsed.query, keep_blank_values=True),
+                        "headers": dict(self.headers),
+                    }
+                )
+                number = len(requests)
+            status, headers, body = handler(requests[-1], number)
+            raw = json_bytes(body) if isinstance(body, (dict, list)) else body
+            self.send_response(status)
+            for name, value in {
+                "Content-Type": "application/json",
+                "Content-Length": str(len(raw)),
+                **headers,
+            }.items():
+                if value is not None:
+                    self.send_header(name, value)
+            self.end_headers()
+            try:
+                self.wfile.write(raw)
+            except (BrokenPipeError, ConnectionResetError):
+                pass
+
+        def log_message(self, *args):
+            pass
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    thread = threading.Thread(
+        target=lambda: server.serve_forever(poll_interval=0.02), daemon=True
+    )
+    thread.start()
+    try:
+        yield "http://127.0.0.1:" + str(server.server_port) + "/feed", requests
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
+
+
+class HTTPSourceTests(unittest.TestCase):
+    pass
