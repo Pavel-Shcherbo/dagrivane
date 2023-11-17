@@ -129,4 +129,11 @@ def provider(handler):
 
 
 class HTTPSourceTests(unittest.TestCase):
-    pass
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+        self.ingest = IngestStore(self.root / "ingest.sqlite", create=True)
+        self.ingest.register("orders", definition())
+        self.sources = HTTPSourceStore(self.ingest)
+
