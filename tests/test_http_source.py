@@ -137,3 +137,9 @@ class HTTPSourceTests(unittest.TestCase):
         self.ingest.register("orders", definition())
         self.sources = HTTPSourceStore(self.ingest)
 
+    def register(self, url, mutate=None):
+        config = configuration(url)
+        if mutate:
+            mutate(config)
+        return self.sources.register("api", "orders", config)
+
