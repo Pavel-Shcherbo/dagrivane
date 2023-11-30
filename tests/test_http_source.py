@@ -143,3 +143,38 @@ class HTTPSourceTests(unittest.TestCase):
             mutate(config)
         return self.sources.register("api", "orders", config)
 
+    def test_two_real_pages_exact_rows_and_idempotent_catalog_publication(self):
+        def respond(request, _):
+            return (
+                (200, {}, payload([row(1, "10"), row(2, "20")], "page /2 +é", True))
+                if not request["query"]
+                else (
+                    200,
+                    {},
+                    payload([row(1, "15", 2), row(3, "30", 2)], "tail", False),
+                )
+            )
+
+        with provider(respond) as (url, requests):
+            self.register(url)
+            result = poll_source(self.sources, "api")
+        self.assertEqual(result["status"], "drained")
+        self.assertEqual(len(result["pages"]), 2)
+        self.assertEqual(requests[1]["query"], {"cursor": ["page /2 +é"]})
+        values = {
+            item["id"]: item["amount"] for item in self.ingest.rows("orders")["rows"]
+        }
+        self.assertEqual(values, {1: "15", 2: "20", 3: "30"})
+        catalog = Catalog(self.root / "catalog")
+        configure_target(self.ingest, "orders", catalog)
+        self.assertEqual(
+            len(publish_pending(self.ingest, "orders", catalog)["published"]), 2
+        )
+        self.assertEqual(
+            publish_pending(self.ingest, "orders", catalog)["published"], []
+        )
+        checked = audit_source(self.sources, "api")
+        self.assertTrue(checked["passed"])
+        self.assertEqual(checked["checked_pages"], 2)
+        self.assertNotIn("token", json.dumps(self.sources.status("api")))
+
