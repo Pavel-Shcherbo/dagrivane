@@ -178,3 +178,12 @@ class HTTPSourceTests(unittest.TestCase):
         self.assertEqual(checked["checked_pages"], 2)
         self.assertNotIn("token", json.dumps(self.sources.status("api")))
 
+    def test_native_json_decimals_are_not_converted_through_binary_float(self):
+        raw = b'{"data":[{"id":1,"amount":0.100000000000000001,"updated_at":"2020-01-01T12:00:00Z"}],"next":null,"more":false}'
+        with provider(lambda *_: (200, {}, raw)) as (url, _):
+            self.register(url)
+            self.assertTrue(poll_source(self.sources, "api")["drained"])
+        self.assertEqual(
+            self.ingest.rows("orders")["rows"][0]["amount"], "0.100000000000000001"
+        )
+
