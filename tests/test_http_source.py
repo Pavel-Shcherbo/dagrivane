@@ -187,3 +187,44 @@ class HTTPSourceTests(unittest.TestCase):
             self.ingest.rows("orders")["rows"][0]["amount"], "0.100000000000000001"
         )
 
+    def test_event_feed_upserts_deletes_and_immutable_revision_deduplication(self):
+        def change(number, key, amount="10", operation="upsert"):
+            value = event(
+                number, key=key, amount=amount, day=number, operation=operation
+            )
+            value.pop("offset")
+            return value
+
+        replies = [
+            {
+                "events": [change(1, 1), change(2, 2, "20")],
+                "next": "second",
+                "more": True,
+            },
+            {
+                "events": [
+                    change(3, 1, "15"),
+                    change(4, 2, operation="delete"),
+                    change(5, 3, "30"),
+                ],
+                "next": "tail",
+                "more": False,
+            },
+        ]
+        with provider(lambda _, number: (200, {}, replies[number - 1])) as (url, _):
+
+            def events(config):
+                config["response"].update(
+                    mode="events", items="/events", columns=None, event_id=None
+                )
+
+            self.register(url, events)
+            self.assertTrue(poll_source(self.sources, "api")["drained"])
+        state = self.ingest.rows("orders")
+        self.assertEqual(state["offset"], 5)
+        self.assertEqual(state["tombstones"], 1)
+        self.assertEqual(
+            {item["id"]: item["amount"] for item in state["rows"]}, {1: "15", 3: "30"}
+        )
+        self.assertTrue(audit_source(self.sources, "api")["passed"])
+
