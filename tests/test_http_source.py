@@ -228,3 +228,15 @@ class HTTPSourceTests(unittest.TestCase):
         )
         self.assertTrue(audit_source(self.sources, "api")["passed"])
 
+    def test_repeated_rows_use_content_identity_and_do_not_create_new_events(self):
+        with provider(lambda *_: (200, {}, payload())) as (url, _):
+            self.register(url)
+            poll_source(self.sources, "api")
+            again = poll_source(self.sources, "api")
+        self.assertEqual(
+            again["pages"][0]["ingestion"]["counts"],
+            {"applied": 0, "duplicate": 1, "stale": 0},
+        )
+        self.assertEqual(self.ingest.status("orders")["seen_events"], 1)
+        self.assertTrue(audit_source(self.sources, "api")["passed"])
+
