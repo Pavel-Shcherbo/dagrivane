@@ -240,3 +240,28 @@ class HTTPSourceTests(unittest.TestCase):
         self.assertEqual(self.ingest.status("orders")["seen_events"], 1)
         self.assertTrue(audit_source(self.sources, "api")["passed"])
 
+    def test_quality_rejection_retains_bytes_blocks_refetch_and_review_does_not_skip(
+        self,
+    ):
+        body = payload([row(amount="2000")])
+        with provider(lambda *_: (200, {}, body)) as (url, requests):
+            self.register(url)
+            blocked = poll_source(self.sources, "api")
+            self.assertEqual(blocked["status"], "blocked")
+            self.assertEqual(self.ingest.status("orders")["offset"], 0)
+            self.assertEqual(poll_source(self.sources, "api")["status"], "blocked")
+            self.assertEqual(len(requests), 1)
+            page_id = blocked["source"]["pending"]["id"]
+            saved = self.sources.page("api", page_id, include_raw=True)
+            self.assertEqual(saved["raw"], json_bytes(body))
+            self.assertEqual(saved["state"], "blocked")
+            with self.assertRaises(ValueError):
+                self.sources.discard("api", page_id, " ")
+            self.sources.discard("api", page_id, "Upstream corrected invalid amount")
+            body["data"][0]["amount"] = "25"
+            resumed = poll_source(self.sources, "api")
+            self.assertTrue(resumed["drained"])
+            self.assertEqual(resumed["source"]["offset"], 1)
+        self.assertEqual(self.sources.pages("api")["items"][0]["state"], "discarded")
+        self.assertTrue(audit_source(self.sources, "api")["passed"])
+
