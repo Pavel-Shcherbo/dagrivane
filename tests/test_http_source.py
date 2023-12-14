@@ -265,3 +265,18 @@ class HTTPSourceTests(unittest.TestCase):
         self.assertEqual(self.sources.pages("api")["items"][0]["state"], "discarded")
         self.assertTrue(audit_source(self.sources, "api")["passed"])
 
+    def test_recovery_after_raw_stage_does_not_request_the_page_again(self):
+        def crash(_):
+            raise SystemExit(99)
+
+        with provider(lambda *_: (200, {}, payload())) as (url, requests):
+            self.register(url)
+            with self.assertRaises(SystemExit):
+                poll_source(self.sources, "api", after_stage=crash)
+            self.assertEqual(self.sources.status("api")["pending"]["state"], "fetched")
+            self.assertEqual(self.ingest.status("orders")["generation"], 0)
+            reopened = HTTPSourceStore(IngestStore(self.ingest.path))
+            self.assertTrue(poll_source(reopened, "api")["drained"])
+            self.assertEqual(len(requests), 1)
+        self.assertTrue(audit_source(self.sources, "api")["passed"])
+
