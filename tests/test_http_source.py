@@ -280,3 +280,24 @@ class HTTPSourceTests(unittest.TestCase):
             self.assertEqual(len(requests), 1)
         self.assertTrue(audit_source(self.sources, "api")["passed"])
 
+    def test_recovery_after_atomic_apply_uses_the_saved_next_cursor(self):
+        def respond(request, _):
+            return (
+                (200, {}, payload([row(2)], None, False))
+                if request["query"]
+                else (200, {}, payload([row(1)], "second", True))
+            )
+
+        def crash(_):
+            raise SystemExit(98)
+
+        with provider(respond) as (url, requests):
+            self.register(url)
+            with self.assertRaises(SystemExit):
+                poll_source(self.sources, "api", after_apply=crash)
+            self.assertEqual(self.sources.status("api")["offset"], 1)
+            self.assertTrue(poll_source(self.sources, "api")["drained"])
+            self.assertEqual(requests[1]["query"], {"cursor": ["second"]})
+            self.assertEqual(len(requests), 2)
+        self.assertEqual(self.ingest.status("orders")["generation"], 2)
+
