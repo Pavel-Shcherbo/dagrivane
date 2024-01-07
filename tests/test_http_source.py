@@ -301,3 +301,24 @@ class HTTPSourceTests(unittest.TestCase):
             self.assertEqual(len(requests), 2)
         self.assertEqual(self.ingest.status("orders")["generation"], 2)
 
+    def test_live_heartbeat_preserves_ownership_during_a_slow_response(self):
+        started = threading.Event()
+        release = threading.Event()
+
+        def slow(*_):
+            started.set()
+            release.wait(5)
+            return 200, {}, payload()
+
+        with provider(slow) as (url, _):
+            self.register(url, lambda c: c["request"].update(timeout_seconds=5))
+            with ThreadPoolExecutor(max_workers=1) as pool:
+                running = pool.submit(poll_source, self.sources, "api", lease_seconds=1)
+                self.assertTrue(started.wait(2))
+                time.sleep(1.02)
+                self.assertIsNone(
+                    self.sources.claim("api", "competing-worker", lease_seconds=1)
+                )
+                release.set()
+                self.assertTrue(running.result(timeout=6)["drained"])
+
