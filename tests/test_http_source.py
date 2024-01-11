@@ -322,3 +322,28 @@ class HTTPSourceTests(unittest.TestCase):
                 release.set()
                 self.assertTrue(running.result(timeout=6)["drained"])
 
+    def test_stale_owner_cannot_apply_or_release_a_replaced_claim(self):
+        self.register("http://127.0.0.1:1/feed")
+        now = time.time()
+        old = self.sources.claim("api", "old", lease_seconds=1, now=now)
+        point = self.sources.checkpoint(old)
+        raw = json_bytes(payload())
+        page = HTTPPage(
+            raw,
+            {
+                "status": 200,
+                "content_type": "application/json",
+                "entity_bytes": len(raw),
+                "entity_sha256": hashlib.sha256(raw).hexdigest(),
+            },
+        )
+        page_id = self.sources.stage(old, point, page)
+        new = self.sources.claim("api", "new", lease_seconds=10, now=now + 2)
+        with self.assertRaises(SourceLeaseLost):
+            self.sources.apply(old, page_id)
+        with self.assertRaises(SourceLeaseLost):
+            self.sources.release(old)
+        self.assertEqual(self.sources.apply(new, page_id)["offset_after"], 1)
+        self.assertTrue(self.sources.apply(new, page_id)["reused"])
+        self.sources.release(new)
+
