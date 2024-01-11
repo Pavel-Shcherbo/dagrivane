@@ -347,3 +347,32 @@ class HTTPSourceTests(unittest.TestCase):
         self.assertTrue(self.sources.apply(new, page_id)["reused"])
         self.sources.release(new)
 
+    def test_lease_expiring_during_ingestion_rolls_back_data_and_page_checkpoint(self):
+        self.register("http://127.0.0.1:1/feed")
+        now = time.time()
+        claim = self.sources.claim("api", "worker", lease_seconds=10, now=now)
+        raw = json_bytes(payload())
+        page = HTTPPage(
+            raw,
+            {
+                "status": 200,
+                "content_type": "application/json",
+                "entity_bytes": len(raw),
+                "entity_sha256": hashlib.sha256(raw).hexdigest(),
+            },
+        )
+        page_id = self.sources.stage(claim, self.sources.checkpoint(claim), page)
+        with patch("dagrivane.http_store.time.time", side_effect=[now, now + 20]):
+            with self.assertRaisesRegex(SourceLeaseLost, "expired during processing"):
+                self.sources.apply(claim, page_id)
+        self.assertEqual(self.ingest.status("orders")["generation"], 0)
+        self.assertEqual(self.ingest.status("orders")["offset"], 0)
+        self.assertEqual(self.sources.page("api", page_id)["state"], "fetched")
+        with self.ingest._tx(False) as db:
+            self.assertEqual(
+                db.execute("SELECT count(*) FROM publications").fetchone()[0], 0
+            )
+            self.assertEqual(db.execute("SELECT count(*) FROM events").fetchone()[0], 0)
+        self.assertEqual(self.sources.apply(claim, page_id)["offset_after"], 1)
+        self.sources.release(claim)
+
