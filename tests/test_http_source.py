@@ -376,3 +376,22 @@ class HTTPSourceTests(unittest.TestCase):
         self.assertEqual(self.sources.apply(claim, page_id)["offset_after"], 1)
         self.sources.release(claim)
 
+    def test_concurrent_poll_returns_busy_instead_of_fetching_twice(self):
+        started = threading.Event()
+        release = threading.Event()
+
+        def delayed(*_):
+            started.set()
+            release.wait(2)
+            return 200, {}, payload()
+
+        with provider(delayed) as (url, requests):
+            self.register(url)
+            with ThreadPoolExecutor(max_workers=1) as pool:
+                running = pool.submit(poll_source, self.sources, "api")
+                self.assertTrue(started.wait(2))
+                self.assertEqual(poll_source(self.sources, "api")["status"], "busy")
+                release.set()
+                self.assertTrue(running.result(timeout=3)["drained"])
+            self.assertEqual(len(requests), 1)
+
