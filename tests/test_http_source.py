@@ -395,3 +395,33 @@ class HTTPSourceTests(unittest.TestCase):
                 self.assertTrue(running.result(timeout=3)["drained"])
             self.assertEqual(len(requests), 1)
 
+    def test_retryable_error_retries_but_rate_limit_persists_cooldown(self):
+        with provider(
+            lambda _, number: (
+                (503, {"Retry-After": "0"}, b"busy")
+                if number == 1
+                else (200, {}, payload())
+            )
+        ) as (url, requests):
+            self.register(url)
+            self.assertTrue(poll_source(self.sources, "api")["drained"])
+            self.assertEqual(len(requests), 2)
+            page = self.sources.pages("api")["items"][0]
+            self.assertEqual(
+                self.sources.page("api", page["id"])["metadata"]["attempts"], 2
+            )
+        # A second source/stream isolates a different immutable endpoint policy.
+        self.ingest.register("limited", definition())
+        with provider(lambda *_: (429, {"Retry-After": "3600"}, b"busy")) as (
+            url,
+            requests,
+        ):
+            self.sources.register("limited-api", "limited", configuration(url))
+            deferred = poll_source(self.sources, "limited-api")
+            self.assertEqual(deferred["status"], "deferred")
+            self.assertGreater(deferred["source"]["not_before"], time.time() + 3500)
+            self.assertEqual(
+                poll_source(self.sources, "limited-api")["status"], "cooldown"
+            )
+            self.assertEqual(len(requests), 1)
+
