@@ -481,3 +481,15 @@ class HTTPSourceTests(unittest.TestCase):
                 for path in self.root.glob("ingest.sqlite*"):
                     self.assertNotIn(secret.encode(), path.read_bytes())
 
+    def test_redirect_cannot_drop_the_configured_cursor_or_query_filter(self):
+        with provider(lambda *_: (302, {"Location": "/final"}, b"")) as (url, requests):
+            self.register(
+                url + "?account=chosen",
+                lambda c: c.update(initial_cursor="resume-token"),
+            )
+            result = poll_source(self.sources, "api")
+            self.assertEqual(result["status"], "error")
+            self.assertIn("redirect_changed_query_scope", result["error"])
+            self.assertEqual(len(requests), 1)
+            self.assertEqual(self.ingest.status("orders")["offset"], 0)
+
