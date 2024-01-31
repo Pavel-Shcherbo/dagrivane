@@ -425,3 +425,24 @@ class HTTPSourceTests(unittest.TestCase):
             )
             self.assertEqual(len(requests), 1)
 
+    def test_404_and_timeout_leave_no_accepted_page_or_position(self):
+        with provider(lambda *_: (404, {}, b"missing")) as (url, requests):
+            self.register(url)
+            result = poll_source(self.sources, "api")
+            self.assertEqual(result["status"], "error")
+            self.assertEqual(len(requests), 1)
+            self.assertEqual(result["source"]["retained_pages"], 0)
+            self.assertEqual(result["source"]["offset"], 0)
+        self.ingest.register("slow", definition())
+
+        def delayed(*_):
+            time.sleep(0.15)
+            return 200, {}, payload()
+
+        with provider(delayed) as (url, _):
+            config = configuration(url)
+            config["request"].update(timeout_seconds=0.05, attempts=1)
+            self.sources.register("slow-api", "slow", config)
+            self.assertEqual(poll_source(self.sources, "slow-api")["status"], "error")
+            self.assertEqual(self.ingest.status("slow")["offset"], 0)
+
