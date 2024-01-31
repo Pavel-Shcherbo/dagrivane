@@ -446,3 +446,38 @@ class HTTPSourceTests(unittest.TestCase):
             self.assertEqual(poll_source(self.sources, "slow-api")["status"], "error")
             self.assertEqual(self.ingest.status("slow")["offset"], 0)
 
+    def test_same_origin_redirects_work_but_credentials_never_cross_origins(self):
+        with provider(
+            lambda request, _: (
+                (302, {"Location": "/final"}, b"")
+                if request["path"] == "/feed"
+                else (200, {}, payload())
+            )
+        ) as (url, requests):
+            self.register(url)
+            self.assertTrue(poll_source(self.sources, "api")["drained"])
+            self.assertEqual(len(requests), 2)
+        self.ingest.register("auth", definition())
+        with provider(lambda *_: (200, {}, payload())) as (foreign, foreign_requests):
+            with provider(lambda *_: (302, {"Location": foreign}, b"")) as (
+                url,
+                requests,
+            ):
+                config = configuration(url)
+                config["authentication"] = {
+                    "header": "Authorization",
+                    "environment": "DAGRIVANE_TEST_SECRET",
+                    "prefix": "Bearer ",
+                }
+                self.sources.register("auth-api", "auth", config)
+                secret = "only-for-loopback-test-385921"
+                with patch.dict(os.environ, {"DAGRIVANE_TEST_SECRET": secret}):
+                    result = poll_source(self.sources, "auth-api")
+                self.assertEqual(result["status"], "error")
+                self.assertEqual(foreign_requests, [])
+                self.assertEqual(
+                    requests[0]["headers"]["Authorization"], "Bearer " + secret
+                )
+                for path in self.root.glob("ingest.sqlite*"):
+                    self.assertNotIn(secret.encode(), path.read_bytes())
+
