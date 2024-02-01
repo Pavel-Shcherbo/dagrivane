@@ -493,3 +493,48 @@ class HTTPSourceTests(unittest.TestCase):
             self.assertEqual(len(requests), 1)
             self.assertEqual(self.ingest.status("orders")["offset"], 0)
 
+    def test_real_cli_bounded_resume_audit_and_create_only_raw_export(self):
+        def respond(request, _):
+            return (
+                (200, {}, payload([row(2)]))
+                if request["query"]
+                else (200, {}, payload([row(1)], "second", True))
+            )
+
+        with provider(respond) as (url, _):
+            config = self.root / "source.json"
+            config.write_bytes(json_bytes(configuration(url)))
+
+            def command(*args, expected=0):
+                result = subprocess.run(
+                    [
+                        sys.executable,
+                        "-m",
+                        "dagrivane.http_source",
+                        "--database",
+                        str(self.ingest.path),
+                        *map(str, args),
+                    ],
+                    cwd=Path(__file__).resolve().parents[1],
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
+                )
+                self.assertEqual(result.returncode, expected, result.stderr)
+                return json.loads(result.stdout) if result.stdout else None
+
+            command("register", "api", "orders", config)
+            self.assertEqual(
+                command("poll", "api", "--max-pages", "1", expected=3)["status"],
+                "limited",
+            )
+            self.assertTrue(command("poll", "api")["drained"])
+            page = command("pages", "api")["items"][0]
+            output = self.root / "entity.json"
+            command("export-page", "api", page["id"], "--output", output)
+            original = output.read_bytes()
+            command("export-page", "api", page["id"], "--output", output, expected=2)
+            self.assertEqual(output.read_bytes(), original)
+            self.assertEqual(hashlib.sha256(original).hexdigest(), page["raw_sha"])
+            self.assertTrue(command("audit", "api")["passed"])
+
