@@ -538,3 +538,30 @@ class HTTPSourceTests(unittest.TestCase):
             self.assertEqual(hashlib.sha256(original).hexdigest(), page["raw_sha"])
             self.assertTrue(command("audit", "api")["passed"])
 
+    def test_body_limits_and_bad_content_type_cannot_advance_the_checkpoint(self):
+        with provider(lambda *_: (200, {}, b"x" * 101)) as (url, _):
+            self.register(
+                url, lambda c: c["limits"].update(page_bytes=100, journal_bytes=1000)
+            )
+            result = poll_source(self.sources, "api")
+            self.assertEqual(result["status"], "error")
+            self.assertEqual(result["source"]["retained_pages"], 0)
+        self.ingest.register("html", definition())
+        with provider(
+            lambda *_: (
+                200,
+                {"Content-Type": "text/html"},
+                b"<html>wrong response</html>",
+            )
+        ) as (url, _):
+            self.sources.register("html-api", "html", configuration(url))
+            result = poll_source(self.sources, "html-api")
+            self.assertEqual(result["status"], "blocked")
+            self.assertEqual(result["source"]["offset"], 0)
+            self.assertEqual(
+                self.sources.page(
+                    "html-api", result["source"]["pending"]["id"], include_raw=True
+                )["raw"],
+                b"<html>wrong response</html>",
+            )
+
