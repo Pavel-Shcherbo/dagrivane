@@ -565,3 +565,41 @@ class HTTPSourceTests(unittest.TestCase):
                 b"<html>wrong response</html>",
             )
 
+    def test_chunked_entities_are_bounded_and_ambiguous_framing_is_rejected(self):
+        raw = json_bytes(payload([row(amount="12.34")]))
+        framed = format(len(raw), "x").encode() + b"\r\n" + raw + b"\r\n0\r\n\r\n"
+        with provider(
+            lambda *_: (
+                200,
+                {"Transfer-Encoding": "chunked", "Content-Length": None},
+                framed,
+            )
+        ) as (url, _):
+            self.register(url)
+            self.assertTrue(poll_source(self.sources, "api")["drained"])
+        self.assertEqual(self.ingest.rows("orders")["rows"][0]["amount"], "12.34")
+        self.ingest.register("streamed-limit", definition())
+        with provider(
+            lambda *_: (
+                200,
+                {"Transfer-Encoding": "chunked", "Content-Length": None},
+                framed,
+            )
+        ) as (url, _):
+            config = configuration(url)
+            config["limits"]["page_bytes"] = len(raw) - 1
+            self.sources.register("streamed-api", "streamed-limit", config)
+            self.assertEqual(
+                poll_source(self.sources, "streamed-api")["status"], "error"
+            )
+            self.assertEqual(self.ingest.status("streamed-limit")["offset"], 0)
+        self.ingest.register("ambiguous", definition())
+        with provider(lambda *_: (200, {"Transfer-Encoding": "chunked"}, framed)) as (
+            url,
+            _,
+        ):
+            self.sources.register("ambiguous-api", "ambiguous", configuration(url))
+            problem = poll_source(self.sources, "ambiguous-api")
+            self.assertEqual(problem["status"], "error")
+            self.assertIn("ambiguous_or_unsupported", problem["error"])
+
