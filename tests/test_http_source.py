@@ -603,3 +603,22 @@ class HTTPSourceTests(unittest.TestCase):
             self.assertEqual(problem["status"], "error")
             self.assertIn("ambiguous_or_unsupported", problem["error"])
 
+    def test_pagination_cycle_is_blocked_across_bounded_resume_calls(self):
+        def respond(request, _):
+            cursor = request["query"].get("cursor", [None])[0]
+            following = {None: "A", "A": "B", "B": "A"}[cursor]
+            return (
+                200,
+                {},
+                payload([row({None: 1, "A": 2, "B": 3}[cursor])], following, True),
+            )
+
+        with provider(respond) as (url, _):
+            self.register(url)
+            self.assertEqual(
+                poll_source(self.sources, "api", max_pages=1)["status"], "limited"
+            )
+            self.assertEqual(poll_source(self.sources, "api")["status"], "blocked")
+        self.assertEqual(self.ingest.status("orders")["offset"], 2)
+        self.assertTrue(audit_source(self.sources, "api")["passed"])
+
