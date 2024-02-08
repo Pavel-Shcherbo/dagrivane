@@ -622,3 +622,21 @@ class HTTPSourceTests(unittest.TestCase):
         self.assertEqual(self.ingest.status("orders")["offset"], 2)
         self.assertTrue(audit_source(self.sources, "api")["passed"])
 
+    def test_empty_json_and_no_content_check_quality_without_empty_versions(self):
+        with provider(
+            lambda _, number: (200, {}, payload()) if number == 1 else (204, {}, b"")
+        ) as (url, _):
+            self.register(url)
+            poll_source(self.sources, "api")
+            idle = poll_source(self.sources, "api")
+            self.assertTrue(idle["drained"])
+            self.assertIsNone(idle["pages"][0]["ingestion"])
+        self.assertEqual(self.ingest.status("orders")["generation"], 1)
+        self.assertTrue(audit_source(self.sources, "api")["passed"])
+        self.ingest.register("empty", definition())
+        with provider(lambda *_: (200, {}, payload([]))) as (url, _):
+            self.sources.register("empty-api", "empty", configuration(url))
+            self.assertTrue(poll_source(self.sources, "empty-api")["drained"])
+            self.assertEqual(self.ingest.status("empty")["generation"], 0)
+            self.assertTrue(audit_source(self.sources, "empty-api")["passed"])
+
