@@ -640,3 +640,13 @@ class HTTPSourceTests(unittest.TestCase):
             self.assertEqual(self.ingest.status("empty")["generation"], 0)
             self.assertTrue(audit_source(self.sources, "empty-api")["passed"])
 
+    def test_null_native_revision_and_bad_row_keys_are_retained_not_invented(self):
+        with provider(lambda *_: (200, {}, payload([{**row(), "revision": None}]))) as (
+            url,
+            _,
+        ):
+            self.register(url, lambda c: c["response"].update(event_id="/revision"))
+            result = poll_source(self.sources, "api")
+            self.assertEqual(result["status"], "blocked")
+            self.assertIn("cannot be null", result["error"])
+
