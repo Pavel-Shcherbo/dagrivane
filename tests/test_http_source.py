@@ -678,3 +678,26 @@ class HTTPSourceTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "identity mismatch"):
             self.sources.page("api", page_id)
 
+    def test_out_of_band_ingestion_and_invalid_registration_cannot_be_silently_rebased(
+        self,
+    ):
+        self.register("http://127.0.0.1:1/feed")
+        with self.assertRaisesRegex(ValueError, "managed by an HTTP source"):
+            self.ingest.ingest("orders", batch(0, [event(1)]), request_key="outside")
+        # Simulate an older writer bypassing the current public ownership guard.
+        with self.ingest._tx() as db:
+            self.ingest._ingest(
+                db, "orders", batch(0, [event(1)]), request_key="legacy-outside"
+            )
+        self.assertFalse(self.sources.status("api")["stream_synchronized"])
+        with self.assertRaisesRegex(ValueError, "outside"):
+            poll_source(self.sources, "api")
+        with self.assertRaises(ValueError):
+            self.sources.register(
+                "another", "orders", configuration("http://127.0.0.1:1/other")
+            )
+        with self.assertRaisesRegex(ValueError, "immutable"):
+            self.sources.register(
+                "api", "orders", configuration("http://127.0.0.1:1/other")
+            )
+
