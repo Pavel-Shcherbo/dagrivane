@@ -650,3 +650,31 @@ class HTTPSourceTests(unittest.TestCase):
             self.assertEqual(result["status"], "blocked")
             self.assertIn("cannot be null", result["error"])
 
+    def test_raw_or_response_metadata_damage_is_detected_before_recovery(self):
+        self.register("http://127.0.0.1:1/feed")
+        claim = self.sources.claim("api", "worker")
+        point = self.sources.checkpoint(claim)
+        raw = json_bytes(payload())
+        page_id = self.sources.stage(
+            claim,
+            point,
+            HTTPPage(
+                raw,
+                {
+                    "status": 200,
+                    "content_type": "application/json",
+                    "entity_bytes": len(raw),
+                    "entity_sha256": hashlib.sha256(raw).hexdigest(),
+                },
+            ),
+        )
+        self.sources.release(claim)
+        with self.ingest._tx() as db:
+            db.execute(
+                "UPDATE http_pages SET metadata=? WHERE id=?",
+                (json.dumps({"status": 204}), page_id),
+            )
+        self.assertFalse(audit_source(self.sources, "api")["passed"])
+        with self.assertRaisesRegex(ValueError, "identity mismatch"):
+            self.sources.page("api", page_id)
+
