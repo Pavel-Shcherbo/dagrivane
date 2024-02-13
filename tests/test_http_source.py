@@ -701,3 +701,17 @@ class HTTPSourceTests(unittest.TestCase):
                 "api", "orders", configuration("http://127.0.0.1:1/other")
             )
 
+    def test_pages_audit_and_stored_quality_replay_are_bounded(self):
+        with provider(lambda *_: (200, {}, payload([]))) as (url, _):
+            self.register(url)
+            for _ in range(3):
+                self.assertTrue(poll_source(self.sources, "api")["drained"])
+        first = self.sources.pages("api", limit=2)
+        second = self.sources.pages("api", after=first["next_cursor"], limit=2)
+        self.assertEqual(len(first["items"]), 2)
+        self.assertEqual(len(second["items"]), 1)
+        limited = audit_source(self.sources, "api", limit=2)
+        self.assertFalse(limited["complete"])
+        self.assertFalse(limited["passed"])
+        self.assertTrue(audit_source(self.sources, "api")["passed"])
+
