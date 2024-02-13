@@ -735,3 +735,19 @@ class HTTPSourceTests(unittest.TestCase):
         self.assertEqual(checked["ingestion_audit"]["checked_batches"], 1)
         self.assertEqual(self.ingest.status("orders")["generation"], 2)
 
+    def test_cancellation_after_staging_preserves_the_unapplied_entity(self):
+        stopped = threading.Event()
+        with provider(lambda *_: (200, {}, payload())) as (url, requests):
+            self.register(url)
+            cancelled = poll_source(
+                self.sources,
+                "api",
+                should_cancel=stopped.is_set,
+                after_stage=lambda _: stopped.set(),
+            )
+            self.assertEqual(cancelled["status"], "cancelled")
+            self.assertEqual(cancelled["source"]["pending"]["state"], "fetched")
+            self.assertEqual(self.ingest.status("orders")["offset"], 0)
+            self.assertTrue(poll_source(self.sources, "api")["drained"])
+            self.assertEqual(len(requests), 1)
+
