@@ -715,3 +715,23 @@ class HTTPSourceTests(unittest.TestCase):
         self.assertFalse(limited["passed"])
         self.assertTrue(audit_source(self.sources, "api")["passed"])
 
+    def test_audit_uses_one_read_snapshot_when_a_writer_commits_mid_audit(self):
+        def respond(_, number):
+            return 200, {}, payload([row(number)])
+
+        with provider(respond) as (url, _):
+            self.register(url)
+            poll_source(self.sources, "api")
+
+            def interleave(ingestion, db, name, **kwargs):
+                self.assertTrue(db.in_transaction)
+                self.assertTrue(poll_source(self.sources, "api")["drained"])
+                return audit_in_view(ingestion, db, name, **kwargs)
+
+            with patch("dagrivane.http_audit.audit_in_view", side_effect=interleave):
+                checked = audit_source(self.sources, "api")
+        self.assertTrue(checked["passed"])
+        self.assertEqual(checked["checked_pages"], 1)
+        self.assertEqual(checked["ingestion_audit"]["checked_batches"], 1)
+        self.assertEqual(self.ingest.status("orders")["generation"], 2)
+
