@@ -751,3 +751,38 @@ class HTTPSourceTests(unittest.TestCase):
             self.assertTrue(poll_source(self.sources, "api")["drained"])
             self.assertEqual(len(requests), 1)
 
+    def test_configuration_pointers_and_provider_json_are_strict(self):
+        good = configuration("http://127.0.0.1:1/feed")
+        self.assertEqual(extract({"a/b": {"~name": [7]}}, "/a~1b/~0name/0"), 7)
+        self.assertEqual(
+            origin("https://EXAMPLE.invalid:443/a"), ("https", "example.invalid", 443)
+        )
+        for url in (
+            "file:///tmp/x",
+            "https://user:pass@example.invalid/",
+            "https://example.invalid/#fragment",
+            "http://example.invalid/ bad",
+        ):
+            with self.subTest(url=url), self.assertRaises(ValueError):
+                endpoint(url)
+        for mutate in (
+            lambda c: c.update(allow_http=False),
+            lambda c: c["response"].update(items="bad"),
+            lambda c: c["request"].update(attempts=True),
+            lambda c: c["limits"].update(page_bytes=0),
+            lambda c: c.update(url=c["url"] + "?cursor=bad"),
+        ):
+            bad = copy.deepcopy(good)
+            mutate(bad)
+            with self.assertRaises(ValueError):
+                compile_http(bad, definition())
+        config = compile_http(good, definition())
+        for raw in (
+            b'{"data":[],"data":[],"next":null,"more":false}',
+            b'{"data":[],"next":null,"more":"false"}',
+            b'{"data":[],"next":null,"more":true}',
+        ):
+            with self.assertRaises(ValueError):
+                adapt_page(
+                    config, definition(), raw, name="api", after=0, request_cursor=None
+                )
