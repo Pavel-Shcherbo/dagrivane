@@ -82,3 +82,5 @@ work in those years. The 2019–2026 roadmap is proposed scope, not a completed-
 ## Incremental ingestion
 
 Durable streams accept ordered event batches or pinned CSV revisions, retain source checkpoints, deduplicate deliveries and apply event-time upserts/deletes with tombstones. Quality-gated snapshots enter a leased outbox and publish idempotently into the artifact catalog, with predecessor lineage and replay audits. See [incremental ingestion guide](docs/INGESTION.md) for a complete example and recovery boundaries.
+
+[Source-to-dataset workbench](docs/INGESTION_WORKBENCH.md): retained HTTP pages, checkpoint/data inspection, explicit quality review and ordered local catalog publication.
