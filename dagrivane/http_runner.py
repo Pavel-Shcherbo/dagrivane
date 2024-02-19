@@ -18,6 +18,7 @@ def poll_source(
     should_cancel=None,
     after_stage=None,
     after_apply=None,
+    expected_chain=None,
 ):
     if type(max_pages) is not int or not 1 <= max_pages <= 100:
         raise ValueError("HTTP poll page limit must be 1–100")
@@ -29,7 +30,12 @@ def poll_source(
     for callback in (should_cancel, after_stage, after_apply):
         if callback is not None and not callable(callback):
             raise ValueError("HTTP poll callbacks must be callable")
-    claim = store.claim(name, "poll-" + uuid.uuid4().hex, lease_seconds=lease_seconds)
+    claim = store.claim(
+        name,
+        "poll-" + uuid.uuid4().hex,
+        lease_seconds=lease_seconds,
+        expected_chain=expected_chain,
+    )
     if claim is None:
         status = store.status(name)
         reason = (
