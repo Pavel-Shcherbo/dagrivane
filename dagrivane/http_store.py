@@ -163,13 +163,15 @@ class HTTPSourceStore:
         with self.ingestion._tx(False) as db:
             return self._public(db, name)
 
-    def claim(self, name, owner, *, lease_seconds=30, now=None):
+    def claim(self, name, owner, *, lease_seconds=30, now=None, expected_chain=None):
         token(owner, "HTTP worker")
         if type(lease_seconds) is not int or not 1 <= lease_seconds <= 300:
             raise ValueError("HTTP lease must be 1–300 seconds")
         now = moment(now)
         with self.ingestion._tx() as db:
             source, _, stream, _ = self._source(db, name)
+            if expected_chain is not None and source["chain"] != expected_chain:
+                raise ValueError("source checkpoint changed; refresh before polling")
             if (
                 stream["offset"] != source["offset"]
                 or stream["generation"] != source["generation"]
