@@ -19,7 +19,15 @@ def configure_target(store, name, catalog):
     )
 
 
-def publish_next(store, name, catalog, *, lease_seconds=30, after_publish=None):
+def publish_next(
+    store,
+    name,
+    catalog,
+    *,
+    lease_seconds=30,
+    after_publish=None,
+    expected_batch_id=None,
+):
     if after_publish is not None and not callable(after_publish):
         raise ValueError("publication callback must be callable")
     definition = store.status(name)["definition"]
@@ -32,7 +40,12 @@ def publish_next(store, name, catalog, *, lease_seconds=30, after_publish=None):
     )
     if policy["sha256"] != fingerprint(expected):
         raise ValueError("target policy differs from the immutable stream policy")
-    claim = store.claim(name, catalog.root, lease_seconds=lease_seconds)
+    claim = store.claim(
+        name,
+        catalog.root,
+        lease_seconds=lease_seconds,
+        expected_batch_id=expected_batch_id,
+    )
     if claim is None:
         return {
             "published": False,
