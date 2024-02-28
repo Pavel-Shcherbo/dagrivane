@@ -7,7 +7,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 
-def serve(evaluate, example, default_port):
+def serve(evaluate, example, default_port, *, on_start=None, source_route=None):
     parser = argparse.ArgumentParser(description="Start the local workbench")
     parser.add_argument("--port", type=int, default=default_port)
     args = parser.parse_args()
@@ -17,7 +17,7 @@ def serve(evaluate, example, default_port):
         def log_message(self, *_):
             pass
 
-        def respond(self, code, payload, mime="application/json"):
+        def respond(self, code, payload, mime="application/json", headers=None):
             body = (
                 json.dumps(payload, allow_nan=False).encode()
                 if mime == "application/json"
@@ -32,8 +32,15 @@ def serve(evaluate, example, default_port):
                 "Content-Security-Policy",
                 "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; frame-ancestors 'none'",
             )
+            for key, value in (headers or {}).items():
+                if key not in {"Retry-After"}:
+                    raise ValueError("unsupported source response header")
+                self.send_header(key, value)
             self.end_headers()
-            self.wfile.write(body)
+            try:
+                self.wfile.write(body)
+            except (BrokenPipeError, ConnectionResetError):
+                pass
 
         def valid_host(self):
             return self.headers.get("Host") in {
@@ -47,6 +54,15 @@ def serve(evaluate, example, default_port):
                     403, {"error": "Use the loopback address printed at startup"}
                 )
                 return
+            if source_route is not None:
+                result = source_route(self.path)
+                if result is not None:
+                    status, payload, headers = result
+                    if status == 204:
+                        self.respond(204, b"", "application/octet-stream", headers)
+                    else:
+                        self.respond(status, payload, headers=headers)
+                    return
             path = urlsplit(self.path).path
             if path == "/health":
                 self.respond(200, {"status": "ok"})
@@ -104,6 +120,8 @@ def serve(evaluate, example, default_port):
                 self.respond(400, {"error": str(error)})
 
     with ThreadingHTTPServer(("127.0.0.1", args.port), Handler) as server:
+        if on_start is not None:
+            on_start(f"http://127.0.0.1:{server.server_port}")
         print(f"Workbench: http://127.0.0.1:{server.server_port}", flush=True)
         try:
             server.serve_forever()
