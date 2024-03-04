@@ -349,25 +349,26 @@ class IngestStore:
 
     def rows(self, name):
         with self._tx(False) as db:
-            stream, definition = self._stream(db, name)
-            records = self._records(db, name)
-            actual = fingerprint(
-                [{"key": key, **records[key]} for key in sorted(records)]
-            )
-            if actual != stream["state_sha256"]:
-                raise ValueError("materialized stream state fingerprint mismatch")
-            return {
-                "stream": name,
-                "generation": stream["generation"],
-                "offset": stream["offset"],
-                "state_sha256": actual,
-                "rows": [
-                    records[key]["row"]
-                    for key in sorted(records)
-                    if records[key]["row"] is not None
-                ],
-                "tombstones": sum(item["row"] is None for item in records.values()),
-            }
+            return self._rows(db, name)
+
+    def _rows(self, db, name):
+        stream, definition = self._stream(db, name)
+        records = self._records(db, name)
+        actual = fingerprint([{"key": key, **records[key]} for key in sorted(records)])
+        if actual != stream["state_sha256"]:
+            raise ValueError("materialized stream state fingerprint mismatch")
+        return {
+            "stream": name,
+            "generation": stream["generation"],
+            "offset": stream["offset"],
+            "state_sha256": actual,
+            "rows": [
+                records[key]["row"]
+                for key in sorted(records)
+                if records[key]["row"] is not None
+            ],
+            "tombstones": sum(item["row"] is None for item in records.values()),
+        }
 
     def batches(self, name, *, after_generation=0, limit=100):
         if (
@@ -414,7 +415,7 @@ class IngestStore:
                 "event_outcomes_omitted": True,
             }
 
-    def claim(self, name, target_root, *, lease_seconds=30):
+    def claim(self, name, target_root, *, lease_seconds=30, expected_batch_id=None):
         if type(lease_seconds) is not int or not 1 <= lease_seconds <= 300:
             raise ValueError("publication lease must be 1–300 seconds")
         target_root = str(Path(target_root).resolve())
@@ -429,6 +430,10 @@ class IngestStore:
                 "SELECT b.*,p.status,p.claim,p.lease_until FROM batches b JOIN publications p ON p.stream=b.stream AND p.batch_id=b.id WHERE b.stream=? AND p.status!='published' ORDER BY b.generation LIMIT 1",
                 (name,),
             ).fetchone()
+            if expected_batch_id is not None and (
+                row is None or row["id"] != expected_batch_id
+            ):
+                raise ValueError("publication head changed; refresh before publishing")
             if row is None:
                 return None
             if (
