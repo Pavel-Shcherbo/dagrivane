@@ -37,3 +37,10 @@ SCHEMA = [
 ]
 
 
+def loopback_origin(value):
+    normalized = endpoint(value)
+    if not re.fullmatch(r"http://127\.0\.0\.1:[1-9][0-9]{0,4}/?", normalized):
+        raise ValueError("ingestion workbench needs its actual loopback HTTP origin")
+    return normalized.rstrip("/")
+
+
