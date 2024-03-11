@@ -44,3 +44,11 @@ def loopback_origin(value):
     return normalized.rstrip("/")
 
 
+def digest(value, label="identity"):
+    if not isinstance(value, str) or not re.fullmatch(r"[0-9a-f]{64}", value):
+        raise ValueError(label + " requires lowercase SHA-256")
+    return value
+
+
+class IngestionDesk:
+    pass
