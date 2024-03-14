@@ -51,4 +51,8 @@ def digest(value, label="identity"):
 
 
 class IngestionDesk:
-    pass
+    def __init__(self, root, origin=None):
+        self.root = Path(root)
+        self.path = self.root / "ingestion.sqlite"
+        self.origin = loopback_origin(origin) if origin is not None else None
+
