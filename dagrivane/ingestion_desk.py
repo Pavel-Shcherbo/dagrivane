@@ -56,3 +56,14 @@ class IngestionDesk:
         self.path = self.root / "ingestion.sqlite"
         self.origin = loopback_origin(origin) if origin is not None else None
 
+    def _stores(self):
+        store = IngestStore(self.path)
+        sources = HTTPSourceStore(store)
+        with store._tx(False) as db:
+            marker = db.execute(
+                "SELECT version,origin FROM desk_meta WHERE singleton=1"
+            ).fetchone()
+            if marker is None or marker["version"] != 1:
+                raise ValueError("unsupported ingestion workbench schema")
+        return store, sources
+
