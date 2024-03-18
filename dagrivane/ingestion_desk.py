@@ -87,3 +87,52 @@ class IngestionDesk:
                 "source configuration differs from the reviewed loopback endpoint"
             )
 
+    def initialize(self):
+        if self.origin is None:
+            raise ValueError(
+                "ingestion initialization requires a running loopback workbench"
+            )
+        if not LOCK.acquire(blocking=False):
+            raise ValueError("another ingestion operation is running")
+        try:
+            store = IngestStore(self.path, create=True)
+            sources = HTTPSourceStore(store)
+            with store._tx() as db:
+                for statement in SCHEMA:
+                    db.execute(statement)
+                marker = db.execute(
+                    "SELECT version,origin FROM desk_meta WHERE singleton=1"
+                ).fetchone()
+                if marker is not None and (
+                    marker["version"] != 1 or marker["origin"] != self.origin
+                ):
+                    raise ValueError(
+                        "workbench origin differs from retained source configuration; use the original port"
+                    )
+                db.execute(
+                    "INSERT OR IGNORE INTO desk_meta VALUES(1,1,?)", (self.origin,)
+                )
+            directory = examples_directory()
+            catalog = Catalog(self.root / "catalog")
+            for profile in PROFILES:
+                stream = json.loads((directory / "incremental-stream.json").read_text())
+                stream["target"] = {
+                    "workspace": "ingestion-workbench",
+                    "dataset": profile,
+                    "policy_version": 1,
+                }
+                store.register(profile, stream)
+                config = json.loads((directory / "http-change-source.json").read_text())
+                config["url"] = self.origin + "/api/ingestion-source/" + profile
+                config["request"].update(timeout_seconds=2, attempts=2, redirects=0)
+                sources.register(profile, profile, config)
+                configure_target(store, profile, catalog)
+                with store._tx() as db:
+                    db.execute(
+                        "INSERT OR IGNORE INTO desk_providers VALUES(?,0,0,0)",
+                        (profile,),
+                    )
+            return self.overview()
+        finally:
+            LOCK.release()
+
