@@ -67,3 +67,23 @@ class IngestionDesk:
                 raise ValueError("unsupported ingestion workbench schema")
         return store, sources
 
+    def _writable_origin(self, store, sources, profile):
+        with store._tx(False) as db:
+            stored = db.execute(
+                "SELECT origin FROM desk_meta WHERE singleton=1"
+            ).fetchone()["origin"]
+        with store._tx(False) as db:
+            _, config, _, _ = sources._source(db, profile)
+        if self.origin is None or stored != self.origin:
+            raise ValueError(
+                "source origin changed; resume on the original workbench port before polling"
+            )
+        if self.origin is not None and (
+            config["url"] != self.origin + "/api/ingestion-source/" + profile
+            or config["authentication"] is not None
+            or config["request"]["redirects"] != 0
+        ):
+            raise ValueError(
+                "source configuration differs from the reviewed loopback endpoint"
+            )
+
