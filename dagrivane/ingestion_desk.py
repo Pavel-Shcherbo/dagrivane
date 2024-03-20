@@ -136,3 +136,38 @@ class IngestionDesk:
         finally:
             LOCK.release()
 
+    def overview(self):
+        if not self.path.exists():
+            return {"initialized": False, "items": []}
+        store, sources = self._stores()
+        items = []
+        with store._tx(False) as db:
+            for profile, label in PROFILES.items():
+                registered = db.execute(
+                    "SELECT name FROM http_sources WHERE name=?", (profile,)
+                ).fetchone()
+                if (
+                    registered is None
+                    or db.execute(
+                        "SELECT profile FROM desk_providers WHERE profile=?", (profile,)
+                    ).fetchone()
+                    is None
+                ):
+                    continue
+                revision, source, provider, _ = revision_in_view(db, sources, profile)
+                items.append(
+                    {
+                        "profile": profile,
+                        "label": label,
+                        "revision": revision,
+                        "source": source,
+                        "provider": provider,
+                        "stream": store._status(db, profile),
+                    }
+                )
+        return {
+            "initialized": len(items) == len(PROFILES),
+            "items": items,
+            "local_only": True,
+        }
+
