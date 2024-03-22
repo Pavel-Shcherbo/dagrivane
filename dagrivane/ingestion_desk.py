@@ -171,3 +171,9 @@ class IngestionDesk:
             "local_only": True,
         }
 
+    def inspect(self, profile, **cursors):
+        require_profile(profile)
+        store, sources = self._stores()
+        with store._tx(False) as db:
+            return project_view(db, store, sources, profile, **cursors)
+
