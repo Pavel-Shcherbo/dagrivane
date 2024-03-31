@@ -177,3 +177,31 @@ class IngestionDesk:
         with store._tx(False) as db:
             return project_view(db, store, sources, profile, **cursors)
 
+    def source_response(self, profile, cursor):
+        require_profile(profile)
+        store, _ = self._stores()
+        with store._tx() as db:
+            state = provider_state(db, profile)
+            retry = profile == "retry" and not state["retry_sent"]
+            db.execute(
+                "UPDATE desk_providers SET requests=requests+1,retry_sent=max(retry_sent,?) WHERE profile=?",
+                (int(retry), profile),
+            )
+        if retry:
+            return (
+                503,
+                {"error": "synthetic transient source failure"},
+                {"Retry-After": "0"},
+            )
+        if cursor == "tail":
+            return 204, None, {}
+        if cursor not in (None, "page2"):
+            return 409, {"error": "unknown synthetic cursor"}, {}
+        pages = json.loads(
+            (examples_directory() / "ingestion-control-pages.json").read_text()
+        )
+        payload = copy.deepcopy(pages[0 if cursor is None else 1])
+        if profile == "quality" and not state["corrected"] and cursor is None:
+            payload["events"][0]["row"]["amount"] = "2000"
+        return 200, payload, {}
+
