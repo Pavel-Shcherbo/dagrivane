@@ -205,3 +205,22 @@ class IngestionDesk:
             payload["events"][0]["row"]["amount"] = "2000"
         return 200, payload, {}
 
+    def _receipt(self, row):
+        return {
+            key: row[key]
+            for key in (
+                "profile",
+                "request_key",
+                "action",
+                "request_sha256",
+                "status",
+                "error",
+                "started_at",
+                "finished_at",
+            )
+        } | {
+            "result": (
+                parse_json(bytes(row["result"])) if row["result"] is not None else None
+            )
+        }
+
