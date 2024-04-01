@@ -224,3 +224,13 @@ class IngestionDesk:
             )
         }
 
+    def _seal(self, db, profile, request_key):
+        row = db.execute(
+            "SELECT * FROM desk_operations WHERE profile=? AND request_key=?",
+            (profile, request_key),
+        ).fetchone()
+        db.execute(
+            "UPDATE desk_operations SET receipt_sha256=? WHERE profile=? AND request_key=?",
+            (fingerprint(self._receipt(row)), profile, request_key),
+        )
+
