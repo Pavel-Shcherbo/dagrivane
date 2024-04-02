@@ -234,3 +234,27 @@ class IngestionDesk:
             (fingerprint(self._receipt(row)), profile, request_key),
         )
 
+    def _operation(self, row):
+        if row["receipt_sha256"] != fingerprint(self._receipt(row)):
+            raise ValueError("ingestion operation receipt fingerprint mismatch")
+        result = parse_json(bytes(row["result"])) if row["result"] is not None else None
+        return {
+            "operation": {
+                "receipt_sha256": row["receipt_sha256"],
+                "sequence": row["seq"],
+                "profile": row["profile"],
+                "request_key": row["request_key"],
+                "action": row["action"],
+                "status": row["status"],
+                "error": row["error"],
+                "started_at": row["started_at"],
+                "finished_at": row["finished_at"],
+                "recovery": (
+                    "Refresh durable source state before a new request; a started receipt is not proof of rollback"
+                    if row["status"] == "started"
+                    else None
+                ),
+            },
+            "outcome": result,
+        }
+
