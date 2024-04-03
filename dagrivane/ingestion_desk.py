@@ -258,3 +258,176 @@ class IngestionDesk:
             "outcome": result,
         }
 
+    def mutate(
+        self,
+        profile,
+        action,
+        *,
+        request_key,
+        expected_revision,
+        page_id=None,
+        reason=None,
+    ):
+        require_profile(profile)
+        token(request_key, "ingestion request key")
+        digest(expected_revision, "view revision")
+        if action not in ("poll", "publish", "repair", "discard"):
+            raise ValueError("unknown ingestion operation")
+        if action in ("repair", "discard"):
+            digest(page_id, "retained page")
+            if (
+                not isinstance(reason, str)
+                or not reason.strip()
+                or len(reason) > 512
+                or any(ord(char) < 32 for char in reason)
+            ):
+                raise ValueError(
+                    "review requires a reason of 1–512 printable characters"
+                )
+        payload = {
+            "profile": profile,
+            "action": action,
+            "expected_revision": expected_revision,
+            "page_id": page_id,
+            "reason": reason,
+        }
+        identity = fingerprint(payload)
+        store, sources = self._stores()
+        if not LOCK.acquire(blocking=False):
+            raise ValueError(
+                "another ingestion operation is running; refresh its result"
+            )
+        try:
+            with store._tx() as db:
+                previous = db.execute(
+                    "SELECT * FROM desk_operations WHERE profile=? AND request_key=?",
+                    (profile, request_key),
+                ).fetchone()
+                if previous is not None:
+                    if previous["request_sha256"] != identity:
+                        raise ValueError(
+                            "request key conflicts with different ingestion controls"
+                        )
+                    return self._operation(previous)
+                revision, source, provider, publications = revision_in_view(
+                    db, sources, profile
+                )
+                if revision != expected_revision:
+                    raise ValueError(
+                        "source view changed; refresh before applying this action"
+                    )
+                if (
+                    db.execute(
+                        "SELECT coalesce(sum(length(result)),0) FROM desk_operations"
+                    ).fetchone()[0]
+                    >= OPERATION_RESULT_BUDGET
+                ):
+                    raise ValueError(
+                        "ingestion operation results reached the 32 MiB logical budget"
+                    )
+                if (
+                    db.execute("SELECT count(*) FROM desk_operations").fetchone()[0]
+                    >= 2000
+                ):
+                    raise ValueError(
+                        "ingestion workbench reached 2,000 retained operation receipts"
+                    )
+                db.execute(
+                    "INSERT INTO desk_operations(profile,request_key,action,request_sha256,status,started_at) VALUES(?,?,?,?,'started',?)",
+                    (profile, request_key, action, identity, time.time()),
+                )
+                self._seal(db, profile, request_key)
+            result = None
+            error = None
+            try:
+                if action == "poll":
+                    self._writable_origin(store, sources, profile)
+                    result = poll_source(
+                        sources,
+                        profile,
+                        max_pages=1,
+                        deadline_seconds=10,
+                        lease_seconds=15,
+                        expected_chain=source["chain_sha256"],
+                    )
+                elif action == "publish":
+                    head = next(
+                        (
+                            row["id"]
+                            for row in publications
+                            if row["status"] != "published"
+                        ),
+                        None,
+                    )
+                    result = (
+                        publish_next(
+                            store,
+                            profile,
+                            Catalog(self.root / "catalog"),
+                            expected_batch_id=head,
+                        )
+                        if head is not None
+                        else {"published": False, "reason": "no_pending_batch"}
+                    )
+                elif action == "discard":
+                    result = sources.discard(profile, page_id, reason)
+                else:
+                    if profile != "quality":
+                        raise ValueError(
+                            "only the synthetic quality source has a correction control"
+                        )
+                    with store._tx() as db:
+                        current = sources._public(db, profile)
+                        if (
+                            current["lease_active"]
+                            or not current["pending"]
+                            or current["pending"]["id"] != page_id
+                            or current["pending"]["state"] != "blocked"
+                        ):
+                            raise ValueError(
+                                "correction requires the current blocked page and an idle source"
+                            )
+                        db.execute(
+                            "UPDATE desk_providers SET corrected=1 WHERE profile=?",
+                            (profile,),
+                        )
+                    result = {
+                        "corrected": True,
+                        "retained_page_unchanged": page_id,
+                        "review_reason": reason,
+                        "next_step": "Discard the blocked page with a reason, then poll the unchanged cursor",
+                    }
+                if len(json_bytes(result)) > 2 * 1024 * 1024:
+                    raise ValueError("operation result exceeds 2 MiB")
+            except (ValueError, OSError, sqlite3.Error) as problem:
+                error = str(problem)[:2048]
+                result = None
+            with store._tx() as db:
+                encoded = json_bytes(result) if result is not None else None
+                used = db.execute(
+                    "SELECT coalesce(sum(length(result)),0) FROM desk_operations"
+                ).fetchone()[0]
+                if used + len(encoded or b"") > OPERATION_RESULT_BUDGET:
+                    encoded = None
+                    error = "operation result exceeds the retained receipt budget; inspect durable source state before a new request"
+                db.execute(
+                    "UPDATE desk_operations SET status=?,result=?,error=?,finished_at=? WHERE profile=? AND request_key=?",
+                    (
+                        "failed" if error else "completed",
+                        encoded,
+                        error,
+                        time.time(),
+                        profile,
+                        request_key,
+                    ),
+                )
+                self._seal(db, profile, request_key)
+                return self._operation(
+                    db.execute(
+                        "SELECT * FROM desk_operations WHERE profile=? AND request_key=?",
+                        (profile, request_key),
+                    ).fetchone()
+                )
+        finally:
+            LOCK.release()
+
