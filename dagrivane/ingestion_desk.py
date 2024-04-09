@@ -431,3 +431,16 @@ class IngestionDesk:
         finally:
             LOCK.release()
 
+    def operation(self, profile, request_key):
+        require_profile(profile)
+        token(request_key, "ingestion request key")
+        store, _ = self._stores()
+        with store._tx(False) as db:
+            row = db.execute(
+                "SELECT * FROM desk_operations WHERE profile=? AND request_key=?",
+                (profile, request_key),
+            ).fetchone()
+            if row is None:
+                raise ValueError("unknown operation receipt for this source")
+            return self._operation(row)
+
