@@ -444,3 +444,17 @@ class IngestionDesk:
                 raise ValueError("unknown operation receipt for this source")
             return self._operation(row)
 
+    def page(self, profile, page_id):
+        require_profile(profile)
+        digest(page_id, "retained page")
+        _, sources = self._stores()
+        value = sources.page(profile, page_id, include_raw=True)
+        raw = value.pop("raw")
+        return {
+            **value,
+            "raw_base64": base64.b64encode(raw).decode(),
+            "raw_bytes": len(raw),
+            "raw_sha256": hashlib.sha256(raw).hexdigest(),
+            "content_scope": "Complete retained entity, base64 encoded; metadata and content identities are not source authentication",
+        }
+
