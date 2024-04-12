@@ -458,3 +458,34 @@ class IngestionDesk:
             "content_scope": "Complete retained entity, base64 encoded; metadata and content identities are not source authentication",
         }
 
+    def artifact(self, profile, generation):
+        require_profile(profile)
+        store, _ = self._stores()
+        with store._tx(False) as db:
+            row = db.execute(
+                "SELECT p.artifact,b.bundle_sha256 FROM batches b JOIN publications p ON p.stream=b.stream AND p.batch_id=b.id WHERE b.stream=? AND b.generation=? AND p.status='published'",
+                (profile, generation),
+            ).fetchone()
+            if row is None:
+                raise ValueError("generation has no acknowledged catalog artifact")
+            saved = parse_json(row["artifact"].encode())
+        catalog = Catalog(self.root / "catalog")
+        artifact = catalog.artifact("ingestion-workbench", saved["id"])
+        if (
+            artifact != saved
+            or artifact["sha256"] != row["bundle_sha256"]
+            or artifact["name"] != profile
+        ):
+            raise ValueError("acknowledged artifact differs from its source generation")
+        verification = catalog.verify_artifact("ingestion-workbench", artifact["id"])
+        raw = catalog.objects.get(artifact["sha256"])
+        table, _ = table_bundle(raw)
+        return {
+            "artifact": artifact,
+            "verification": verification,
+            "bundle_base64": base64.b64encode(raw).decode(),
+            "bundle_sha256": hashlib.sha256(raw).hexdigest(),
+            "table_summary": table.summary(),
+            "scope": "Verified local catalog content; no external publication",
+        }
+
