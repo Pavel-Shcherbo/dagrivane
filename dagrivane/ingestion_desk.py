@@ -489,3 +489,43 @@ class IngestionDesk:
             "scope": "Verified local catalog content; no external publication",
         }
 
+    def audit(self, profile):
+        require_profile(profile)
+        store, sources = self._stores()
+        source = audit_source(sources, profile, limit=100)
+        ingestion = audit_ingestion(
+            store, profile, limit=100, catalog=Catalog(self.root / "catalog")
+        )
+        operations = []
+        with store._tx(False) as db:
+            rows = db.execute(
+                "SELECT * FROM desk_operations WHERE profile=? ORDER BY seq LIMIT 101",
+                (profile,),
+            ).fetchall()
+            receipt_bytes = 0
+            complete = len(rows) <= 100
+            for row in rows[:100]:
+                receipt_bytes += len(row["result"] or b"")
+                if receipt_bytes > 16 * 1024 * 1024:
+                    complete = False
+                    break
+                try:
+                    self._operation(row)
+                    operations.append({"sequence": row["seq"], "passed": True})
+                except ValueError as error:
+                    operations.append(
+                        {"sequence": row["seq"], "passed": False, "error": str(error)}
+                    )
+        receipts = {
+            "items": operations,
+            "complete": complete,
+            "checked_bytes": receipt_bytes,
+            "passed": complete and all(item["passed"] for item in operations),
+        }
+        return {
+            "operations": receipts,
+            "source": source,
+            "ingestion": ingestion,
+            "passed": source["passed"] and ingestion["passed"] and receipts["passed"],
+            "scope": "Each bounded audit is coherent in its own read view; not a cross-database transaction or source authentication",
+        }
