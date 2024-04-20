@@ -11,3 +11,9 @@ PROFILES = {
 }
 
 
+def require_profile(value):
+    if not isinstance(value, str) or value not in PROFILES:
+        raise ValueError("choose a reviewed ingestion source")
+    return value
+
+
