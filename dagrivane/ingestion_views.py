@@ -17,3 +17,17 @@ def require_profile(value):
     return value
 
 
+def provider_state(db, profile):
+    row = db.execute(
+        "SELECT corrected,retry_sent,requests FROM desk_providers WHERE profile=?",
+        (profile,),
+    ).fetchone()
+    if row is None:
+        raise ValueError("reviewed provider has not been initialized")
+    return {
+        "corrected": bool(row["corrected"]),
+        "retry_sent": bool(row["retry_sent"]),
+        "requests": row["requests"],
+    }
+
+
