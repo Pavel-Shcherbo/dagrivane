@@ -31,3 +31,29 @@ def provider_state(db, profile):
     }
 
 
+def revision_in_view(db, sources, profile):
+    source = sources._public(db, profile)
+    provider = provider_state(db, profile)
+    publications = [
+        dict(row)
+        for row in db.execute(
+            "SELECT b.generation,b.id,p.status,p.attempts,p.artifact FROM batches b JOIN publications p ON p.stream=b.stream AND p.batch_id=b.id WHERE b.stream=? ORDER BY b.generation",
+            (profile,),
+        )
+    ]
+    # Lease wall-clock changes and request counters do not identify a data revision.
+    revision = fingerprint(
+        {
+            "chain": source["chain_sha256"],
+            "configuration_sha256": source["configuration_sha256"],
+            "stream_definition_sha256": source["stream_definition_sha256"],
+            "offset": source["offset"],
+            "generation": source["generation"],
+            "pending": source["pending"],
+            "publications": publications,
+            "corrected": provider["corrected"],
+        }
+    )
+    return revision, source, provider, publications
+
+
