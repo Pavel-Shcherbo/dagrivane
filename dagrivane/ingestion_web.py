@@ -24,3 +24,8 @@ FIELDS = {
 }
 
 
+def start_origin(origin):
+    global ORIGIN
+    ORIGIN = loopback_origin(origin)
+
+
