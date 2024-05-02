@@ -35,3 +35,7 @@ def nonnegative(value, label):
     return value
 
 
+def desk():
+    return IngestionDesk(state_directory("dagrivane") / "ingestion-workbench", ORIGIN)
+
+
