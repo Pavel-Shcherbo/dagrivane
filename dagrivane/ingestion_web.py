@@ -29,3 +29,9 @@ def start_origin(origin):
     ORIGIN = loopback_origin(origin)
 
 
+def nonnegative(value, label):
+    if type(value) is not int or not 0 <= value < 2**63:
+        raise ValueError(label + " must be a bounded nonnegative integer")
+    return value
+
+
