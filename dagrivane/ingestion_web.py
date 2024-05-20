@@ -111,3 +111,22 @@ def evaluate_ingestion(params):
         raise ValueError("ingestion workbench database: " + str(error)) from error
 
 
+def source_route(path):
+    parsed = urlsplit(path)
+    prefix = "/api/ingestion-source/"
+    if not parsed.path.startswith(prefix):
+        return None
+    profile = parsed.path[len(prefix) :]
+    try:
+        require_profile(profile)
+        query = parse_qs(
+            parsed.query, keep_blank_values=True, strict_parsing=True, max_num_fields=2
+        )
+        if set(query) - {"cursor"} or any(
+            len(values) != 1 for values in query.values()
+        ):
+            raise ValueError("synthetic source accepts one cursor value")
+        cursor = query.get("cursor", [None])[0]
+        return desk().source_response(profile, cursor)
+    except (ValueError, KeyError, sqlite3.Error) as error:
+        return 400, {"error": str(error)}, {}
