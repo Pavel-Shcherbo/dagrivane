@@ -715,3 +715,527 @@ $("release-export").onclick = () => {
   navigation();
   refresh().catch((e) => showError(e.message));
 })();
+
+(() => {
+  const api = (action, fields = {}) =>
+    evaluate({ mode: "ingestion", action, ...fields });
+  let profile = "healthy",
+    view = null,
+    epoch = 0,
+    listSerial = 0,
+    detailSerial = 0,
+    pageSerial = 0,
+    artifactSerial = 0,
+    auditSerial = 0;
+  let pages = [],
+    batches = [],
+    pageCursor = null,
+    batchCursor = null,
+    rowOffset = 0,
+    rowHistory = [];
+  let pageData = null,
+    artifactData = null,
+    auditData = null,
+    busy = false;
+  let operationSerial = 0;
+  const requests = new Map();
+  const showError = (message) => {
+    $("feed-error").hidden = !message;
+    $("feed-error").textContent = message || "";
+  };
+  function bytes(base64) {
+    return Uint8Array.from(atob(base64), (char) => char.charCodeAt(0));
+  }
+  function downloadBytes(name, encoded) {
+    const url = URL.createObjectURL(
+      new Blob([bytes(encoded)], { type: "application/json" }),
+    );
+    const link = element("a");
+    link.href = url;
+    link.download = name;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  function clearPage() {
+    pageSerial++;
+    pageData = null;
+    $("feed-raw-export").disabled = true;
+    $("feed-page-export").disabled = true;
+    $("feed-raw").textContent = "";
+    $("feed-page-summary").textContent = "";
+    $("feed-page-status").textContent =
+      "Select a retained page to inspect its original entity";
+  }
+  function clearArtifact() {
+    artifactSerial++;
+    artifactData = null;
+    $("feed-bundle-export").disabled = true;
+    $("feed-artifact-export").disabled = true;
+    $("feed-artifact").textContent = "";
+    $("feed-artifact-status").textContent =
+      "Select a published generation to verify its local artifact";
+  }
+  function controls() {
+    const blocked = view?.source.pending?.state === "blocked";
+    $("feed-fetch").disabled =
+      busy || !view || view.source.lease_active || blocked;
+    $("feed-publish").disabled =
+      busy || !view || !view.publications.head_batch_id;
+    $("feed-profile").disabled = busy;
+    const reason = $("feed-reason").value.trim();
+    $("feed-repair").disabled =
+      busy ||
+      !blocked ||
+      profile !== "quality" ||
+      view.provider.corrected ||
+      !reason;
+    $("feed-discard").disabled = busy || !blocked || !reason;
+  }
+  async function refresh(resetRequests = false) {
+    const serial = ++listSerial;
+    showError("");
+    if (resetRequests)
+      for (const [key, value] of requests)
+        if (value.fields.profile === profile) requests.delete(key);
+    const result = await api("overview");
+    if (serial !== listSerial) return;
+    $("feed-initialize").hidden = result.initialized;
+    $("feed-ready").hidden = !result.items.length;
+    clear($("feed-profile"));
+    for (const item of result.items)
+      $("feed-profile").append(new Option(item.label, item.profile));
+    if (!result.items.some((item) => item.profile === profile))
+      profile = result.items[0]?.profile || "healthy";
+    $("feed-profile").value = profile;
+    if (result.items.length) await selectProfile(profile);
+    else
+      $("feed-status").textContent =
+        "No ingestion sources. Initialize the three reviewed local controls to begin.";
+  }
+  async function selectProfile(value) {
+    profile = value;
+    epoch++;
+    detailSerial++;
+    operationSerial++;
+    auditSerial++;
+    rowOffset = 0;
+    rowHistory = [];
+    view = null;
+    pages = [];
+    batches = [];
+    clearPage();
+    clearArtifact();
+    auditData = null;
+    $("feed-audit-detail").hidden = true;
+    $("feed-audit-export").disabled = true;
+    $("feed-action").textContent = "";
+    $("feed-reason").value = "";
+    clear($("feed-rows"));
+    clear($("feed-pages"));
+    clear($("feed-batches"));
+    controls();
+    await loadView(false);
+  }
+  async function loadView(append = false) {
+    const current = epoch,
+      serial = ++detailSerial,
+      source = profile;
+    showError("");
+    $("feed-status").textContent =
+      "Reading source checkpoint and publication state…";
+    try {
+      const result = await api("inspect", {
+        profile: source,
+        row_offset: rowOffset,
+        ...(append === "pages"
+          ? { after_page: pageCursor }
+          : append === "batches"
+            ? { after_generation: batchCursor }
+            : {}),
+      });
+      if (current !== epoch || serial !== detailSerial) return;
+      view = result;
+      if (append !== "rows") {
+        pages =
+          append === "pages"
+            ? [...pages, ...result.pages.items]
+            : append === "batches"
+              ? pages
+              : result.pages.items;
+        batches =
+          append === "batches"
+            ? [...batches, ...result.publications.items]
+            : append === "pages"
+              ? batches
+              : result.publications.items;
+        if (append !== "batches") pageCursor = result.pages.next_cursor;
+        if (append !== "pages")
+          batchCursor = result.publications.next_generation;
+      }
+      render();
+    } catch (error) {
+      if (current === epoch && serial === detailSerial) {
+        view = null;
+        controls();
+        showError(error.message);
+        $("feed-status").textContent =
+          "Source inspection failed. Refresh ingestion to retry.";
+      }
+    }
+  }
+  function render() {
+    const source = view.source,
+      data = view.data,
+      counts = view.stream.publication_counts;
+    $("feed-status").textContent =
+      view.label +
+      " · checkpoint generation " +
+      source.generation +
+      ", offset " +
+      source.offset;
+    $("feed-source-state").textContent = source.pending
+      ? "Page " + source.pending.seq + " " + source.pending.state
+      : source.retained_pages + " retained pages; no pending entity";
+    $("feed-stream-state").textContent =
+      data.total_rows +
+      " live rows, " +
+      data.tombstones +
+      " tombstone" +
+      (data.tombstones === 1 ? "" : "s");
+    $("feed-catalog-state").textContent =
+      (counts.published || 0) +
+      " published, " +
+      ((counts.pending || 0) + (counts.leased || 0)) +
+      " awaiting publication";
+    $("feed-review").hidden = source.pending?.state !== "blocked";
+    $("feed-review-error").textContent = source.pending?.error || "";
+    $("feed-repair").hidden = profile !== "quality";
+    $("feed-total").textContent = "Exact amount total: " + data.amount_total;
+    clear($("feed-rows"));
+    for (const item of data.rows) {
+      const row = element("tr");
+      for (const key of ["id", "amount", "updated_at"])
+        row.append(
+          element("td", String(item[key]), key === "amount" ? "number" : ""),
+        );
+      $("feed-rows").append(row);
+    }
+    $("feed-row-range").textContent = data.total_rows
+      ? data.row_offset +
+        1 +
+        "–" +
+        (data.row_offset + data.rows.length) +
+        " of " +
+        data.total_rows +
+        " rows"
+      : "No accepted rows";
+    $("feed-row-prev").disabled = !rowHistory.length;
+    $("feed-row-next").disabled = data.next_offset === null;
+    clear($("feed-pages"));
+    for (const item of pages) {
+      const row = element("tr"),
+        cell = element("td"),
+        button = element("button", "Page " + item.seq);
+      button.onclick = () => inspectPage(item.id);
+      cell.append(button);
+      row.append(
+        cell,
+        element(
+          "td",
+          item.state,
+          item.state === "blocked" ? "status failed" : "",
+        ),
+        element("td", String(item.offset)),
+      );
+      $("feed-pages").append(row);
+    }
+    $("feed-more-pages").hidden = pageCursor === null;
+    clear($("feed-batches"));
+    for (const item of batches) {
+      const row = element("tr"),
+        cell = element("td"),
+        button = element("button", "Generation " + item.generation);
+      button.disabled = item.status !== "published";
+      button.onclick = () => inspectArtifact(item.generation);
+      cell.append(button);
+      row.append(
+        cell,
+        element("td", item.status),
+        element("td", String(item.attempts)),
+      );
+      $("feed-batches").append(row);
+      if (item.last_error) {
+        const errorRow = element("tr"),
+          text = element("td", item.last_error, "status failed");
+        text.colSpan = 3;
+        errorRow.append(text);
+        $("feed-batches").append(errorRow);
+      }
+    }
+    $("feed-more-batches").hidden = batchCursor === null;
+    $("feed-checkpoint").textContent = JSON.stringify(
+      {
+        revision: view.revision,
+        source: view.source,
+        stream: view.stream,
+        provider: view.provider,
+        snapshot_scope: view.snapshot_scope,
+      },
+      null,
+      2,
+    );
+    clear($("feed-operations"));
+    for (const item of view.operations) {
+      const row = element("tr"),
+        cell = element("td"),
+        button = element("button", item.action + " #" + item.seq);
+      button.onclick = () => readOperation(item.request_key);
+      cell.append(button);
+      row.append(
+        cell,
+        element("td", item.status),
+        element("td", item.error || "Receipt retained"),
+      );
+      $("feed-operations").append(row);
+    }
+    controls();
+  }
+  async function inspectPage(id) {
+    clearPage();
+    const serial = ++pageSerial,
+      current = epoch,
+      source = profile;
+    $("feed-page-status").textContent =
+      "Reading and verifying retained response entity…";
+    try {
+      const result = await api("page", { profile: source, page_id: id });
+      if (serial !== pageSerial || current !== epoch) return;
+      pageData = result;
+      $("feed-page-status").textContent =
+        "Page " +
+        result.seq +
+        " · " +
+        result.state +
+        " · " +
+        result.raw_bytes +
+        " bytes";
+      const { raw_base64, ...summary } = result;
+      $("feed-page-summary").textContent = JSON.stringify(summary, null, 2);
+      const text = new TextDecoder().decode(bytes(raw_base64));
+      $("feed-raw").textContent =
+        text.slice(0, 32768) +
+        (text.length > 32768
+          ? "\n[Preview shortened; export original JSON for full entity]"
+          : "");
+      $("feed-raw-export").disabled = false;
+      $("feed-page-export").disabled = false;
+    } catch (error) {
+      if (serial === pageSerial && current === epoch) {
+        showError(error.message);
+        $("feed-page-status").textContent =
+          "Page could not be read; select it again to retry.";
+      }
+    }
+  }
+  async function inspectArtifact(generation) {
+    clearArtifact();
+    const serial = ++artifactSerial,
+      current = epoch,
+      source = profile;
+    $("feed-artifact-status").textContent =
+      "Verifying the acknowledged catalog artifact…";
+    try {
+      const result = await api("artifact", { profile: source, generation });
+      if (serial !== artifactSerial || current !== epoch) return;
+      artifactData = result;
+      $("feed-artifact-status").textContent =
+        "Generation " + generation + " · local artifact verified";
+      const { bundle_base64, ...summary } = result;
+      $("feed-artifact").textContent = JSON.stringify(summary, null, 2);
+      $("feed-bundle-export").disabled = false;
+      $("feed-artifact-export").disabled = false;
+    } catch (error) {
+      if (serial === artifactSerial && current === epoch) {
+        showError(error.message);
+        $("feed-artifact-status").textContent =
+          "Artifact verification failed; no export is available.";
+      }
+    }
+  }
+  async function readOperation(key) {
+    const current = epoch,
+      serial = ++operationSerial;
+    try {
+      const result = await api("operation", { profile, request_key: key });
+      if (current === epoch && serial === operationSerial)
+        $("feed-receipt").textContent = JSON.stringify(result, null, 2);
+    } catch (error) {
+      if (current === epoch && serial === operationSerial)
+        showError(error.message);
+    }
+  }
+  async function mutate(action) {
+    if (busy || !view) return;
+    const source = profile,
+      current = epoch;
+    const fields = {
+      profile: source,
+      ...(["repair", "discard"].includes(action)
+        ? {
+            page_id: view.source.pending?.id,
+            reason: $("feed-reason").value.trim(),
+          }
+        : {}),
+    };
+    const signature = JSON.stringify({ action, ...fields });
+    let request = requests.get(signature);
+    if (!request) {
+      request = {
+        fields: {
+          ...fields,
+          request_key: "ingestion-" + crypto.randomUUID(),
+          expected_revision: view.revision,
+        },
+      };
+      requests.set(signature, request);
+    }
+    busy = true;
+    listSerial++;
+    controls();
+    showError("");
+    $("feed-action").textContent =
+      "Applying " + action + " to the reviewed source state…";
+    try {
+      const result = await api(action, request.fields);
+      if (result.operation.status !== "started") requests.delete(signature);
+      if (current !== epoch) return;
+      operationSerial++;
+      $("feed-receipt").textContent = JSON.stringify(result, null, 2);
+      $("feed-action").textContent =
+        result.operation.status === "completed"
+          ? action +
+            ": " +
+            (result.outcome?.status ||
+              (result.outcome?.published === false
+                ? "no pending batch"
+                : "completed"))
+          : result.operation.status === "started"
+            ? result.operation.recovery
+            : result.operation.error;
+      if (result.operation.status === "failed")
+        showError(result.operation.error);
+      clearPage();
+      clearArtifact();
+      auditSerial++;
+      auditData = null;
+      $("feed-audit-detail").hidden = true;
+      rowOffset = 0;
+      rowHistory = [];
+      await loadView(false);
+    } catch (error) {
+      if (current === epoch) {
+        showError(error.message);
+        $("feed-action").textContent =
+          "No confirmed receipt. Retry the same action to recover it. If rejected, refresh and review the checkpoint before a new request.";
+      }
+    } finally {
+      busy = false;
+      controls();
+    }
+  }
+  $("feed-initialize").onclick = async () => {
+    if (busy) return;
+    busy = true;
+    $("feed-initialize").disabled = true;
+    showError("");
+    try {
+      await api("initialize");
+      await refresh();
+    } catch (error) {
+      showError(error.message);
+    } finally {
+      busy = false;
+      $("feed-initialize").disabled = false;
+      controls();
+    }
+  };
+  $("feed-refresh").onclick = () =>
+    refresh(true).catch((error) => showError(error.message));
+  $("feed-profile").onchange = () => selectProfile($("feed-profile").value);
+  for (const [id, action] of [
+    ["feed-fetch", "poll"],
+    ["feed-publish", "publish"],
+    ["feed-repair", "repair"],
+    ["feed-discard", "discard"],
+  ])
+    $(id).onclick = () => mutate(action);
+  $("feed-reason").oninput = controls;
+  $("feed-more-pages").onclick = () => loadView("pages");
+  $("feed-more-batches").onclick = () => loadView("batches");
+  $("feed-row-next").onclick = () => {
+    if (view?.data.next_offset !== null) {
+      rowHistory.push(rowOffset);
+      rowOffset = view.data.next_offset;
+      loadView("rows");
+    }
+  };
+  $("feed-row-prev").onclick = () => {
+    if (rowHistory.length) {
+      rowOffset = rowHistory.pop();
+      loadView("rows");
+    }
+  };
+  $("feed-raw-export").onclick = () => {
+    if (pageData)
+      downloadBytes(
+        "dagrivane-page-" + pageData.seq + ".json",
+        pageData.raw_base64,
+      );
+  };
+  $("feed-page-export").onclick = () => {
+    if (pageData) download("dagrivane-page-evidence.json", pageData);
+  };
+  $("feed-bundle-export").onclick = () => {
+    if (artifactData)
+      downloadBytes("dagrivane-table.json", artifactData.bundle_base64);
+  };
+  $("feed-artifact-export").onclick = () => {
+    if (artifactData) download("dagrivane-dataset-evidence.json", artifactData);
+  };
+  $("feed-audit").onclick = async () => {
+    const current = epoch,
+      serial = ++auditSerial;
+    $("feed-audit").disabled = true;
+    auditData = null;
+    $("feed-audit-detail").hidden = true;
+    $("feed-audit-export").disabled = true;
+    showError("");
+    try {
+      const result = await api("audit", { profile });
+      if (current !== epoch || serial !== auditSerial) return;
+      auditData = result;
+      $("feed-audit-detail").hidden = false;
+      $("feed-audit-result").textContent = JSON.stringify(result, null, 2);
+      $("feed-audit-export").disabled = false;
+      $("feed-action").textContent = result.passed
+        ? "Retained source and ingestion audits passed"
+        : "Audit failed or exceeded its retained-evidence limit; inspect the result";
+    } catch (error) {
+      if (current === epoch && serial === auditSerial) {
+        auditData = null;
+        $("feed-audit-export").disabled = true;
+        showError(error.message);
+      }
+    } finally {
+      $("feed-audit").disabled = false;
+    }
+  };
+  $("feed-audit-export").onclick = () => {
+    if (auditData) download("dagrivane-ingestion-audit.json", auditData);
+  };
+  refresh().catch((error) => {
+    showError(error.message);
+    $("feed-status").textContent =
+      "Ingestion inspection unavailable. Initialize or refresh to retry.";
+  });
+})();
