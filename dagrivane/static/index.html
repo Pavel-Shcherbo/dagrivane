@@ -17,6 +17,7 @@
           <a href="#queue" aria-current="location">Run queue</a
           ><a href="#workflow">Workflow</a><a href="#tasks">Task results</a
           ><a href="#releases">Release checks</a
+          ><a href="#ingestion">Ingestion</a
           ><a href="#contract">Execution contract</a>
         </nav>
         <footer>Local workbench<br />Development build</footer>
@@ -271,6 +272,199 @@ Run the pipeline, then select a task to inspect its output</pre>
                 service.
               </p>
             </div>
+          </div>
+        </section>
+        <section
+          class="section ingestion"
+          id="ingestion"
+          aria-labelledby="feed-title"
+        >
+          <header class="pagehead">
+            <div>
+              <h2 id="feed-title">Source to dataset</h2>
+              <p>
+                Inspect the checkpoint. Review the page. Publish the accepted
+                batch.
+              </p>
+            </div>
+            <button id="feed-refresh">Refresh ingestion</button>
+          </header>
+          <div id="feed-error" class="error" role="alert" hidden></div>
+          <p id="feed-status" class="secondary" role="status">
+            Reading local ingestion state…
+          </p>
+          <button id="feed-initialize" class="primary">
+            Initialize reviewed sources
+          </button>
+          <div id="feed-ready" hidden>
+            <div class="feed-toolbar">
+              <label class="feed-profile-label"
+                >Reviewed source<select id="feed-profile"></select></label
+              ><button id="feed-fetch" class="primary">Fetch next page</button
+              ><button id="feed-publish">Publish next batch locally</button
+              ><button id="feed-audit">Audit retained state</button>
+            </div>
+            <p class="notice">
+              Synthetic HTTP feeds on this workbench. Publication writes to its
+              local catalog.
+            </p>
+            <p id="feed-action" class="notice" role="status"></p>
+            <ol class="feed-path" aria-label="Ingestion stages">
+              <li>
+                <h3>Source pages</h3>
+                <p id="feed-source-state"></p>
+              </li>
+              <li>
+                <h3>Accepted stream</h3>
+                <p id="feed-stream-state"></p>
+              </li>
+              <li>
+                <h3>Local catalog</h3>
+                <p id="feed-catalog-state"></p>
+              </li>
+            </ol>
+            <section id="feed-review" class="feed-review" hidden>
+              <h3>Blocked page review</h3>
+              <p id="feed-review-error"></p>
+              <label
+                >Review reason<textarea
+                  id="feed-reason"
+                  maxlength="512"
+                  rows="2"
+                  placeholder="Explain the source correction or discarded page"
+                ></textarea>
+              </label>
+              <div class="actions">
+                <button id="feed-repair">Correct synthetic source</button
+                ><button id="feed-discard">Discard blocked page</button>
+              </div>
+              <p class="notice">
+                Correction changes the synthetic provider only. The retained
+                page stays pinned until explicitly discarded; its original bytes
+                remain available.
+              </p>
+            </section>
+            <div class="panel section">
+              <div class="panelhead">
+                <h3>Live rows</h3>
+                <span id="feed-total"></span>
+              </div>
+              <div class="tablewrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Order</th>
+                      <th class="number">Amount</th>
+                      <th>Updated</th>
+                    </tr>
+                  </thead>
+                  <tbody id="feed-rows"></tbody>
+                </table>
+              </div>
+              <div class="panelbody feed-toolbar">
+                <button id="feed-row-prev" disabled>Previous rows</button
+                ><button id="feed-row-next" disabled>Next rows</button
+                ><span id="feed-row-range" class="notice"></span>
+              </div>
+            </div>
+            <div class="feed-evidence-grid">
+              <section class="panel">
+                <div class="panelhead">
+                  <h3>Retained HTTP pages</h3>
+                  <button id="feed-more-pages" hidden>Load later pages</button>
+                </div>
+                <div class="tablewrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Page</th>
+                        <th>State</th>
+                        <th>Starting offset</th>
+                      </tr>
+                    </thead>
+                    <tbody id="feed-pages"></tbody>
+                  </table>
+                </div>
+                <div class="panelbody">
+                  <p id="feed-page-status" role="status">
+                    Select a retained page to inspect its original entity
+                  </p>
+                  <div class="actions">
+                    <button id="feed-raw-export" disabled>
+                      Export original JSON</button
+                    ><button id="feed-page-export" disabled>
+                      Export page evidence
+                    </button>
+                  </div>
+                  <details>
+                    <summary>Page metadata and receipt</summary>
+                    <pre id="feed-page-summary"></pre>
+                  </details>
+                  <details>
+                    <summary>Original response entity</summary>
+                    <pre id="feed-raw"></pre>
+                  </details>
+                </div>
+              </section>
+              <section class="panel">
+                <div class="panelhead">
+                  <h3>Publication outbox</h3>
+                  <button id="feed-more-batches" hidden>
+                    Load later batches
+                  </button>
+                </div>
+                <div class="tablewrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Generation</th>
+                        <th>State</th>
+                        <th>Attempts</th>
+                      </tr>
+                    </thead>
+                    <tbody id="feed-batches"></tbody>
+                  </table>
+                </div>
+                <div class="panelbody">
+                  <p id="feed-artifact-status" role="status">
+                    Select a published generation to verify its local artifact
+                  </p>
+                  <div class="actions">
+                    <button id="feed-bundle-export" disabled>
+                      Download table JSON</button
+                    ><button id="feed-artifact-export" disabled>
+                      Export dataset evidence
+                    </button>
+                  </div>
+                  <details>
+                    <summary>Artifact checks and lineage</summary>
+                    <pre id="feed-artifact"></pre>
+                  </details>
+                </div>
+              </section>
+            </div>
+            <details class="section">
+              <summary>Checkpoint and retained operations</summary>
+              <pre id="feed-checkpoint"></pre>
+              <div class="tablewrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Operation</th>
+                      <th>State</th>
+                      <th>Result</th>
+                    </tr>
+                  </thead>
+                  <tbody id="feed-operations"></tbody>
+                </table>
+              </div>
+              <pre id="feed-receipt"></pre>
+            </details>
+            <details class="section" id="feed-audit-detail" hidden>
+              <summary>Retained audit result</summary>
+              <pre id="feed-audit-result"></pre>
+              <button id="feed-audit-export" disabled>Export audit</button>
+            </details>
           </div>
         </section>
         <section class="section" id="contract">
