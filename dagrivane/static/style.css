@@ -671,3 +671,149 @@ textarea {
 .operations button:disabled {
   cursor: default;
 }
+
+.ingestion {
+  scroll-margin-top: 24px;
+}
+.feed-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: end;
+  margin: 16px 0;
+}
+.feed-toolbar label,
+.feed-review label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.feed-profile-label {
+  flex: 1 1 240px;
+}
+.feed-toolbar select {
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  background: var(--surface);
+  max-width: 100%;
+}
+.feed-path {
+  list-style: none;
+  padding: 16px 0;
+  margin: 24px 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  gap: 24px;
+}
+.feed-path h3 {
+  margin: 0 0 8px;
+}
+.feed-path p {
+  margin: 0;
+  color: var(--secondary);
+}
+.feed-review {
+  padding: 20px 0;
+  border-bottom: 1px solid var(--line);
+}
+.feed-review h3 {
+  color: var(--negative);
+}
+.feed-review textarea {
+  width: 100%;
+  margin: 8px 0;
+  min-height: 80px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  background: var(--surface);
+}
+.feed-evidence-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+.feed-evidence-grid > * {
+  min-width: 0;
+}
+.ingestion .panelhead {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.ingestion .panelhead h3 {
+  margin: 0;
+}
+.ingestion .panelbody pre {
+  max-height: 320px;
+  overflow: auto;
+  margin: 16px 0;
+}
+.ingestion .panelbody details {
+  margin-top: 20px;
+}
+.ingestion .panelbody.feed-toolbar {
+  margin: 0;
+}
+.ingestion summary {
+  cursor: pointer;
+  color: var(--accent);
+}
+.ingestion td {
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+.ingestion .feed-selected {
+  background: var(--raised);
+}
+.ingestion button:disabled {
+  cursor: default;
+}
+#feed-checkpoint,
+#feed-receipt,
+#feed-audit-result {
+  max-height: 400px;
+  overflow: auto;
+  margin: 16px 0;
+}
+@media (min-width: 1001px) {
+  .sidebar {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow: auto;
+    align-self: start;
+  }
+}
+@media (max-width: 1100px) {
+  .feed-evidence-grid {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 700px) {
+  .feed-path {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .feed-toolbar {
+    align-items: stretch;
+  }
+  .feed-toolbar label {
+    flex: 1 1 100%;
+  }
+  .feed-toolbar button,
+  .ingestion .actions button {
+    flex: 1 1 auto;
+  }
+}
+
+.ingestion .feed-evidence-grid {
+  margin-top: 24px;
+}
