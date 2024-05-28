@@ -7,6 +7,7 @@ from .engine import run
 from .release_web import evaluate_release
 from .operations_web import evaluate_operations
 from .httpapp import serve
+from .ingestion_web import evaluate_ingestion, start_origin, source_route
 from .resources import examples_directory, state_directory
 
 
@@ -15,6 +16,8 @@ def example():
 
 
 def evaluate(params):
+    if params.get("mode") == "ingestion":
+        return evaluate_ingestion(params)
     if params.get("mode") == "control":
         return evaluate_operations(params)
     if params.get("mode") == "release":
@@ -56,4 +59,4 @@ def evaluate(params):
 
 
 if __name__ == "__main__":
-    serve(evaluate, example, 8411)
+    serve(evaluate, example, 8411, on_start=start_origin, source_route=source_route)
