@@ -1,0 +1,75 @@
+[
+  {
+    "events": [
+      {
+        "id": "change-1",
+        "operation": "upsert",
+        "key": {
+          "id": 1
+        },
+        "at": "2020-01-01T12:00:00Z",
+        "row": {
+          "id": 1,
+          "amount": "10",
+          "updated_at": "2020-01-01T12:00:00Z"
+        }
+      },
+      {
+        "id": "change-2",
+        "operation": "upsert",
+        "key": {
+          "id": 2
+        },
+        "at": "2020-01-01T12:00:00Z",
+        "row": {
+          "id": 2,
+          "amount": "20",
+          "updated_at": "2020-01-01T12:00:00Z"
+        }
+      }
+    ],
+    "next_cursor": "page2",
+    "has_more": true
+  },
+  {
+    "events": [
+      {
+        "id": "change-3",
+        "operation": "upsert",
+        "key": {
+          "id": 1
+        },
+        "at": "2020-01-02T12:00:00Z",
+        "row": {
+          "id": 1,
+          "amount": "15",
+          "updated_at": "2020-01-02T12:00:00Z"
+        }
+      },
+      {
+        "id": "change-4",
+        "operation": "delete",
+        "key": {
+          "id": 2
+        },
+        "at": "2020-01-02T12:00:00Z",
+        "row": null
+      },
+      {
+        "id": "change-5",
+        "operation": "upsert",
+        "key": {
+          "id": 3
+        },
+        "at": "2020-01-02T12:00:00Z",
+        "row": {
+          "id": 3,
+          "amount": "30",
+          "updated_at": "2020-01-02T12:00:00Z"
+        }
+      }
+    ],
+    "next_cursor": "tail",
+    "has_more": false
+  }
+]
