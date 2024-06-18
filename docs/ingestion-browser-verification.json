@@ -1,0 +1,112 @@
+{
+  "passed": true,
+  "scope": "Real browser synthetic controls, durable same-port restart, delayed/lost responses and independently decoded downloaded bytes; not full portfolio acceptance",
+  "workflow": {
+    "recoveredTotal": "Exact amount total: 45",
+    "originalRetainedPage": {
+      "id": "741168a63acf25a4696ea8e26c0bcf4317ec234de09a4a7c28acd50858e523c2",
+      "seq": 3,
+      "source": "quality",
+      "offset": 0,
+      "generation": 0,
+      "round": 0,
+      "previous_chain": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "raw_sha": "7c9cd823d7377a689f5f20b7e936023a161a2a87f4bfa44b136887424e92ceb0",
+      "state": "discarded",
+      "error": "materialized stream failed quality gates; batch was not committed",
+      "reason": "Correct amount in the synthetic provider; preserve rejected entity",
+      "received_at": 1793783508.713642,
+      "cursor_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+      "metadata": {
+        "attempts": 1,
+        "content_type": "application/json; charset=utf-8",
+        "elapsed_seconds": 0.0024348750011995435,
+        "entity_bytes": 382,
+        "entity_sha256": "7c9cd823d7377a689f5f20b7e936023a161a2a87f4bfa44b136887424e92ceb0",
+        "redirects": 0,
+        "request_url_sha256": "ec34d52d4cae01e0c54b6b684e5735c21059a5621df2a152dd00a7654635a8e8",
+        "status": 200
+      },
+      "receipt": null,
+      "raw_bytes": 382,
+      "raw_sha256": "7c9cd823d7377a689f5f20b7e936023a161a2a87f4bfa44b136887424e92ceb0",
+      "content_scope": "Complete retained entity, base64 encoded; metadata and content identities are not source authentication"
+    },
+    "retryCheckpoint": {
+      "corrected": false,
+      "retry_sent": true,
+      "requests": 2
+    },
+    "healthyTotal": "Exact amount total: 45",
+    "healthyRows": "1\t15\t2020-01-02T12:00:00Z\n3\t30\t2020-01-02T12:00:00Z",
+    "stream": "2 live rows, 1 tombstones",
+    "catalog": "2 published, 0 awaiting publication",
+    "desktop": {
+      "width": 1440,
+      "scroll": 1440
+    },
+    "mobile": {
+      "width": 390,
+      "scroll": 390
+    },
+    "pageErrors": []
+  },
+  "races": {
+    "stalePageIgnored": true,
+    "staleArtifactIgnored": true,
+    "lostPollResponseRecoveredWithoutFetch": true,
+    "retryProviderRequests": 3,
+    "retryRetainedPages": 2,
+    "failedArtifactClearsExport": true,
+    "pageErrors": []
+  },
+  "final_layout_and_review": {
+    "passed": true,
+    "actualBlockedReviewInIsolatedWorkbench": true,
+    "protectedWithoutReason": true,
+    "reviewWithReasonEnabled": true,
+    "persistedAfterProcessRestart": true,
+    "review": {
+      "width": 390,
+      "scroll": 390,
+      "error": "materialized stream failed quality gates; batch was not committed"
+    },
+    "desktop": {
+      "width": 1440,
+      "scroll": 1440,
+      "sidebarTop": 0
+    },
+    "mobile": {
+      "width": 390,
+      "scroll": 390
+    }
+  },
+  "independent_change_reduction": {
+    "live_keys": [
+      1,
+      3
+    ],
+    "deleted_keys": [
+      2
+    ],
+    "fraction_amount_total": "45",
+    "all_downloaded_rows_match_retained_raw_events": true,
+    "published_parent_matches_first_acknowledgement": true,
+    "blocked_original_matches_discarded_stored_entity": true
+  },
+  "download_hashes": {
+    "ingestion-page.json": "c4acd2426000ef293791b4e527ef8b580ee16db7db297b722ac3e3e60f8316bd",
+    "ingestion-page-evidence.json": "dd2f0e6fc3c4015147297eaff43cdf440b5fef8804a97f267421892711db4990",
+    "ingestion-blocked-evidence.json": "4c4f6243c847a5a19e4fa5c8e79d8a995558af5319edf53ff36ab9f77bf5aff4",
+    "ingestion-discarded-evidence.json": "9cf5825ed8ec34bd6ebec1ba6ff2fe43cdd54444b8f162614fc1bf06bdf9c911",
+    "ingestion-table.json": "6bc721444e164cb12a31c64bfd16d50e16280bef3b0b9853f2a6c84e46875316",
+    "ingestion-dataset-evidence.json": "544962c2b0b08a9d79c59f44cbb926ac995ff4e126ff67fd0e8c72ad31bddd59",
+    "ingestion-audit.json": "64420bf201a22341d3eb2b47ff2fd20d2119f5e9641d4a30d93cf9219f6113b3"
+  },
+  "screenshots": {
+    "ingestion-desktop-final.png": "c894ef24dcfe474a1a248cd866af02e62a6fad0ec9dce65335f2ebb9078c5c31",
+    "ingestion-mobile-final.png": "ea59c1a175b96b1ddd595c079759245e982b49c23768ecb86e706718121b51d9",
+    "ingestion-review-mobile-final.png": "31bba6b6be913707f1ddd7a7eeb87331f8e506ca906670be175fe053196cbe5e"
+  },
+  "full_portfolio_acceptance": false
+}
