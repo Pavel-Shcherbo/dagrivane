@@ -1,0 +1,111 @@
+{
+  "passed": true,
+  "scope": "Clean installed reviewed loopback HTTP ingestion, not an external-provider or production qualification",
+  "one_page_retry_receipt_is_observational": true,
+  "raw_page_hashes": [
+    "c4acd2426000ef293791b4e527ef8b580ee16db7db297b722ac3e3e60f8316bd",
+    "1f01389ecd9a4a5b407d60bebf6e63b51603d36c581f0300c025bf8ec3f9bcd6"
+  ],
+  "independent_live_keys": [
+    1,
+    3
+  ],
+  "independent_deleted_keys": [
+    2
+  ],
+  "independent_fraction_total": "45",
+  "live_rows": [
+    {
+      "amount": "15",
+      "id": 1,
+      "updated_at": "2020-01-02T12:00:00Z"
+    },
+    {
+      "amount": "30",
+      "id": 3,
+      "updated_at": "2020-01-02T12:00:00Z"
+    }
+  ],
+  "two_ordered_local_publications": true,
+  "second_artifact": {
+    "seq": 2,
+    "id": "3edce285c56a47c4a718ac691efbfe80",
+    "workspace": "ingestion-workbench",
+    "name": "healthy",
+    "kind": "table",
+    "sha256": "3b1b21be2e67c6ef10ee84519e0b88e32d6f5cc5cb539345eb301d539a48a9e9",
+    "bytes": 1066,
+    "run_id": "ingest:2de62562b31f491b9b4e15d4837725a5:72172bf2e4cc:2",
+    "revision": null,
+    "policy_name": "healthy",
+    "policy_version": 1,
+    "metadata": {
+      "dataset_version": 2,
+      "plan_sha256": "5630a3062da68fa9e3f671aacf5254664392e5db34da9bde07a822599bb2a92e",
+      "policy_sha256": "4a20caa645b47423e42cc961c729a2d8abf523fcdf08cdf2836adbcad4ddb2b6",
+      "quality_checks": [
+        {
+          "failure_count": 0,
+          "id": "ids",
+          "kind": "unique",
+          "passed": true,
+          "sample_record_numbers": []
+        },
+        {
+          "id": "budget",
+          "kind": "sum",
+          "max": "1000",
+          "min": null,
+          "observed": "45",
+          "passed": true
+        }
+      ],
+      "table": {
+        "columns": 3,
+        "contract": {
+          "columns": [
+            {
+              "name": "id",
+              "nullable": false,
+              "type": "integer"
+            },
+            {
+              "min": "0",
+              "name": "amount",
+              "nullable": false,
+              "type": "decimal"
+            },
+            {
+              "name": "updated_at",
+              "nullable": false,
+              "type": "timestamp"
+            }
+          ],
+          "name": "orders",
+          "version": 1
+        },
+        "data_sha256": "41c031b48c8352aab2c8443ada92eff621278be8e5b0917b06e8251a2a2b88e5",
+        "rows": 2,
+        "source_sha256": [
+          "56c3cf366b0759c466f181b08580cf73b96251a2fe0066e93cf24d22958d714e",
+          "1f01389ecd9a4a5b407d60bebf6e63b51603d36c581f0300c025bf8ec3f9bcd6",
+          "fd79944a42006337c8393c55103c40a8596c8e48482617a052ebdc4e34593f16",
+          "239ebd1b80751f9425d1bfec708727db16d8763e48036562aa714b29e64001aa"
+        ]
+      }
+    },
+    "created_at": "2026-11-04T09:21:54.731590+00:00",
+    "parents": [
+      "87fe1f7783674445af5988d129b343de"
+    ]
+  },
+  "bundle_sha256": "3b1b21be2e67c6ef10ee84519e0b88e32d6f5cc5cb539345eb301d539a48a9e9",
+  "stale_view_rejected": true,
+  "blocked_page_original_sha256": "7c9cd823d7377a689f5f20b7e936023a161a2a87f4bfa44b136887424e92ceb0",
+  "corrected_page_retained_original_bytes": true,
+  "quality_recovery_total": "45",
+  "transient_retry_provider_requests": 2,
+  "unknown_endpoint_rejected": true,
+  "source_stream_and_receipt_audits_passed": true,
+  "full_portfolio_acceptance": false
+}
