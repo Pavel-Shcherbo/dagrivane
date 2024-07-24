@@ -56,3 +56,8 @@ class IngestionDeskTests(unittest.TestCase):
         cls.origin = holder["origin"]
         cls.port = cls.server.server_port
 
+    @classmethod
+    def tearDownClass(cls):
+        cls.server.shutdown()
+        cls.thread.join(5)
+
