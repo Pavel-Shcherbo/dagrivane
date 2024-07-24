@@ -26,4 +26,33 @@ from dagrivane.web import evaluate, example
 
 
 class IngestionDeskTests(unittest.TestCase):
-    pass
+    @classmethod
+    def setUpClass(cls):
+        ready = threading.Event()
+        holder = {}
+
+        def factory(*args, **kwargs):
+            server = ThreadingHTTPServer(*args, **kwargs)
+            holder["server"] = server
+            return server
+
+        def started(origin):
+            start_origin(origin)
+            holder["origin"] = origin
+            ready.set()
+
+        def worker():
+            with (
+                patch("dagrivane.httpapp.ThreadingHTTPServer", side_effect=factory),
+                patch.object(sys, "argv", ["workbench", "--port", "0"]),
+            ):
+                serve(evaluate, example, 0, on_start=started, source_route=source_route)
+
+        cls.thread = threading.Thread(target=worker, daemon=True)
+        cls.thread.start()
+        if not ready.wait(5):
+            raise RuntimeError("test workbench failed to start")
+        cls.server = holder["server"]
+        cls.origin = holder["origin"]
+        cls.port = cls.server.server_port
+
