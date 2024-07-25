@@ -73,3 +73,6 @@ class IngestionDeskTests(unittest.TestCase):
         self.instance = IngestionDesk(self.root / "ingestion-workbench", self.origin)
         self.sequence = 0
 
+    def api(self, action, **params):
+        return evaluate_ingestion({"mode": "ingestion", "action": action, **params})
+
