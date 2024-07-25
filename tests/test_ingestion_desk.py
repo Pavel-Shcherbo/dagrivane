@@ -61,3 +61,15 @@ class IngestionDeskTests(unittest.TestCase):
         cls.server.shutdown()
         cls.thread.join(5)
 
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+        self.guard = patch(
+            "dagrivane.ingestion_web.state_directory", return_value=self.root
+        )
+        self.guard.start()
+        self.addCleanup(self.guard.stop)
+        self.instance = IngestionDesk(self.root / "ingestion-workbench", self.origin)
+        self.sequence = 0
+
