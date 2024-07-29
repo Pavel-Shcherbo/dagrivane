@@ -76,3 +76,6 @@ class IngestionDeskTests(unittest.TestCase):
     def api(self, action, **params):
         return evaluate_ingestion({"mode": "ingestion", "action": action, **params})
 
+    def initialize(self):
+        return self.api("initialize")
+
