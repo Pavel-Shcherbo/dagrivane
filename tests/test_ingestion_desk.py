@@ -79,3 +79,6 @@ class IngestionDeskTests(unittest.TestCase):
     def initialize(self):
         return self.api("initialize")
 
+    def view(self, profile="healthy", **params):
+        return self.api("inspect", profile=profile, **params)
+
