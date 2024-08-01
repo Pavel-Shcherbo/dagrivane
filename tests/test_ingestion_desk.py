@@ -82,3 +82,13 @@ class IngestionDeskTests(unittest.TestCase):
     def view(self, profile="healthy", **params):
         return self.api("inspect", profile=profile, **params)
 
+    def action(self, action, profile="healthy", **params):
+        self.sequence += 1
+        return self.api(
+            action,
+            profile=profile,
+            request_key="test-" + str(self.sequence),
+            expected_revision=self.view(profile)["revision"],
+            **params,
+        )
+
