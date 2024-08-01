@@ -92,3 +92,7 @@ class IngestionDeskTests(unittest.TestCase):
             **params,
         )
 
+    def stores(self):
+        store = IngestStore(self.instance.path)
+        return store, HTTPSourceStore(store)
+
