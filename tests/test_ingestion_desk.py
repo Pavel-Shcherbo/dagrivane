@@ -96,3 +96,22 @@ class IngestionDeskTests(unittest.TestCase):
         store = IngestStore(self.instance.path)
         return store, HTTPSourceStore(store)
 
+    def http(self, method, path, params=None, headers=None):
+        connection = http.client.HTTPConnection("127.0.0.1", self.port, timeout=15)
+        try:
+            connection.request(
+                method,
+                path,
+                json.dumps(params) if params is not None else None,
+                {
+                    "Content-Type": "application/json",
+                    "X-Local-Request": "1",
+                    **(headers or {}),
+                },
+            )
+            response = connection.getresponse()
+            body = response.read()
+            return response.status, json.loads(body) if body else None
+        finally:
+            connection.close()
+
