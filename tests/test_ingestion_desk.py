@@ -115,3 +115,36 @@ class IngestionDeskTests(unittest.TestCase):
         finally:
             connection.close()
 
+    def test_empty_and_invalid_controls_do_not_initialize_state(self):
+        self.assertFalse(self.api("overview")["initialized"])
+        invalid = [
+            {
+                "action": "poll",
+                "profile": "outside",
+                "request_key": "x",
+                "expected_revision": "a" * 64,
+            },
+            {
+                "action": "poll",
+                "profile": "healthy",
+                "url": "http://external",
+                "request_key": "x",
+                "expected_revision": "a" * 64,
+            },
+            {"action": "inspect", "profile": "healthy", "after_page": True},
+            {"action": "page", "profile": "healthy", "page_id": "../file"},
+            {
+                "action": "repair",
+                "profile": "quality",
+                "page_id": "a" * 64,
+                "request_key": "x",
+                "expected_revision": "a" * 64,
+                "reason": "",
+            },
+            {"action": "artifact", "profile": "healthy", "generation": 0},
+        ]
+        for fields in invalid:
+            with self.assertRaises(ValueError):
+                evaluate_ingestion({"mode": "ingestion", **fields})
+        self.assertFalse(self.instance.path.exists())
+
