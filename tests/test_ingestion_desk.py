@@ -148,3 +148,13 @@ class IngestionDeskTests(unittest.TestCase):
                 evaluate_ingestion({"mode": "ingestion", **fields})
         self.assertFalse(self.instance.path.exists())
 
+    def test_initialize_is_idempotent_and_has_three_empty_coherent_sources(self):
+        first = self.initialize()
+        self.assertEqual(first, self.initialize())
+        self.assertEqual(len(first["items"]), 3)
+        view = self.view()
+        self.assertEqual(view["data"]["rows"], [])
+        self.assertEqual(view["data"]["amount_total"], "0")
+        self.assertEqual(view["source"]["offset"], view["data"]["offset"])
+        self.assertEqual(view["source"]["generation"], view["stream"]["generation"])
+
