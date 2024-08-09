@@ -158,3 +158,24 @@ class IngestionDeskTests(unittest.TestCase):
         self.assertEqual(view["source"]["offset"], view["data"]["offset"])
         self.assertEqual(view["source"]["generation"], view["stream"]["generation"])
 
+    def test_two_real_pages_one_at_a_time_then_idle_without_new_generations(self):
+        self.initialize()
+        first = self.action("poll")
+        self.assertEqual(first["outcome"]["status"], "limited")
+        self.assertEqual(self.view()["data"]["amount_total"], "30")
+        second = self.action("poll")
+        self.assertEqual(second["outcome"]["status"], "drained")
+        view = self.view()
+        self.assertEqual(
+            view["data"]["rows"],
+            [
+                {"id": 1, "amount": "15", "updated_at": "2020-01-02T12:00:00Z"},
+                {"id": 3, "amount": "30", "updated_at": "2020-01-02T12:00:00Z"},
+            ],
+        )
+        self.assertEqual(view["data"]["amount_total"], "45")
+        self.assertEqual(view["data"]["tombstones"], 1)
+        self.action("poll")
+        self.assertEqual(self.view()["source"]["generation"], 2)
+        self.assertEqual(self.view()["provider"]["requests"], 3)
+
