@@ -179,3 +179,22 @@ class IngestionDeskTests(unittest.TestCase):
         self.assertEqual(self.view()["source"]["generation"], 2)
         self.assertEqual(self.view()["provider"]["requests"], 3)
 
+    def test_poll_retry_receipt_does_not_refetch_or_advance_another_page(self):
+        self.initialize()
+        revision = self.view()["revision"]
+        fields = {
+            "profile": "healthy",
+            "request_key": "retry",
+            "expected_revision": revision,
+        }
+        first = self.api("poll", **fields)
+        again = self.api("poll", **fields)
+        self.assertEqual(first, again)
+        self.assertEqual(self.view()["provider"]["requests"], 1)
+        self.assertEqual(
+            self.api("operation", profile="healthy", request_key="retry"), first
+        )
+        with self.assertRaisesRegex(ValueError, "conflicts"):
+            self.api("publish", **fields)
+        self.assertEqual(self.view()["source"]["generation"], 1)
+
