@@ -214,3 +214,34 @@ class IngestionDeskTests(unittest.TestCase):
         self.assertEqual(after["data"]["total_rows"], 0)
         self.assertEqual(after["source"]["offset"], 0)
 
+    def test_review_correction_preserves_original_then_refetches_same_position(self):
+        self.initialize()
+        self.action("poll", "quality")
+        blocked = self.view("quality")
+        page = blocked["source"]["pending"]["id"]
+        raw = self.api("page", profile="quality", page_id=page)["raw_base64"]
+        self.action(
+            "repair",
+            "quality",
+            page_id=page,
+            reason="Correct synthetic provider amount",
+        )
+        corrected = self.view("quality")
+        self.assertTrue(corrected["provider"]["corrected"])
+        self.assertEqual(corrected["source"]["pending"]["id"], page)
+        self.assertEqual(corrected["source"]["offset"], 0)
+        self.action(
+            "discard",
+            "quality",
+            page_id=page,
+            reason="Reviewed invalid entity; keep original bytes",
+        )
+        self.assertEqual(self.view("quality")["source"]["offset"], 0)
+        self.action("poll", "quality")
+        self.action("poll", "quality")
+        self.assertEqual(self.view("quality")["data"]["amount_total"], "45")
+        retained = self.api("page", profile="quality", page_id=page)
+        self.assertEqual(retained["raw_base64"], raw)
+        self.assertEqual(retained["state"], "discarded")
+        self.assertTrue(self.api("audit", profile="quality")["passed"])
+
