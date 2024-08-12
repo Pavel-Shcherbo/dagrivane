@@ -198,3 +198,19 @@ class IngestionDeskTests(unittest.TestCase):
             self.api("publish", **fields)
         self.assertEqual(self.view()["source"]["generation"], 1)
 
+    def test_quality_gate_pins_raw_entity_and_stops_further_fetches(self):
+        self.initialize()
+        result = self.action("poll", "quality")
+        self.assertEqual(result["outcome"]["status"], "blocked")
+        before = self.view("quality")
+        page = before["source"]["pending"]["id"]
+        raw = self.api("page", profile="quality", page_id=page)
+        entity = base64.b64decode(raw["raw_base64"])
+        self.assertEqual(hashlib.sha256(entity).hexdigest(), raw["raw_sha256"])
+        self.assertEqual(json.loads(entity)["events"][0]["row"]["amount"], "2000")
+        self.action("poll", "quality")
+        after = self.view("quality")
+        self.assertEqual(after["provider"]["requests"], 1)
+        self.assertEqual(after["data"]["total_rows"], 0)
+        self.assertEqual(after["source"]["offset"], 0)
+
