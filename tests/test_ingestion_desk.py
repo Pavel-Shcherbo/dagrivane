@@ -255,3 +255,20 @@ class IngestionDeskTests(unittest.TestCase):
         self.assertTrue(provider["retry_sent"])
         self.assertEqual(provider["requests"], 2)
 
+    def test_ordered_publication_verifies_bundles_and_parent_link(self):
+        self.initialize()
+        self.action("poll")
+        self.action("poll")
+        self.assertEqual(self.view()["stream"]["publication_counts"], {"pending": 2})
+        first = self.action("publish")
+        self.assertTrue(first["outcome"]["published"])
+        second = self.action("publish")
+        self.assertTrue(second["outcome"]["published"])
+        one = self.api("artifact", profile="healthy", generation=1)
+        two = self.api("artifact", profile="healthy", generation=2)
+        self.assertEqual(two["artifact"]["parents"], [one["artifact"]["id"]])
+        raw = base64.b64decode(two["bundle_base64"])
+        self.assertEqual(hashlib.sha256(raw).hexdigest(), two["bundle_sha256"])
+        self.assertTrue(two["verification"]["passed"])
+        self.assertTrue(self.api("audit", profile="healthy")["passed"])
+
