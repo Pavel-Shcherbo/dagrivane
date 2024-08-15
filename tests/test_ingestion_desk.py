@@ -272,3 +272,16 @@ class IngestionDeskTests(unittest.TestCase):
         self.assertTrue(two["verification"]["passed"])
         self.assertTrue(self.api("audit", profile="healthy")["passed"])
 
+    def test_stale_view_or_cross_source_page_cannot_be_applied(self):
+        self.initialize()
+        stale = self.view()["revision"]
+        self.action("poll")
+        with self.assertRaisesRegex(ValueError, "view changed"):
+            self.api(
+                "poll", profile="healthy", request_key="stale", expected_revision=stale
+            )
+        page = self.view()["pages"]["items"][0]["id"]
+        with self.assertRaises(ValueError):
+            self.api("page", profile="quality", page_id=page)
+        self.assertEqual(self.view()["source"]["generation"], 1)
+
