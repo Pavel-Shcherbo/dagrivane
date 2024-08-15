@@ -285,3 +285,18 @@ class IngestionDeskTests(unittest.TestCase):
             self.api("page", profile="quality", page_id=page)
         self.assertEqual(self.view()["source"]["generation"], 1)
 
+    def test_claim_time_chain_fence_prevents_polling_a_newer_page(self):
+        self.initialize()
+        original = poll_source
+
+        def race(store, name, **kwargs):
+            original(store, name, max_pages=1)
+            return original(store, name, **kwargs)
+
+        with patch("dagrivane.ingestion_desk.poll_source", side_effect=race):
+            result = self.action("poll")
+        self.assertEqual(result["operation"]["status"], "failed")
+        self.assertIn("checkpoint changed", result["operation"]["error"])
+        self.assertEqual(self.view()["source"]["generation"], 1)
+        self.assertEqual(self.view()["provider"]["requests"], 1)
+
