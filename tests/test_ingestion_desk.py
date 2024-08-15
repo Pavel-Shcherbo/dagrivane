@@ -245,3 +245,13 @@ class IngestionDeskTests(unittest.TestCase):
         self.assertEqual(retained["state"], "discarded")
         self.assertTrue(self.api("audit", profile="quality")["passed"])
 
+    def test_transient_retry_happens_over_real_http_and_is_visible_in_provider_count(
+        self,
+    ):
+        self.initialize()
+        result = self.action("poll", "retry")
+        self.assertEqual(result["outcome"]["status"], "limited")
+        provider = self.view("retry")["provider"]
+        self.assertTrue(provider["retry_sent"])
+        self.assertEqual(provider["requests"], 2)
+
