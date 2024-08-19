@@ -300,3 +300,21 @@ class IngestionDeskTests(unittest.TestCase):
         self.assertEqual(self.view()["source"]["generation"], 1)
         self.assertEqual(self.view()["provider"]["requests"], 1)
 
+    def test_claim_time_outbox_fence_cannot_skip_to_next_generation(self):
+        self.initialize()
+        self.action("poll")
+        self.action("poll")
+        original = publish_next
+
+        def race(store, name, catalog, **kwargs):
+            original(store, name, catalog)
+            return original(store, name, catalog, **kwargs)
+
+        with patch("dagrivane.ingestion_desk.publish_next", side_effect=race):
+            result = self.action("publish")
+        self.assertEqual(result["operation"]["status"], "failed")
+        self.assertIn("head changed", result["operation"]["error"])
+        self.assertEqual(
+            self.view()["stream"]["publication_counts"], {"pending": 1, "published": 1}
+        )
+
