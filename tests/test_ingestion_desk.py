@@ -318,3 +318,22 @@ class IngestionDeskTests(unittest.TestCase):
             self.view()["stream"]["publication_counts"], {"pending": 1, "published": 1}
         )
 
+    def test_started_receipt_after_interruption_is_not_automatically_reexecuted(self):
+        self.initialize()
+        fields = {
+            "profile": "healthy",
+            "request_key": "crash",
+            "expected_revision": self.view()["revision"],
+        }
+        with patch(
+            "dagrivane.ingestion_desk.poll_source",
+            side_effect=SystemExit("simulated interruption"),
+        ):
+            with self.assertRaises(SystemExit):
+                self.api("poll", **fields)
+        result = self.api("poll", **fields)
+        self.assertEqual(result["operation"]["status"], "started")
+        self.assertIsNone(result["outcome"])
+        self.assertEqual(self.view()["provider"]["requests"], 0)
+        self.assertIn("not proof of rollback", result["operation"]["recovery"])
+
