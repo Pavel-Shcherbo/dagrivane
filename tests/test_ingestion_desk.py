@@ -337,3 +337,20 @@ class IngestionDeskTests(unittest.TestCase):
         self.assertEqual(self.view()["provider"]["requests"], 0)
         self.assertIn("not proof of rollback", result["operation"]["recovery"])
 
+    def test_origin_change_blocks_network_but_retains_read_and_recovery_evidence(self):
+        self.initialize()
+        self.action("poll")
+        other = IngestionDesk(self.instance.root, "http://127.0.0.1:1")
+        view = other.inspect("healthy")
+        result = other.mutate(
+            "healthy",
+            "poll",
+            request_key="other-origin",
+            expected_revision=view["revision"],
+        )
+        self.assertEqual(result["operation"]["status"], "failed")
+        self.assertIn("original workbench port", result["operation"]["error"])
+        self.assertEqual(self.view()["provider"]["requests"], 1)
+        with self.assertRaises(ValueError):
+            other.initialize()
+
