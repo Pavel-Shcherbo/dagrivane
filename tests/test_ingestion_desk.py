@@ -365,3 +365,20 @@ class IngestionDeskTests(unittest.TestCase):
         self.assertEqual(result["outcome"]["status"], "drained")
         self.assertEqual(reopened.inspect("healthy")["data"]["amount_total"], "45")
 
+    def test_read_cursors_typed_inputs_and_live_row_paging(self):
+        self.initialize()
+        self.action("poll")
+        self.action("poll")
+        view = self.view()
+        page = self.view(
+            after_page=view["pages"]["items"][0]["seq"],
+            after_generation=1,
+            row_offset=1,
+        )
+        self.assertEqual(len(page["pages"]["items"]), 1)
+        self.assertEqual(len(page["publications"]["items"]), 1)
+        self.assertEqual(page["data"]["rows"][0]["id"], 3)
+        self.assertEqual(page["data"]["amount_total"], "45")
+        with self.assertRaises(ValueError):
+            self.view(row_offset=3)
+
