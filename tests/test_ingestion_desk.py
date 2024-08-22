@@ -354,3 +354,14 @@ class IngestionDeskTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             other.initialize()
 
+    def test_restart_same_origin_resumes_pending_position(self):
+        self.initialize()
+        self.action("poll")
+        reopened = IngestionDesk(self.instance.root, self.origin)
+        view = reopened.inspect("healthy")
+        result = reopened.mutate(
+            "healthy", "poll", request_key="restart", expected_revision=view["revision"]
+        )
+        self.assertEqual(result["outcome"]["status"], "drained")
+        self.assertEqual(reopened.inspect("healthy")["data"]["amount_total"], "45")
+
