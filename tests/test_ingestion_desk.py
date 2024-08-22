@@ -382,3 +382,19 @@ class IngestionDeskTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.view(row_offset=3)
 
+    def test_failed_operations_are_durable_and_retry_is_observational(self):
+        self.initialize()
+        fields = {
+            "profile": "healthy",
+            "request_key": "error",
+            "expected_revision": self.view()["revision"],
+        }
+        with patch(
+            "dagrivane.ingestion_desk.poll_source",
+            side_effect=ValueError("injected failure"),
+        ):
+            first = self.api("poll", **fields)
+        self.assertEqual(first["operation"]["status"], "failed")
+        self.assertEqual(self.api("poll", **fields), first)
+        self.assertEqual(self.view()["operations"][0]["error"], "injected failure")
+
