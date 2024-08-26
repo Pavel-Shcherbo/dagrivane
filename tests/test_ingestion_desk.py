@@ -434,3 +434,45 @@ class IngestionDeskTests(unittest.TestCase):
         self.assertFalse(audit["passed"])
         self.assertFalse(audit["operations"]["passed"])
 
+    def test_source_http_boundaries_and_browser_only_reviewed_actions(self):
+        self.initialize()
+        status, result = self.http(
+            "GET", "/api/ingestion-source/healthy?cursor=unknown"
+        )
+        self.assertEqual(status, 409)
+        self.assertEqual(self.http("GET", "/api/ingestion-source/outside")[0], 400)
+        self.assertEqual(
+            self.http("GET", "/api/ingestion-source/healthy?cursor=one&cursor=two")[0],
+            400,
+        )
+        self.assertEqual(
+            self.http(
+                "GET",
+                "/api/ingestion-source/healthy",
+                headers={"Host": "outside.invalid"},
+            )[0],
+            403,
+        )
+        self.assertEqual(
+            self.http(
+                "POST",
+                "/api/evaluate",
+                {"mode": "ingestion", "action": "overview"},
+                headers={"Origin": "https://outside.invalid"},
+            )[0],
+            403,
+        )
+        self.assertEqual(
+            self.http(
+                "POST",
+                "/api/evaluate",
+                {
+                    "mode": "ingestion",
+                    "action": "poll",
+                    "profile": "healthy",
+                    "url": "http://outside.invalid",
+                },
+            )[0],
+            400,
+        )
+
