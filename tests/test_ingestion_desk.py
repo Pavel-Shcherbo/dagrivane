@@ -398,3 +398,16 @@ class IngestionDeskTests(unittest.TestCase):
         self.assertEqual(self.api("poll", **fields), first)
         self.assertEqual(self.view()["operations"][0]["error"], "injected failure")
 
+    def test_materialized_corruption_is_detected_by_view_and_audit(self):
+        self.initialize()
+        self.action("poll")
+        self.action("publish")
+        with closing(sqlite3.connect(self.instance.path)) as db, db:
+            db.execute(
+                "UPDATE records SET payload=? WHERE stream='healthy'",
+                (json.dumps({"row": None, "at": "wrong"}),),
+            )
+        with self.assertRaisesRegex(ValueError, "fingerprint"):
+            self.view()
+        self.assertFalse(self.api("audit", profile="healthy")["passed"])
+
