@@ -411,3 +411,26 @@ class IngestionDeskTests(unittest.TestCase):
             self.view()
         self.assertFalse(self.api("audit", profile="healthy")["passed"])
 
+    def test_changed_receipt_and_wrong_catalog_acknowledgement_are_rejected(self):
+        self.initialize()
+        self.action("poll")
+        self.action("publish")
+        with closing(sqlite3.connect(self.instance.path)) as db, db:
+            db.execute("UPDATE desk_operations SET error='changed' WHERE seq=1")
+            raw = db.execute(
+                "SELECT artifact FROM publications WHERE stream='healthy'"
+            ).fetchone()[0]
+            value = json.loads(raw)
+            value["bytes"] += 1
+            db.execute(
+                "UPDATE publications SET artifact=? WHERE stream='healthy'",
+                (json.dumps(value),),
+            )
+        with self.assertRaisesRegex(ValueError, "fingerprint"):
+            self.api("operation", profile="healthy", request_key="test-1")
+        with self.assertRaisesRegex(ValueError, "acknowledged"):
+            self.api("artifact", profile="healthy", generation=1)
+        audit = self.api("audit", profile="healthy")
+        self.assertFalse(audit["passed"])
+        self.assertFalse(audit["operations"]["passed"])
+
