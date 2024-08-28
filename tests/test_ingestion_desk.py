@@ -476,3 +476,13 @@ class IngestionDeskTests(unittest.TestCase):
             400,
         )
 
+    def test_concurrent_control_rejected_without_network(self):
+        self.initialize()
+        LOCK.acquire()
+        try:
+            with self.assertRaisesRegex(ValueError, "another ingestion"):
+                self.action("poll")
+        finally:
+            LOCK.release()
+        self.assertEqual(self.view()["provider"]["requests"], 0)
+
