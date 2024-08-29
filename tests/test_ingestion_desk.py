@@ -486,3 +486,21 @@ class IngestionDeskTests(unittest.TestCase):
             LOCK.release()
         self.assertEqual(self.view()["provider"]["requests"], 0)
 
+    def test_changed_configuration_cannot_send_browser_poll_to_another_endpoint(self):
+        self.initialize()
+        with closing(sqlite3.connect(self.instance.path)) as db, db:
+            config = json.loads(
+                db.execute(
+                    "SELECT configuration FROM http_sources WHERE name='healthy'"
+                ).fetchone()[0]
+            )
+            config["url"] = "http://127.0.0.1:1/never"
+            db.execute(
+                "UPDATE http_sources SET configuration=?,configuration_sha=? WHERE name='healthy'",
+                (json.dumps(config), fingerprint(config)),
+            )
+        result = self.action("poll")
+        self.assertEqual(result["operation"]["status"], "failed")
+        self.assertIn("reviewed loopback endpoint", result["operation"]["error"])
+        self.assertEqual(self.view()["provider"]["requests"], 0)
+
