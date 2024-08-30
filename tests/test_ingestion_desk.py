@@ -504,3 +504,14 @@ class IngestionDeskTests(unittest.TestCase):
         self.assertIn("reviewed loopback endpoint", result["operation"]["error"])
         self.assertEqual(self.view()["provider"]["requests"], 0)
 
+    def test_operation_receipt_capacity_refuses_before_network(self):
+        self.initialize()
+        with closing(sqlite3.connect(self.instance.path)) as db, db:
+            db.executemany(
+                "INSERT INTO desk_operations(profile,request_key,action,request_sha256,status,started_at) VALUES('healthy',?,'poll',?,'started',0)",
+                [("old-" + str(index), "a" * 64) for index in range(2000)],
+            )
+        with self.assertRaisesRegex(ValueError, "2,000"):
+            self.action("poll")
+        self.assertEqual(self.view()["provider"]["requests"], 0)
+
