@@ -531,3 +531,13 @@ class IngestionDeskTests(unittest.TestCase):
         self.assertEqual(self.api("poll", **fields), result)
         self.assertEqual(self.view()["provider"]["requests"], 1)
 
+    def test_read_totals_ignore_process_decimal_precision(self):
+        from decimal import localcontext, Inexact
+
+        self.initialize()
+        self.action("poll")
+        self.action("poll")
+        with localcontext() as context:
+            context.prec = 1
+            context.traps[Inexact] = True
+            self.assertEqual(self.view()["data"]["amount_total"], "45")
