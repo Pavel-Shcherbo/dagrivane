@@ -515,3 +515,19 @@ class IngestionDeskTests(unittest.TestCase):
             self.action("poll")
         self.assertEqual(self.view()["provider"]["requests"], 0)
 
+    def test_result_quota_failure_keeps_actual_checkpoint_and_no_automatic_repeat(self):
+        self.initialize()
+        fields = {
+            "profile": "healthy",
+            "request_key": "quota",
+            "expected_revision": self.view()["revision"],
+        }
+        with patch("dagrivane.ingestion_desk.OPERATION_RESULT_BUDGET", 1):
+            result = self.api("poll", **fields)
+        self.assertEqual(result["operation"]["status"], "failed")
+        self.assertIsNone(result["outcome"])
+        self.assertIn("inspect durable source state", result["operation"]["error"])
+        self.assertEqual(self.view()["source"]["generation"], 1)
+        self.assertEqual(self.api("poll", **fields), result)
+        self.assertEqual(self.view()["provider"]["requests"], 1)
+
