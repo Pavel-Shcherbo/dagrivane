@@ -13,3 +13,5 @@ include examples/http_orders_server.py
 include examples/http-change-source.json
 include examples/http-row-source.json
 include examples/ingestion-control-pages.json
+
+include examples/daily-schedule.json
