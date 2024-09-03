@@ -84,3 +84,7 @@ work in those years. The 2019–2026 roadmap is proposed scope, not a completed-
 Durable streams accept ordered event batches or pinned CSV revisions, retain source checkpoints, deduplicate deliveries and apply event-time upserts/deletes with tombstones. Quality-gated snapshots enter a leased outbox and publish idempotently into the artifact catalog, with predecessor lineage and replay audits. See [incremental ingestion guide](docs/INGESTION.md) for a complete example and recovery boundaries.
 
 [Source-to-dataset workbench](docs/INGESTION_WORKBENCH.md): retained HTTP pages, checkpoint/data inspection, explicit quality review and ordered local catalog publication.
+
+## Calendar dispatch
+
+Preview and register retained interval or timezone cron schedules, choose missed-run/overlap policies, and dispatch into the durable queue with restart-safe receipts. An explicit foreground watcher supports automatic dispatch; workers execute queued workflows separately. See the [schedule guide](docs/SCHEDULES.md) and `python3 -m dagrivane.schedules --help`.
