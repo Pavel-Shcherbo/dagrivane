@@ -4,13 +4,13 @@ Updated: 2026-11-04. Actual status only; historical roadmap rows remain proposed
 
 | Task | Status | Evidence | Remaining work |
 |---|---|---|---|
-| Core domain path | Implemented; 187 current tests passed | `dagrivane/`, `tests/` | Expand adversarial coverage as the model grows |
+| Core domain path | Implemented; 230 current tests passed | `dagrivane/`, `tests/` | Expand adversarial coverage as the model grows |
 | Local CLI | Implemented; CLI end-to-end checks passed | `dagrivane/__main__.py`, `examples/` | Retained in the local verification evidence |
 | Local workbench | Implemented; local HTTP and reviewed browser flows passed | `dagrivane/web.py`, `dagrivane/static/` | Retain checks as new screens and flows are added |
 | Broad product scope | Planned | `docs/PRODUCT_SCOPE.md` | Broad platform subsystems still require implementation |
 | Weekly reconstruction plan | Written | `docs/proposed-weekly-roadmap.csv` | Proposed commit counts are not actual commits |
 | Publication | Waiting on Pavel | Current request: do not upload without Pavel | No push or hosted deployment |
-| Production implementation ≥20,000 useful SLOC | Not achieved | 11468 project-specific SLOC measured; not achieved | Implement and verify the broad subsystem scope without padding |
+| Production implementation ≥20,000 useful SLOC | Not achieved | 12893 project-specific SLOC measured; not achieved | Implement and verify the broad subsystem scope without padding |
 | Durable control plane | Implemented; 14 control-plane checks passed; 136 total domain/integration checks passed | `dagrivane/control.py`, `tests/test_control.py` | Worker and management CLI integration passed; concurrent cold-start WAL race fixed and retested; operator documentation in `docs/OPERATIONS.md`; broader controls remain open |
 | Fenced local worker and operator CLI | Implemented; five worker/CLI integration tests passed | `dagrivane/worker.py`, `dagrivane/manage.py` | Control-plane workbench verified; remote worker service and distributed recovery qualification remain open |
 | Installable local package | Verified from a clean environment outside the source tree | `docs/installed-verification.json`, `_build.py`, `MANIFEST.in` | Cross-version/platform qualification remains open |
@@ -28,7 +28,7 @@ Next executable increment: add reviewed schema migration and retention controls,
 
 Local reconstruction: five initial substantive stage commits created, plus verification, control-plane, typed-data, artifact/release incremental-ingestion, operations-workbench and HTTP-source increments. No remote is configured; no upload was performed. The full dated roadmap remains proposed.
 
-Current implementation verification: 187 tests passed, CLI checked, clean wheel installation and installed workbench HTTP checked. Broad scope and the 20,000-SLOC requirement remain open.
+Current implementation verification: 230 tests passed, CLI checked, clean wheel installation and installed workbench HTTP checked. Broad scope and the 20,000-SLOC requirement remain open.
 
 Verified increment: typed contracts, bounded CSV sources, relational operators, quality-gated create-only artifacts and built-in subprocess dataflow tasks. 99 tests passed, including an independent SQLite relational oracle. Clean installed CLI and workbench success/failure checks passed; desktop and mobile browser flows inspected. Evidence: `docs/verification.json`, `docs/installed-verification.json`, `docs/browser-verification.json`. Full product scope and 20,000 useful SLOC remain open.
 
@@ -41,3 +41,9 @@ Verified increment: durable operations workbench with reviewed immutable version
 Verified increment: direct HTTP row/change feeds with typed JSON-pointer mapping, exact JSON decimals, durable raw-page staging, fenced leases/heartbeats, atomic data/cursor commits, retry cooldowns, blocked-entity review and coherent local audits. Twenty-seven new checks and 163 total Dagrivane tests passed, including commit-time lease expiry rollback. Clean installed two-page extraction, bounded resume, idle polling, transient retry, quality rejection, raw exports, independent change reduction and ordered catalog publication passed. Evidence: docs/HTTP_SOURCES.md and docs/http-source-verification.json. Provider SDKs/CDC, ingestion browser, schema migration, retention/quota migration, watched services, remote deployment and full product/20,000 useful-SLOC scope remain open.
 
 Verified ingestion-workbench increment: 24 new checks, 187 Dagrivane tests, clean installed API and real desktop/mobile browser controls passed. Source/data/outbox views are coherent, poll/publication claims are fenced, original rejected entities survive explicit correction/discard/refetch, and action receipts recover a lost response without another fetch. Independent downloads reconciled live keys 1/3, tombstone 2, amount 45 and verified catalog ancestry. A 150-response workload retained only two data generations and did not misreport bounded audit completeness. Evidence: docs/INGESTION_WORKBENCH.md, docs/ingestion-workbench-verification.json, docs/ingestion-browser-verification.json, docs/ingestion-benchmark.json. Current project-specific source: 11468 useful SLOC. General provider management, migrations, retention/deletion, watched services, signed provenance and full product/20,000 useful-SLOC scope remain open. No external publication.
+
+Retained calendar scheduler implemented and verified below. Existing legacy interval scheduler remains separate. Full scope/20,000 useful-SLOC acceptance remains open.
+
+Verified retained scheduler increment: 43 new checks, 230 Dagrivane tests and 615 portfolio tests passed. Interval/numeric-cron schedules retain timezone TZif bytes, explicit fold/gap and missed/overlap policies; queue insertion, cursor, events, fairness head and response receipts commit atomically. Pause/resume is generation-fenced; a foreground watch loop supports automatic dispatch. Clean installed commands executed a real isolated scheduled pipeline with independently read 4 orders/USD 112.00, preserved lost-response receipts and verified an export after deleting the source database. A retained 100-schedule/2,000-slot queue workload and all complete schedule audits passed. Evidence: docs/SCHEDULES.md, docs/schedule-verification.json and docs/schedule-benchmark.json. Current project-specific production source: 12893 SLOC. Calendar browser, supervised/distributed services, retention, remote providers, schema evolution and full product/20,000 useful-SLOC acceptance remain open. No publication.
+
+| Retained calendar schedules and foreground dispatcher | Verified local increment; 43 new checks, 230 current tests | `docs/SCHEDULES.md`, clean installed worker/evidence controls and 2,000-slot workload | Calendar browser, retention, supervised/distributed services and full size/scope remain open |
