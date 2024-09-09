@@ -36,3 +36,7 @@ def instant(value, field="time"):
     return int(value)
 
 
+def iso(value):
+    return datetime.fromtimestamp(value, UTC).isoformat().replace("+00:00", "Z")
+
+
