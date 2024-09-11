@@ -40,3 +40,53 @@ def iso(value):
     return datetime.fromtimestamp(value, UTC).isoformat().replace("+00:00", "Z")
 
 
+def retained_zone(value):
+    if isinstance(value, str):
+        if not re.fullmatch(r"[A-Za-z0-9_+.-]+(?:/[A-Za-z0-9_+.-]+)*", value) or any(
+            part in (".", "..") for part in value.split("/")
+        ):
+            raise ValueError("timezone must be an IANA key")
+        raw = None
+        for directory in TZPATH:
+            candidate = Path(directory).joinpath(*value.split("/"))
+            if candidate.is_file():
+                with candidate.open("rb") as stream:
+                    raw = stream.read(262145)
+                break
+        if raw is None:
+            try:
+                node = resources.files("tzdata.zoneinfo").joinpath(*value.split("/"))
+                with node.open("rb") as stream:
+                    raw = stream.read(262145)
+            except (ModuleNotFoundError, FileNotFoundError, IsADirectoryError) as error:
+                raise ValueError(
+                    "timezone data unavailable; supply retained TZif data or install tzdata"
+                ) from error
+        value = {
+            "name": value,
+            "tzif": base64.b64encode(raw).decode(),
+            "sha256": hashlib.sha256(raw).hexdigest(),
+        }
+    if (
+        not isinstance(value, dict)
+        or set(value) != {"name", "tzif", "sha256"}
+        or not isinstance(value["name"], str)
+        or not 1 <= len(value["name"]) <= 200
+        or not isinstance(value["tzif"], str)
+        or len(value["tzif"]) > 350000
+    ):
+        raise ValueError("invalid retained timezone declaration")
+    try:
+        raw = base64.b64decode(value["tzif"], validate=True)
+        if (
+            not raw.startswith(b"TZif")
+            or len(raw) > 262144
+            or hashlib.sha256(raw).hexdigest() != value["sha256"]
+        ):
+            raise ValueError("retained timezone bytes or hash mismatch")
+        zone = ZoneInfo.from_file(io.BytesIO(raw), key=value["name"])
+    except (ValueError, TypeError, OverflowError, EOFError, struct.error) as error:
+        raise ValueError("invalid retained timezone data") from error
+    return dict(value), zone
+
+
