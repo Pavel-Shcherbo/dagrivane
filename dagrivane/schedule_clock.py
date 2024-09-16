@@ -90,3 +90,32 @@ def retained_zone(value):
     return dict(value), zone
 
 
+def cron_field(value, low, high):
+    if not isinstance(value, str) or not 1 <= len(value) <= 128:
+        raise ValueError("invalid cron field")
+    selected = set()
+    for component in value.split(","):
+        if not re.fullmatch(r"(?:\*|\d{1,2}(?:-\d{1,2})?)(?:/\d{1,2})?", component):
+            raise ValueError(
+                "cron supports numeric values, lists, ranges and explicit range/* steps"
+            )
+        parts = component.split("/")
+        step = int(parts[1]) if len(parts) == 2 else 1
+        if not 1 <= step <= high - low + 1:
+            raise ValueError("cron step is outside the field range")
+        if parts[0] == "*":
+            start, stop = low, high
+        elif "-" in parts[0]:
+            start, stop = map(int, parts[0].split("-"))
+        elif len(parts) == 1:
+            start = stop = int(parts[0])
+        else:
+            raise ValueError("cron steps require a wildcard or range")
+        if not low <= start <= stop <= high:
+            raise ValueError("cron value/range outside bounds")
+        selected.update(range(start, stop + 1, step))
+    return tuple(sorted(selected))
+
+
+class Recurrence:
+    pass
