@@ -141,3 +141,12 @@ class Recurrence:
                 )
             )
 
+    def _date_matches(self, day):
+        _, _, dom, months, dow = self.fields
+        if day.month not in months:
+            return False
+        left, right = day.day in dom, (day.weekday() + 1) % 7 in dow
+        if self.trigger["day_match"] == "and" or len(dom) == 31 or len(dow) == 7:
+            return left and right
+        return left or right
+
