@@ -118,4 +118,26 @@ def cron_field(value, low, high):
 
 
 class Recurrence:
-    pass
+    def __init__(self, trigger, start, end):
+        self.trigger = trigger
+        self.start = start
+        self.end = end
+        self.zone = None
+        self.fields = None
+        self._day_cache = {}
+        if trigger["kind"] == "cron":
+            _, self.zone = retained_zone(trigger["timezone"])
+            expression = trigger["expression"]
+            if (
+                not isinstance(expression, str)
+                or len(expression) > 512
+                or len(expression.split()) != 5
+            ):
+                raise ValueError("cron expression must have five numeric fields")
+            self.fields = tuple(
+                cron_field(part, *bounds)
+                for part, bounds in zip(
+                    expression.split(), ((0, 59), (0, 23), (1, 31), (1, 12), (0, 6))
+                )
+            )
+
