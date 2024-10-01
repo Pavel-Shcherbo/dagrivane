@@ -150,3 +150,19 @@ class Recurrence:
             return left and right
         return left or right
 
+    def _local_instants(self, wall):
+        found = set()
+        for fold in (0, 1):
+            aware = wall.replace(tzinfo=self.zone, fold=fold)
+            stamp = int(aware.timestamp())
+            back = datetime.fromtimestamp(stamp, self.zone)
+            if back.replace(tzinfo=None) == wall and back.fold == fold:
+                found.add(stamp)
+        ordered = sorted(found)
+        policy = self.trigger["fold"]
+        return (
+            ordered
+            if policy == "both"
+            else ordered[:1] if policy == "first" else ordered[-1:]
+        )
+
