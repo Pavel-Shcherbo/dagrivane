@@ -166,3 +166,15 @@ class Recurrence:
             else ordered[:1] if policy == "first" else ordered[-1:]
         )
 
+    def _day_instants(self, day):
+        if day not in self._day_cache:
+            values = set()
+            for hour in self.fields[1]:
+                for minute in self.fields[0]:
+                    wall = datetime(day.year, day.month, day.day, hour, minute)
+                    values.update(self._local_instants(wall))
+            if len(self._day_cache) >= 8:
+                self._day_cache.pop(next(iter(self._day_cache)))
+            self._day_cache[day] = tuple(sorted(values))
+        return self._day_cache[day]
+
