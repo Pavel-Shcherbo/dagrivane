@@ -178,3 +178,69 @@ class Recurrence:
             self._day_cache[day] = tuple(sorted(values))
         return self._day_cache[day]
 
+    def occurrence(self, boundary, *, reverse=False):
+        boundary = instant(boundary, "recurrence boundary")
+        lower = self.start
+        upper = self.end if self.end is not None else MAX_TIME
+        if reverse:
+            boundary = min(boundary, upper - 1)
+            if boundary < lower:
+                return None
+        else:
+            boundary = max(boundary, lower)
+            if boundary >= upper:
+                return None
+        if self.trigger["kind"] == "interval":
+            interval = self.trigger["seconds"]
+            offset = (
+                (boundary - lower) // interval
+                if reverse
+                else (boundary - lower + interval - 1) // interval
+            )
+            result = lower + offset * interval
+            return result if lower <= result < upper else None
+        origin = datetime.fromtimestamp(boundary, self.zone).date()
+        direction = -1 if reverse else 1
+        day = origin - timedelta(days=2 * direction)
+        best = None
+        checked = 0
+        for _ in range(3664):
+            # A timezone offset has absolute magnitude <24 hours. This bound makes
+            # ordering safe even around date-line changes and unusual transitions.
+            extreme = datetime.combine(day, datetime.min.time(), UTC).timestamp()
+            if best is not None and (
+                extreme - 86400 > best if not reverse else extreme + 172800 < best
+            ):
+                break
+            if (extreme - 86400 >= upper and not reverse) or (
+                extreme + 172800 < lower and reverse
+            ):
+                break
+            if self._date_matches(day):
+                checked += len(self.fields[1]) * len(self.fields[0])
+                if checked > 200000:
+                    raise ValueError(
+                        "cron search exceeds 200,000 local-minute candidates"
+                    )
+                values = self._day_instants(day)
+                position = (
+                    bisect_right(values, boundary) - 1
+                    if reverse
+                    else bisect_left(values, boundary)
+                )
+                if 0 <= position < len(values):
+                    candidate = values[position]
+                    if lower <= candidate < upper and (
+                        best is None
+                        or (candidate > best if reverse else candidate < best)
+                    ):
+                        best = candidate
+            day += timedelta(days=direction)
+        if best is None and lower <= boundary < upper:
+            edge = datetime.combine(day, datetime.min.time(), UTC).timestamp()
+            if lower < edge < upper:
+                raise ValueError(
+                    "cron has no occurrence within the ten-year search horizon"
+                )
+        return best
+
