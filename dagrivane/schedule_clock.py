@@ -244,3 +244,6 @@ class Recurrence:
                 )
         return best
 
+    def next(self, boundary):
+        return self.occurrence(boundary)
+
