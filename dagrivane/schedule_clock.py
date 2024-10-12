@@ -247,3 +247,6 @@ class Recurrence:
     def next(self, boundary):
         return self.occurrence(boundary)
 
+    def previous(self, boundary):
+        return self.occurrence(boundary, reverse=True)
+
