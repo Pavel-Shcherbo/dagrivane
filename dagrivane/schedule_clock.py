@@ -250,3 +250,14 @@ class Recurrence:
     def previous(self, boundary):
         return self.occurrence(boundary, reverse=True)
 
+    def describe(self, due):
+        value = {"due": due, "utc": iso(due)}
+        if self.zone is not None:
+            local = datetime.fromtimestamp(due, self.zone)
+            value.update(
+                local=local.isoformat(),
+                fold=local.fold,
+                timezone=self.trigger["timezone"]["name"],
+                timezone_sha256=self.trigger["timezone"]["sha256"],
+            )
+        return value
