@@ -8,3 +8,7 @@ from .schedule_model import compile_schedule, digest
 from .schedule_store import event
 
 
+def advance(clock, due):
+    return None if due + 1 >= MAX_TIME else clock.next(due + 1)
+
+
