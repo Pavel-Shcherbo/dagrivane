@@ -19,3 +19,11 @@ def omitted(clock, start, through, reason):
     return {"from_due": start, "through_due": through, "count": count, "reason": reason}
 
 
+def active(db, schedule):
+    row = db.execute(
+        "SELECT r.id,r.status FROM cp_timed_occurrences o JOIN cp_runs r ON r.id=o.run_id WHERE o.schedule_id=? AND r.status IN ('queued','running','cancel_requested') ORDER BY o.due LIMIT 1",
+        (schedule,),
+    ).fetchone()
+    return dict(row) if row else None
+
+
