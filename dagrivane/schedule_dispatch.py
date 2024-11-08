@@ -118,3 +118,64 @@ def process(store, db, row, now, budget):
     }
 
 
+def dispatch(store, workspace, request_key, *, now, limit=100):
+    now = instant(now, "dispatch clock")
+    text(request_key, "dispatch request key", 200)
+    if type(limit) is not int or not 1 <= limit <= 100:
+        raise ValueError("dispatch limit must be 1 through 100 total slot outcomes")
+    identity = digest({"now": now, "limit": limit})
+    with store.control.transaction() as db:
+        store.control.workspace(db, workspace)
+        prior = db.execute(
+            "SELECT * FROM cp_timed_receipts WHERE workspace_id=? AND request_key=?",
+            (workspace, request_key),
+        ).fetchone()
+        if prior is not None:
+            if prior["request_sha256"] != identity:
+                raise Conflict(
+                    "dispatch request key already identifies another clock or limit"
+                )
+            return json.loads(prior["result"])
+        head = db.execute(
+            "SELECT last_schedule FROM cp_timed_dispatch_heads WHERE workspace_id=?",
+            (workspace,),
+        ).fetchone()
+        cursor = head[0] if head else ""
+        rows = db.execute(
+            "SELECT * FROM cp_timed_schedules WHERE workspace_id=? AND enabled=1 AND next_due<=? ORDER BY CASE WHEN id>? THEN 0 ELSE 1 END,id LIMIT 100",
+            (workspace, now, cursor),
+        ).fetchall()
+        result = {
+            "workspace_id": workspace,
+            "request_key": request_key,
+            "now": now,
+            "limit": limit,
+            "schedules": [],
+            "outcome_count": 0,
+            "due_remaining": False,
+        }
+        for row in rows[:100]:
+            if result["outcome_count"] >= limit:
+                break
+            outcome = process(
+                store, db, row, now, min(20, limit - result["outcome_count"])
+            )
+            result["schedules"].append(outcome)
+            cursor = row["id"]
+            result["outcome_count"] += len(outcome["outcomes"])
+        if result["schedules"]:
+            db.execute(
+                "INSERT INTO cp_timed_dispatch_heads VALUES(?,?) ON CONFLICT(workspace_id) DO UPDATE SET last_schedule=excluded.last_schedule",
+                (workspace, cursor),
+            )
+        result["due_remaining"] = bool(
+            db.execute(
+                "SELECT 1 FROM cp_timed_schedules WHERE workspace_id=? AND enabled=1 AND next_due<=? LIMIT 1",
+                (workspace, now),
+            ).fetchone()
+        )
+        db.execute(
+            "INSERT INTO cp_timed_receipts VALUES(?,?,?,?,?)",
+            (workspace, request_key, identity, canonical(result), now),
+        )
+        return result
