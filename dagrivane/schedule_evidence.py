@@ -14,3 +14,7 @@ MAX_OCCURRENCES = 10000
 MAX_BYTES = 16 * 1024 * 1024
 
 
+def next_after(clock, due):
+    return None if due + 1 >= MAX_TIME else clock.next(due + 1)
+
+
