@@ -64,3 +64,7 @@ def export_schedule(store, workspace, schedule):
     return document
 
 
+def invalid(message):
+    raise ValueError("invalid schedule evidence: " + message)
+
+
