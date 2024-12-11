@@ -419,3 +419,10 @@ def verify_schedule_evidence(document):
     }
 
 
+def save_evidence(document, path):
+    verify_schedule_evidence(document)
+    path = Path(path)
+    with path.open("xb") as stream:
+        stream.write(canonical(document).encode() + b"\n")
+    path.chmod(0o600)
+    return {"path": str(path), "sha256": document["sha256"]}
