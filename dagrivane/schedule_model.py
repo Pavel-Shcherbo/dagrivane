@@ -13,3 +13,11 @@ class SchedulePlan:
     definition: dict
     sha256: str
 
+    def clock(self):
+        return Recurrence(
+            self.definition["trigger"],
+            self.definition["start_at"],
+            self.definition["end_at"],
+        )
+
+
