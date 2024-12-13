@@ -21,3 +21,7 @@ class SchedulePlan:
         )
 
 
+def digest(value):
+    return hashlib.sha256(canonical(value).encode()).hexdigest()
+
+
