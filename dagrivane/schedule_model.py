@@ -117,3 +117,25 @@ def compile_schedule(value):
     return plan
 
 
+def preview_schedule(definition, *, after=None, limit=20):
+    if type(limit) is not int or not 1 <= limit <= 100:
+        raise ValueError("preview limit must be between 1 and 100")
+    plan = compile_schedule(definition)
+    clock = plan.clock()
+    cursor = plan.definition["start_at"] if after is None else instant(after)
+    items = []
+    for _ in range(limit + 1):
+        due = clock.next(cursor)
+        if due is None:
+            break
+        items.append(clock.describe(due))
+        if due + 1 >= MAX_TIME:
+            break
+        cursor = due + 1
+    return {
+        "definition": plan.definition,
+        "plan_sha256": plan.sha256,
+        "items": items[:limit],
+        "has_more": len(items) > limit,
+        "next_cursor": items[limit]["due"] if len(items) > limit else None,
+    }
