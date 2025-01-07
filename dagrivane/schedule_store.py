@@ -1,0 +1,44 @@
+"""Workspace-scoped retained schedules, durable cursors and append-only decisions."""
+
+import json
+import uuid
+
+from .control import Conflict, ControlStore, NotFound, canonical, limit_value, text
+from .schedule_clock import instant
+from .schedule_model import compile_schedule, digest
+
+SCHEMA = """
+CREATE TABLE IF NOT EXISTS cp_timed_schedules(
+ id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL REFERENCES cp_workspaces(id),
+ workflow_id TEXT NOT NULL, version INTEGER NOT NULL, request_key TEXT NOT NULL,
+ submission_hash TEXT NOT NULL, definition TEXT NOT NULL, plan_sha256 TEXT NOT NULL,
+ next_due INTEGER, enabled INTEGER NOT NULL, generation INTEGER NOT NULL,
+ created INTEGER NOT NULL,
+ UNIQUE(workspace_id,request_key),
+ FOREIGN KEY(workflow_id,version) REFERENCES cp_versions(workflow_id,version)
+);
+CREATE INDEX IF NOT EXISTS cp_timed_due ON cp_timed_schedules(workspace_id,enabled,next_due,id);
+CREATE TABLE IF NOT EXISTS cp_timed_events(
+ sequence INTEGER PRIMARY KEY AUTOINCREMENT,
+ schedule_id TEXT NOT NULL REFERENCES cp_timed_schedules(id), kind TEXT NOT NULL,
+ payload TEXT NOT NULL, previous_sha256 TEXT NOT NULL, sha256 TEXT NOT NULL, created INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS cp_timed_history ON cp_timed_events(schedule_id,sequence);
+CREATE TABLE IF NOT EXISTS cp_timed_occurrences(
+ schedule_id TEXT NOT NULL REFERENCES cp_timed_schedules(id), due INTEGER NOT NULL,
+ outcome TEXT NOT NULL, run_id TEXT REFERENCES cp_runs(id), created INTEGER NOT NULL,
+ PRIMARY KEY(schedule_id,due)
+);
+CREATE INDEX IF NOT EXISTS cp_timed_run ON cp_timed_occurrences(run_id);
+CREATE TABLE IF NOT EXISTS cp_timed_dispatch_heads(
+ workspace_id TEXT PRIMARY KEY REFERENCES cp_workspaces(id),
+ last_schedule TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS cp_timed_receipts(
+ workspace_id TEXT NOT NULL REFERENCES cp_workspaces(id), request_key TEXT NOT NULL,
+ request_sha256 TEXT NOT NULL, result TEXT NOT NULL, created INTEGER NOT NULL,
+ PRIMARY KEY(workspace_id,request_key)
+);
+"""
+
+
