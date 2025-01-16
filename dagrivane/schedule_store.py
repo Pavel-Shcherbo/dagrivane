@@ -42,3 +42,9 @@ CREATE TABLE IF NOT EXISTS cp_timed_receipts(
 """
 
 
+def expected_generation(value):
+    if type(value) is not int or value < 1:
+        raise ValueError("expected generation must be a positive integer")
+    return value
+
+
