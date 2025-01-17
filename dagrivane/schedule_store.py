@@ -48,3 +48,24 @@ def expected_generation(value):
     return value
 
 
+def event(connection, schedule_id, kind, payload, now):
+    prior = connection.execute(
+        "SELECT sha256 FROM cp_timed_events WHERE schedule_id=? ORDER BY sequence DESC LIMIT 1",
+        (schedule_id,),
+    ).fetchone()
+    parent = prior[0] if prior else digest([])
+    content = {
+        "schedule_id": schedule_id,
+        "kind": kind,
+        "payload": payload,
+        "previous_sha256": parent,
+        "created": now,
+    }
+    sha = digest(content)
+    connection.execute(
+        "INSERT INTO cp_timed_events(schedule_id,kind,payload,previous_sha256,sha256,created) VALUES(?,?,?,?,?,?)",
+        (schedule_id, kind, canonical(payload), parent, sha, now),
+    )
+    return sha
+
+
