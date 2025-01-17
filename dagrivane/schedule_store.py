@@ -69,3 +69,14 @@ def event(connection, schedule_id, kind, payload, now):
     return sha
 
 
+def record(row):
+    value = dict(row)
+    if type(value["enabled"]) is not int or value["enabled"] not in (0, 1):
+        raise Conflict("retained schedule enabled flag is invalid")
+    value["definition"] = json.loads(value["definition"])
+    value["enabled"] = bool(value["enabled"])
+    return value
+
+
+class ScheduleStore:
+    pass
