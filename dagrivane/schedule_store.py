@@ -79,4 +79,12 @@ def record(row):
 
 
 class ScheduleStore:
-    pass
+    def __init__(self, control):
+        if not isinstance(control, ControlStore):
+            raise ValueError("scheduler requires the durable workflow control store")
+        self.control = control
+        with control.transaction() as connection:
+            for sql in SCHEMA.split(";"):
+                if sql.strip():
+                    connection.execute(sql)
+
