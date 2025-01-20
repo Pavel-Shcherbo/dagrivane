@@ -88,3 +88,13 @@ class ScheduleStore:
                 if sql.strip():
                     connection.execute(sql)
 
+    @staticmethod
+    def row(connection, workspace, schedule):
+        value = connection.execute(
+            "SELECT * FROM cp_timed_schedules WHERE workspace_id=? AND id=?",
+            (workspace, schedule),
+        ).fetchone()
+        if value is None:
+            raise NotFound("schedule not found in this workspace")
+        return value
+
