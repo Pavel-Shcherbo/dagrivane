@@ -98,3 +98,68 @@ class ScheduleStore:
             raise NotFound("schedule not found in this workspace")
         return value
 
+    def create(self, workspace, workflow, version, definition, request_key, *, now):
+        now = instant(now, "creation time")
+        text(request_key, "schedule request key", 200)
+        plan = compile_schedule(definition)
+        clock = plan.clock()
+        due = clock.next(plan.definition["start_at"])
+        identity = digest(
+            {"workflow": workflow, "version": version, "plan": plan.sha256}
+        )
+        with self.control.transaction() as db:
+            self.control.version_record(db, workspace, workflow, version)
+            prior = db.execute(
+                "SELECT * FROM cp_timed_schedules WHERE workspace_id=? AND request_key=?",
+                (workspace, request_key),
+            ).fetchone()
+            if prior is not None:
+                if prior["submission_hash"] != identity:
+                    raise Conflict(
+                        "schedule request key already identifies different inputs"
+                    )
+                return record(prior)
+            if (
+                db.execute(
+                    "SELECT count(*) FROM cp_timed_schedules WHERE workspace_id=?",
+                    (workspace,),
+                ).fetchone()[0]
+                >= 1000
+                or db.execute("SELECT count(*) FROM cp_timed_schedules").fetchone()[0]
+                >= 10000
+            ):
+                raise Conflict(
+                    "schedule capacity reached (1,000 per workspace/10,000 local)"
+                )
+            schedule = str(uuid.uuid4())
+            db.execute(
+                "INSERT INTO cp_timed_schedules VALUES(?,?,?,?,?,?,?,?,?,1,1,?)",
+                (
+                    schedule,
+                    workspace,
+                    workflow,
+                    version,
+                    request_key,
+                    identity,
+                    canonical(plan.definition),
+                    plan.sha256,
+                    due,
+                    now,
+                ),
+            )
+            event(
+                db,
+                schedule,
+                "created",
+                {
+                    "next_due": due,
+                    "generation": 1,
+                    "enabled": True,
+                    "plan_sha256": plan.sha256,
+                    "workflow_id": workflow,
+                    "version": version,
+                },
+                now,
+            )
+            return record(self.row(db, workspace, schedule))
+
