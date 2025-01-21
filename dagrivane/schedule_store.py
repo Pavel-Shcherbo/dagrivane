@@ -163,3 +163,7 @@ class ScheduleStore:
             )
             return record(self.row(db, workspace, schedule))
 
+    def inspect(self, workspace, schedule):
+        with self.control.reading() as db:
+            return record(self.row(db, workspace, schedule))
+
