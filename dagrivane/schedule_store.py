@@ -183,3 +183,35 @@ class ScheduleStore:
                 "next_cursor": rows[limit - 1]["id"] if len(rows) > limit else None,
             }
 
+    def set_enabled(self, workspace, schedule, enabled, generation, reason, *, now):
+        if type(enabled) is not bool:
+            raise ValueError("enabled must be boolean")
+        expected_generation(generation)
+        text(reason, "operator reason", 500)
+        now = instant(now)
+        with self.control.transaction() as db:
+            row = self.row(db, workspace, schedule)
+            if row["generation"] != generation:
+                raise Conflict("schedule generation changed; inspect before retrying")
+            if bool(row["enabled"]) == enabled:
+                return record(row)
+            db.execute(
+                "UPDATE cp_timed_schedules SET enabled=?,generation=generation+1 WHERE id=?",
+                (int(enabled), schedule),
+            )
+            event(
+                db,
+                schedule,
+                "enabled_changed",
+                {
+                    "before_due": row["next_due"],
+                    "after_due": row["next_due"],
+                    "before_generation": generation,
+                    "after_generation": generation + 1,
+                    "enabled": enabled,
+                    "reason": reason,
+                },
+                now,
+            )
+            return record(self.row(db, workspace, schedule))
+
