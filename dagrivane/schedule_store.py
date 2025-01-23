@@ -167,3 +167,19 @@ class ScheduleStore:
         with self.control.reading() as db:
             return record(self.row(db, workspace, schedule))
 
+    def list(self, workspace, *, after="", limit=100):
+        limit_value(limit)
+        if not isinstance(after, str) or len(after) > 200:
+            raise ValueError("schedule cursor must be a bounded string")
+        with self.control.reading() as db:
+            self.control.workspace(db, workspace)
+            rows = db.execute(
+                "SELECT * FROM cp_timed_schedules WHERE workspace_id=? AND id>? ORDER BY id LIMIT ?",
+                (workspace, after, limit + 1),
+            ).fetchall()
+            return {
+                "items": [record(row) for row in rows[:limit]],
+                "has_more": len(rows) > limit,
+                "next_cursor": rows[limit - 1]["id"] if len(rows) > limit else None,
+            }
+
