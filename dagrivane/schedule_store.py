@@ -215,3 +215,24 @@ class ScheduleStore:
             )
             return record(self.row(db, workspace, schedule))
 
+    def events(self, workspace, schedule, *, after=0, limit=100):
+        limit_value(limit)
+        if type(after) is not int or after < 0:
+            raise ValueError("event cursor must be nonnegative")
+        with self.control.reading() as db:
+            self.row(db, workspace, schedule)
+            rows = db.execute(
+                "SELECT * FROM cp_timed_events WHERE schedule_id=? AND sequence>? ORDER BY sequence LIMIT ?",
+                (schedule, after, limit + 1),
+            ).fetchall()
+            items = []
+            for row in rows[:limit]:
+                value = dict(row)
+                value["payload"] = json.loads(value["payload"])
+                items.append(value)
+            return {
+                "items": items,
+                "has_more": len(rows) > limit,
+                "next_cursor": items[-1]["sequence"] if len(rows) > limit else None,
+            }
+
