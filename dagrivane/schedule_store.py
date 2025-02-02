@@ -252,3 +252,7 @@ class ScheduleStore:
                 "next_cursor": rows[limit - 1]["due"] if len(rows) > limit else None,
             }
 
+    def dispatch(self, workspace, request_key, *, now, limit=100):
+        from .schedule_dispatch import dispatch
+
+        return dispatch(self, workspace, request_key, now=now, limit=limit)
