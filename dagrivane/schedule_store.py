@@ -236,3 +236,19 @@ class ScheduleStore:
                 "next_cursor": items[-1]["sequence"] if len(rows) > limit else None,
             }
 
+    def occurrences(self, workspace, schedule, *, after=-1, limit=100):
+        limit_value(limit)
+        if type(after) is not int or after < -1:
+            raise ValueError("occurrence cursor must be -1 or whole Unix seconds")
+        with self.control.reading() as db:
+            self.row(db, workspace, schedule)
+            rows = db.execute(
+                "SELECT o.*,r.status AS run_status FROM cp_timed_occurrences o LEFT JOIN cp_runs r ON r.id=o.run_id WHERE o.schedule_id=? AND o.due>? ORDER BY o.due LIMIT ?",
+                (schedule, after, limit + 1),
+            ).fetchall()
+            return {
+                "items": [dict(row) for row in rows[:limit]],
+                "has_more": len(rows) > limit,
+                "next_cursor": rows[limit - 1]["due"] if len(rows) > limit else None,
+            }
+
