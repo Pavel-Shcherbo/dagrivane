@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "name": "New York morning pipeline",
+  "trigger": {
+    "kind": "cron",
+    "expression": "30 9 * * 1-5",
+    "timezone": "America/New_York",
+    "fold": "first",
+    "gap": "skip",
+    "day_match": "and"
+  },
+  "start_at": "2026-11-02T00:00:00Z",
+  "end_at": "2027-01-01T00:00:00Z",
+  "misfire": {"policy": "coalesce", "max_lateness_seconds": 86400},
+  "overlap": "defer",
+  "priority": 0
+}
