@@ -1,0 +1,65 @@
+{
+  "passed": true,
+  "scope": "Installed local calendar dispatcher and one executed synthetic pipeline, not a hosted/distributed scheduling service",
+  "preview_utc": [
+    "2026-11-02T14:30:00Z",
+    "2026-11-03T14:30:00Z",
+    "2026-11-04T14:30:00Z"
+  ],
+  "timezone_sha256": "e9ed07d7bee0c76a9d442d091ef1f01668fee7c4f26014c0a868b19fe6c18a95",
+  "dispatch": {
+    "workspace_id": "3fab2df5-4a8d-49c1-9450-aebe609624ae",
+    "request_key": "november4",
+    "now": 1793808000,
+    "limit": 100,
+    "schedules": [
+      {
+        "schedule_id": "dbb4a2f0-1975-4f34-8d7b-dcdde4ca51fb",
+        "generation": 2,
+        "next_due": 1793889000,
+        "outcomes": [
+          {
+            "due": 1793802600,
+            "outcome": "submitted",
+            "run_id": "f1a7db12-3bc1-48af-a74d-adad86139906"
+          }
+        ],
+        "omitted_ranges": [
+          {
+            "from_due": 1793629800,
+            "through_due": 1793716200,
+            "count": null,
+            "reason": "lateness_exceeded"
+          }
+        ],
+        "deferred_by": null,
+        "due_remaining": false
+      }
+    ],
+    "outcome_count": 1,
+    "due_remaining": false
+  },
+  "foreground_watch_checked": true,
+  "lost_response_receipt_identical": true,
+  "worker_status": "succeeded",
+  "independent_summary": {
+    "orders": 4,
+    "total": "112.00",
+    "currency": "USD"
+  },
+  "paused_generation": 3,
+  "stale_generation_rejected": true,
+  "create_only_export_preserved": true,
+  "offline_verify_after_database_removal": {
+    "passed": true,
+    "complete": true,
+    "schedule_id": "dbb4a2f0-1975-4f34-8d7b-dcdde4ca51fb",
+    "plan_sha256": "1e30f84f0d9943520a78c5b0bb679fa7fae2e8993b9706d0d40a2f823829e94f",
+    "events_checked": 3,
+    "occurrences_checked": 1,
+    "run_references_checked": 1,
+    "execution_verified": false,
+    "source_authenticated": false,
+    "scope": "Retained clock, decision-chain and queue-reference consistency; not independent proof of worker effects or authenticated production history"
+  }
+}
