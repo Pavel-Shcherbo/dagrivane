@@ -1,0 +1,16 @@
+{
+  "passed": true,
+  "scope": "Local queue-only dispatch workload and complete bounded decision audits; no execution throughput or production SLA claim",
+  "schedules": 100,
+  "slot_outcomes": 2000,
+  "dispatch_calls": 20,
+  "per_schedule_slots": 20,
+  "cursor_after": 1320,
+  "all_runs_queued": true,
+  "all_schedule_exports_verified": true,
+  "dispatch_seconds": 0.1194517079857178,
+  "audit_seconds": 0.08797941700322554,
+  "dense_cron_next_calls": 1000,
+  "dense_cron_seconds": 0.01562254101736471,
+  "retained_database": "/var/folders/8_/kbqb5qpx3lbbg3zxc48xbhcr0000gn/T/schedule-workload-4vklq7az/control.sqlite"
+}
