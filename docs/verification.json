@@ -1,5 +1,5 @@
 {
-  "unit_tests": 187,
+  "unit_tests": 230,
   "unit_passed": true,
   "cli_passed": true,
   "source_hashes": {
@@ -41,6 +41,13 @@
     "dagrivane/release_web.py": "1b154745e5900d2464e83b5bd0c7f17a53026115c9a9d65f0878930bdd46b269",
     "dagrivane/resources.py": "7b4881ac5e208822eea3c485114e2482ba81fc4336e113fdd301e87610b7d62e",
     "dagrivane/run_workspace.py": "43ddb15dcf82a17cd6ac9540c754582c6cbf5614aa02ccd1bd803700340c73ad",
+    "dagrivane/schedule_clock.py": "19ce6f0d4d4cf8c96733024f1713114efe297c5fab22d1e32cccaa50108ea6be",
+    "dagrivane/schedule_dispatch.py": "2c702b043985794b6c13eda64dcabc673dbc972ff269071cfd99abdd5cc5b31f",
+    "dagrivane/schedule_evidence.py": "cb220a7e89e8eea9c68306ec1dd52240b7d8395062072c6446896b8968ff0b65",
+    "dagrivane/schedule_model.py": "ddf843f1d2835ce5500200e331afb69333bf85c5ab8f6aded9579e7ed47d0e16",
+    "dagrivane/schedule_store.py": "2c2637b5e0b30b5bdc21f5ca5ab11caaeb4ff72f0b5dec69c6979183a2bb304d",
+    "dagrivane/schedule_watch.py": "403cbf9662084f259e12e9d0c0882d1d24c5c595e123dd5d3cdc6d591ffb8373",
+    "dagrivane/schedules.py": "91b6f30ecc52c61c1de92092e1a883d8e63287924d2da93fc0626f07965ca71d",
     "dagrivane/static/app.js": "cf9ab857ac01ba481f0afc16a2e1d9820463b1c963d99dc7a1ed358471d65a1d",
     "dagrivane/static/index.html": "ab1f2d833f9010f987ed640975b779ed7cfc3970feaebf7c0fdb394c1b0e16a7",
     "dagrivane/static/style.css": "0d843b3902813edeae6fd2e9dae00edf1784229575bde7d4309c0ad4caf906e7",
