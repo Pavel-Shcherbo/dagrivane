@@ -25,3 +25,18 @@ from dagrivane.schedule_evidence import (
 from dagrivane.worker import Worker
 
 
+def interval(**changes):
+    value = {
+        "version": 1,
+        "name": "Minute pipeline",
+        "trigger": {"kind": "interval", "seconds": 60},
+        "start_at": 120,
+        "end_at": None,
+        "misfire": {"policy": "catch_up", "max_lateness_seconds": None},
+        "overlap": "allow",
+        "priority": 0,
+    }
+    value.update(changes)
+    return value
+
+
