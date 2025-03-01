@@ -40,3 +40,22 @@ def interval(**changes):
     return value
 
 
+def cron(
+    expression, start, zone="America/New_York", fold="both", end=None, match="and"
+):
+    return interval(
+        trigger={
+            "kind": "cron",
+            "expression": expression,
+            "timezone": zone,
+            "fold": fold,
+            "gap": "skip",
+            "day_match": match,
+        },
+        start_at=start,
+        end_at=end,
+    )
+
+
+class ScheduleClockTests(unittest.TestCase):
+    pass
