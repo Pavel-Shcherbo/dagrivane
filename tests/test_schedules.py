@@ -76,3 +76,13 @@ class ScheduleClockTests(unittest.TestCase):
             with self.subTest(value=value), self.assertRaises(ValueError):
                 instant(value)
 
+    def test_interval_anchor_inclusive_bounds_and_reverse(self):
+        clock = compile_schedule(interval(end_at=300)).clock()
+        self.assertEqual(
+            [clock.next(t) for t in (0, 120, 121, 240, 241)], [120, 120, 180, 240, None]
+        )
+        self.assertEqual(
+            [clock.previous(t) for t in (0, 119, 120, 179, 180, 999)],
+            [None, None, 120, 120, 180, 240],
+        )
+
