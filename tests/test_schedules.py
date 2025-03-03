@@ -86,3 +86,23 @@ class ScheduleClockTests(unittest.TestCase):
             [None, None, 120, 120, 180, 240],
         )
 
+    def test_five_fields_lists_ranges_and_steps(self):
+        value = cron("0,30 9-10 * * 1-5", "2024-03-08T00:00:00Z")
+        items = preview_schedule(value, limit=5)["items"]
+        self.assertEqual(
+            [item["utc"] for item in items],
+            [
+                "2024-03-08T14:00:00Z",
+                "2024-03-08T14:30:00Z",
+                "2024-03-08T15:00:00Z",
+                "2024-03-08T15:30:00Z",
+                "2024-03-11T13:00:00Z",
+            ],
+        )
+        fields = (
+            compile_schedule(cron("*/15 * * * *", "2024-01-01T00:00:00Z", "UTC"))
+            .clock()
+            .fields
+        )
+        self.assertEqual(fields[0], (0, 15, 30, 45))
+
