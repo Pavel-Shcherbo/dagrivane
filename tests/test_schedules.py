@@ -58,4 +58,21 @@ def cron(
 
 
 class ScheduleClockTests(unittest.TestCase):
-    pass
+    def test_strict_instants(self):
+        self.assertEqual(
+            instant("2024-01-01T03:00:00+03:00"), instant("2024-01-01T00:00:00Z")
+        )
+        self.assertEqual(instant("120"), 120)
+        for value in [
+            True,
+            -1,
+            0.5,
+            float("nan"),
+            float("inf"),
+            "2024-01-01",
+            "2024-01-01T00:00:00.1Z",
+            4133980800,
+        ]:
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                instant(value)
+
