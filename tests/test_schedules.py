@@ -106,3 +106,20 @@ class ScheduleClockTests(unittest.TestCase):
         )
         self.assertEqual(fields[0], (0, 15, 30, 45))
 
+    def test_fold_first_second_and_both(self):
+        for policy, expected in [
+            ("first", ["2024-11-03T05:30:00Z"]),
+            ("second", ["2024-11-03T06:30:00Z"]),
+            ("both", ["2024-11-03T05:30:00Z", "2024-11-03T06:30:00Z"]),
+        ]:
+            with self.subTest(policy=policy):
+                value = cron(
+                    "30 1 * * *",
+                    "2024-11-03T00:00:00Z",
+                    fold=policy,
+                    end="2024-11-04T00:00:00Z",
+                )
+                result = preview_schedule(value, limit=5)
+                self.assertEqual([item["utc"] for item in result["items"]], expected)
+                self.assertFalse(result["has_more"])
+
