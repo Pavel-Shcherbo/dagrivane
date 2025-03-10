@@ -123,3 +123,10 @@ class ScheduleClockTests(unittest.TestCase):
                 self.assertEqual([item["utc"] for item in result["items"]], expected)
                 self.assertFalse(result["has_more"])
 
+    def test_gap_skips_instead_of_inventing_local_time(self):
+        result = preview_schedule(cron("30 2 * * *", "2024-03-09T00:00:00Z"), limit=3)
+        self.assertEqual(
+            [item["utc"] for item in result["items"]],
+            ["2024-03-09T07:30:00Z", "2024-03-11T06:30:00Z", "2024-03-12T06:30:00Z"],
+        )
+
