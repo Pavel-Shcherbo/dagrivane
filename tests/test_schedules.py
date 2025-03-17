@@ -130,3 +130,27 @@ class ScheduleClockTests(unittest.TestCase):
             ["2024-03-09T07:30:00Z", "2024-03-11T06:30:00Z", "2024-03-12T06:30:00Z"],
         )
 
+    def test_half_hour_fold_and_date_line_gap(self):
+        value = cron(
+            "45 1 * * *",
+            "2024-04-06T00:00:00Z",
+            "Australia/Lord_Howe",
+            end="2024-04-07T03:00:00Z",
+        )
+        items = preview_schedule(value, limit=5)["items"]
+        self.assertEqual(
+            [item["utc"] for item in items],
+            ["2024-04-06T14:45:00Z", "2024-04-06T15:15:00Z"],
+        )
+        value = cron(
+            "0 12 * * *",
+            "2011-12-29T00:00:00Z",
+            "Pacific/Apia",
+            end="2012-01-01T00:00:00Z",
+        )
+        locals = [
+            item["local"][:10] for item in preview_schedule(value, limit=5)["items"]
+        ]
+        self.assertNotIn("2011-12-30", locals)
+        self.assertIn("2011-12-31", locals)
+
