@@ -154,3 +154,11 @@ class ScheduleClockTests(unittest.TestCase):
         self.assertNotIn("2011-12-30", locals)
         self.assertIn("2011-12-31", locals)
 
+    def test_reverse_recursions_agree_with_forward_fold_order(self):
+        clock = compile_schedule(cron("30 1 * * *", "2024-11-03T00:00:00Z")).clock()
+        first = instant("2024-11-03T05:30:00Z")
+        second = instant("2024-11-03T06:30:00Z")
+        self.assertEqual(clock.previous(second), second)
+        self.assertEqual(clock.previous(second - 1), first)
+        self.assertEqual(clock.next(first + 1), second)
+
