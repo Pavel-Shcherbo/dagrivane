@@ -162,3 +162,18 @@ class ScheduleClockTests(unittest.TestCase):
         self.assertEqual(clock.previous(second - 1), first)
         self.assertEqual(clock.next(first + 1), second)
 
+    def test_leap_day_and_explicit_day_matching(self):
+        value = cron("0 0 29 2 *", "2025-01-01T00:00:00Z", "UTC")
+        self.assertEqual(
+            preview_schedule(value, limit=1)["items"][0]["utc"], "2028-02-29T00:00:00Z"
+        )
+        value = cron("0 0 1 * 1", "2024-05-01T00:00:00Z", "UTC", match="or")
+        self.assertEqual(
+            [item["utc"] for item in preview_schedule(value, limit=2)["items"]],
+            ["2024-05-01T00:00:00Z", "2024-05-06T00:00:00Z"],
+        )
+        value["trigger"]["day_match"] = "and"
+        self.assertEqual(
+            preview_schedule(value, limit=1)["items"][0]["utc"], "2024-07-01T00:00:00Z"
+        )
+
