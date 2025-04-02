@@ -177,3 +177,22 @@ class ScheduleClockTests(unittest.TestCase):
             preview_schedule(value, limit=1)["items"][0]["utc"], "2024-07-01T00:00:00Z"
         )
 
+    def test_frozen_timezone_does_not_need_system_data_on_replay(self):
+        plan = compile_schedule(cron("30 9 * * *", "2024-01-01T00:00:00Z"))
+        with (
+            patch("dagrivane.schedule_clock.TZPATH", ()),
+            patch(
+                "dagrivane.schedule_clock.resources.files",
+                side_effect=ModuleNotFoundError,
+            ),
+        ):
+            self.assertEqual(compile_schedule(plan.definition).sha256, plan.sha256)
+            self.assertEqual(
+                preview_schedule(plan.definition, limit=1)["items"][0]["utc"],
+                "2024-01-01T14:30:00Z",
+            )
+        broken = copy.deepcopy(plan.definition)
+        broken["trigger"]["timezone"]["sha256"] = "0" * 64
+        with self.assertRaises(ValueError):
+            compile_schedule(broken)
+
