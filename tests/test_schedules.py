@@ -196,3 +196,33 @@ class ScheduleClockTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             compile_schedule(broken)
 
+    def test_invalid_contracts_and_cron_fields(self):
+        values = []
+        for expression in [
+            "* * * *",
+            "60 * * * *",
+            "* 24 * * *",
+            "* * 0 * *",
+            "* * * 13 *",
+            "* * * * 7",
+            "1/2 * * * *",
+            "*/0 * * * *",
+            "@daily",
+            "* * * * MON",
+            "30-10 * * * *",
+        ]:
+            values.append(cron(expression, "2024-01-01T00:00:00Z"))
+        values.extend(
+            [
+                interval(priority=True),
+                interval(start_at=True),
+                interval(end_at=119),
+                interval(overlap="replace"),
+                interval(trigger={"kind": "interval", "seconds": 1}),
+                interval(misfire={"policy": "skip", "max_lateness_seconds": None}),
+            ]
+        )
+        for value in values:
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                compile_schedule(value)
+
