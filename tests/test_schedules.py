@@ -226,3 +226,17 @@ class ScheduleClockTests(unittest.TestCase):
             with self.subTest(value=value), self.assertRaises(ValueError):
                 compile_schedule(value)
 
+    def test_impossible_cron_has_bounded_search(self):
+        with self.assertRaisesRegex(ValueError, "ten-year"):
+            preview_schedule(cron("0 0 30 2 *", "2024-01-01T00:00:00Z", "UTC"), limit=1)
+        result = preview_schedule(
+            cron(
+                "0 0 30 2 *", "2024-01-01T00:00:00Z", "UTC", end="2025-01-01T00:00:00Z"
+            ),
+            limit=1,
+        )
+        self.assertEqual(result["items"], [])
+
+
+class ScheduleStoreTests(unittest.TestCase):
+    pass
