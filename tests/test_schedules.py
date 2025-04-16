@@ -239,4 +239,27 @@ class ScheduleClockTests(unittest.TestCase):
 
 
 class ScheduleStoreTests(unittest.TestCase):
-    pass
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+        self.path = self.root / "control.sqlite"
+        self.control = ControlStore(self.path)
+        self.store = ScheduleStore(self.control)
+        self.workspace = self.control.create_workspace("Scheduled", now=0)["id"]
+        self.spec = {
+            "tasks": [
+                {
+                    "id": "write",
+                    "command": [
+                        sys.executable,
+                        "-c",
+                        "from pathlib import Path; Path('scheduled-result').write_text('42')",
+                    ],
+                }
+            ]
+        }
+        self.workflow = self.control.register_workflow(
+            self.workspace, "Example", self.spec, self.root, now=0
+        )
+
