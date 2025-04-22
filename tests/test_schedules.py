@@ -263,3 +263,8 @@ class ScheduleStoreTests(unittest.TestCase):
             self.workspace, "Example", self.spec, self.root, now=0
         )
 
+    def create(self, definition=None, key="create"):
+        return self.store.create(
+            self.workspace, self.workflow["id"], 1, definition or interval(), key, now=0
+        )
+
