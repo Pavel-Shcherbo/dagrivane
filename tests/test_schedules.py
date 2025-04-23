@@ -268,3 +268,6 @@ class ScheduleStoreTests(unittest.TestCase):
             self.workspace, self.workflow["id"], 1, definition or interval(), key, now=0
         )
 
+    def dispatch(self, key="tick", now=300, limit=100):
+        return self.store.dispatch(self.workspace, key, now=now, limit=limit)
+
