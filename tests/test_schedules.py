@@ -271,3 +271,8 @@ class ScheduleStoreTests(unittest.TestCase):
     def dispatch(self, key="tick", now=300, limit=100):
         return self.store.dispatch(self.workspace, key, now=now, limit=limit)
 
+    def proof(self, schedule):
+        document = export_schedule(self.store, self.workspace, schedule["id"])
+        self.assertTrue(verify_schedule_evidence(document)["passed"])
+        return document
+
