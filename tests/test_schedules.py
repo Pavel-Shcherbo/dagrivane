@@ -276,3 +276,12 @@ class ScheduleStoreTests(unittest.TestCase):
         self.assertTrue(verify_schedule_evidence(document)["passed"])
         return document
 
+    def test_catch_up_persists_each_due_and_next_cursor(self):
+        schedule = self.create()
+        result = self.dispatch()
+        self.assertEqual(
+            [o["due"] for o in result["schedules"][0]["outcomes"]], [120, 180, 240, 300]
+        )
+        self.assertEqual(result["schedules"][0]["next_due"], 360)
+        self.assertEqual(len(self.proof(schedule)["runs"]), 4)
+
