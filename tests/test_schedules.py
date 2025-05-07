@@ -285,3 +285,16 @@ class ScheduleStoreTests(unittest.TestCase):
         self.assertEqual(result["schedules"][0]["next_due"], 360)
         self.assertEqual(len(self.proof(schedule)["runs"]), 4)
 
+    def test_coalesce_and_skip_have_explicit_omitted_ranges(self):
+        for index, policy in enumerate(("coalesce", "skip")):
+            schedule = self.create(
+                interval(misfire={"policy": policy, "max_lateness_seconds": 1000}),
+                key=str(index),
+            )
+        result = self.dispatch()
+        for item in result["schedules"]:
+            self.assertEqual([o["due"] for o in item["outcomes"]], [300])
+            self.assertEqual(item["omitted_ranges"][0]["count"], 3)
+        for item in self.store.list(self.workspace)["items"]:
+            self.proof(item)
+
