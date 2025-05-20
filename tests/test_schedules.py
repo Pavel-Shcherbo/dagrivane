@@ -298,3 +298,13 @@ class ScheduleStoreTests(unittest.TestCase):
         for item in self.store.list(self.workspace)["items"]:
             self.proof(item)
 
+    def test_expired_backlog_advances_without_an_unbounded_loop(self):
+        schedule = self.create(
+            interval(misfire={"policy": "skip", "max_lateness_seconds": 0})
+        )
+        result = self.dispatch(now=3000001)["schedules"][0]
+        self.assertEqual(result["outcomes"], [])
+        self.assertGreater(result["omitted_ranges"][0]["count"], 40000)
+        self.assertGreater(result["next_due"], 3000001)
+        self.proof(schedule)
+
