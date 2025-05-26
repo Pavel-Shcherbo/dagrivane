@@ -308,3 +308,12 @@ class ScheduleStoreTests(unittest.TestCase):
         self.assertGreater(result["next_due"], 3000001)
         self.proof(schedule)
 
+    def test_grace_boundary_is_inclusive(self):
+        schedule = self.create(
+            interval(misfire={"policy": "catch_up", "max_lateness_seconds": 60})
+        )
+        item = self.dispatch()["schedules"][0]
+        self.assertEqual([o["due"] for o in item["outcomes"]], [240, 300])
+        self.assertEqual(item["omitted_ranges"][0]["through_due"], 180)
+        self.proof(schedule)
+
