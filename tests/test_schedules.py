@@ -317,3 +317,12 @@ class ScheduleStoreTests(unittest.TestCase):
         self.assertEqual(item["omitted_ranges"][0]["through_due"], 180)
         self.proof(schedule)
 
+    def test_bounded_batches_continue_without_repeating_slots(self):
+        schedule = self.create()
+        first = self.dispatch("one", limit=2)
+        second = self.dispatch("two", limit=2)
+        self.assertTrue(first["due_remaining"])
+        self.assertFalse(second["due_remaining"])
+        self.assertEqual(first["outcome_count"] + second["outcome_count"], 4)
+        self.assertEqual(len(self.proof(schedule)["occurrences"]), 4)
+
