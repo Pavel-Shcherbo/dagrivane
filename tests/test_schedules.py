@@ -326,3 +326,12 @@ class ScheduleStoreTests(unittest.TestCase):
         self.assertEqual(first["outcome_count"] + second["outcome_count"], 4)
         self.assertEqual(len(self.proof(schedule)["occurrences"]), 4)
 
+    def test_receipt_retry_after_restart_is_identical(self):
+        schedule = self.create()
+        first = self.dispatch()
+        self.store = ScheduleStore(ControlStore(self.path))
+        self.assertEqual(first, self.dispatch())
+        self.assertEqual(len(self.proof(schedule)["runs"]), 4)
+        with self.assertRaises(Conflict):
+            self.dispatch(now=301)
+
