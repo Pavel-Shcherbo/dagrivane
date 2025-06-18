@@ -347,3 +347,24 @@ class ScheduleStoreTests(unittest.TestCase):
         self.assertEqual(sum(v["outcome_count"] for v in values), 4)
         self.assertEqual(len(self.proof(schedule)["runs"]), 4)
 
+    def test_transaction_failure_rolls_back_cursor_queue_history_and_receipt(self):
+        schedule = self.create()
+        before = self.proof(schedule)
+        original = self.control._enqueue
+        count = 0
+
+        def failing(*args, **kwargs):
+            nonlocal count
+            count += 1
+            if count == 2:
+                raise RuntimeError("interrupted dispatch")
+            return original(*args, **kwargs)
+
+        with (
+            patch.object(self.control, "_enqueue", failing),
+            self.assertRaises(RuntimeError),
+        ):
+            self.dispatch()
+        self.assertEqual(before, self.proof(schedule))
+        self.assertEqual(self.dispatch()["outcome_count"], 4)
+
