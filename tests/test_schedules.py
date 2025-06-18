@@ -335,3 +335,15 @@ class ScheduleStoreTests(unittest.TestCase):
         with self.assertRaises(Conflict):
             self.dispatch(now=301)
 
+    def test_concurrent_dispatchers_do_not_duplicate(self):
+        schedule = self.create()
+
+        def tick(i):
+            store = ScheduleStore(ControlStore(self.path))
+            return store.dispatch(self.workspace, str(i), now=300, limit=2)
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
+            values = list(pool.map(tick, range(6)))
+        self.assertEqual(sum(v["outcome_count"] for v in values), 4)
+        self.assertEqual(len(self.proof(schedule)["runs"]), 4)
+
