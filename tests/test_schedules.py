@@ -368,3 +368,12 @@ class ScheduleStoreTests(unittest.TestCase):
         self.assertEqual(before, self.proof(schedule))
         self.assertEqual(self.dispatch()["outcome_count"], 4)
 
+    def test_overlap_skip_includes_queued_work(self):
+        schedule = self.create(interval(overlap="skip"))
+        item = self.dispatch()["schedules"][0]
+        self.assertEqual(
+            [o["outcome"] for o in item["outcomes"]],
+            ["submitted"] + ["skipped_overlap"] * 3,
+        )
+        self.assertEqual(len(self.proof(schedule)["runs"]), 1)
+
