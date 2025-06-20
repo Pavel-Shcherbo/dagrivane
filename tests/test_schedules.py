@@ -377,3 +377,17 @@ class ScheduleStoreTests(unittest.TestCase):
         )
         self.assertEqual(len(self.proof(schedule)["runs"]), 1)
 
+    def test_overlap_defer_keeps_due_then_resumes_after_worker_success(self):
+        schedule = self.create(interval(overlap="defer", end_at=300))
+        first = self.dispatch("one", now=180)["schedules"][0]
+        self.assertEqual(first["next_due"], 180)
+        self.assertIsNotNone(first["deferred_by"])
+        worker = Worker(
+            self.control, self.root / "task-state", "schedule-worker", lease_seconds=5
+        )
+        self.assertEqual(worker.run_once()["status"], "succeeded")
+        self.assertEqual((self.root / "scheduled-result").read_text(), "42")
+        second = self.dispatch("two", now=180)["schedules"][0]
+        self.assertEqual([o["due"] for o in second["outcomes"]], [180])
+        self.assertEqual(len(self.proof(schedule)["runs"]), 2)
+
