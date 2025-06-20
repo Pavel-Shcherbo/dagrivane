@@ -391,3 +391,20 @@ class ScheduleStoreTests(unittest.TestCase):
         self.assertEqual([o["due"] for o in second["outcomes"]], [180])
         self.assertEqual(len(self.proof(schedule)["runs"]), 2)
 
+    def test_pause_resume_requires_generation_and_keeps_cursor(self):
+        schedule = self.create()
+        paused = self.store.set_enabled(
+            self.workspace, schedule["id"], False, 1, "maintenance", now=200
+        )
+        self.assertEqual(self.dispatch()["outcome_count"], 0)
+        with self.assertRaises(Conflict):
+            self.store.set_enabled(
+                self.workspace, schedule["id"], True, 1, "stale", now=300
+            )
+        resumed = self.store.set_enabled(
+            self.workspace, schedule["id"], True, paused["generation"], "ready", now=300
+        )
+        self.assertEqual(resumed["next_due"], 120)
+        self.assertEqual(self.dispatch("new")["outcome_count"], 4)
+        self.proof(schedule)
+
