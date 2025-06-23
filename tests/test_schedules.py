@@ -424,3 +424,33 @@ class ScheduleStoreTests(unittest.TestCase):
             all(run["version"] == 1 for run in self.proof(schedule)["runs"])
         )
 
+    def test_workspace_scope_and_pagination(self):
+        one = self.create()
+        self.create(key="other")
+        other = self.control.create_workspace("Other")["id"]
+        for fn in [
+            lambda: self.store.inspect(other, one["id"]),
+            lambda: self.store.events(other, one["id"]),
+            lambda: self.store.occurrences(other, one["id"]),
+            lambda: export_schedule(self.store, other, one["id"]),
+        ]:
+            with self.assertRaises(NotFound):
+                fn()
+        self.assertEqual(self.store.list(other)["items"], [])
+        page = self.store.list(self.workspace, limit=1)
+        self.assertTrue(page["has_more"])
+        self.assertEqual(
+            len(self.store.list(self.workspace, after=page["next_cursor"])["items"]), 1
+        )
+        self.dispatch()
+        page = self.store.occurrences(self.workspace, one["id"], limit=2)
+        self.assertTrue(page["has_more"])
+        self.assertEqual(
+            len(
+                self.store.occurrences(
+                    self.workspace, one["id"], after=page["next_cursor"]
+                )["items"]
+            ),
+            2,
+        )
+
