@@ -408,3 +408,19 @@ class ScheduleStoreTests(unittest.TestCase):
         self.assertEqual(self.dispatch("new")["outcome_count"], 4)
         self.proof(schedule)
 
+    def test_pinned_version_and_create_idempotence(self):
+        schedule = self.create()
+        changed = {
+            "tasks": [{"id": "other", "command": [sys.executable, "-c", "pass"]}]
+        }
+        self.control.register_workflow(
+            self.workspace, "Example", changed, self.root, now=1
+        )
+        self.assertEqual(self.create()["id"], schedule["id"])
+        with self.assertRaises(Conflict):
+            self.create(interval(priority=1))
+        self.dispatch()
+        self.assertTrue(
+            all(run["version"] == 1 for run in self.proof(schedule)["runs"])
+        )
+
