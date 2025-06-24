@@ -454,3 +454,22 @@ class ScheduleStoreTests(unittest.TestCase):
             2,
         )
 
+    def test_export_tamper_rehash_and_create_only_output(self):
+        schedule = self.create()
+        self.dispatch()
+        document = self.proof(schedule)
+        path = self.root / "export.json"
+        save_evidence(document, path)
+        with self.assertRaises(FileExistsError):
+            save_evidence(document, path)
+        forged = copy.deepcopy(document)
+        forged["schedule"]["next_due"] = 600
+        forged["sha256"] = digest({k: v for k, v in forged.items() if k != "sha256"})
+        with self.assertRaisesRegex(ValueError, "differs from history"):
+            verify_schedule_evidence(forged)
+        forged = copy.deepcopy(document)
+        forged["runs"][0]["version"] = 2
+        forged["sha256"] = digest({k: v for k, v in forged.items() if k != "sha256"})
+        with self.assertRaisesRegex(ValueError, "pinned inputs"):
+            verify_schedule_evidence(forged)
+
