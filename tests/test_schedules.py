@@ -473,3 +473,15 @@ class ScheduleStoreTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "pinned inputs"):
             verify_schedule_evidence(forged)
 
+    def test_frozen_fold_dispatch_and_offline_verification(self):
+        schedule = self.create(
+            cron("30 1 * * *", "2024-11-03T00:00:00Z", end="2024-11-04T00:00:00Z")
+        )
+        result = self.dispatch(now=instant("2024-11-03T07:00:00Z"))
+        self.assertEqual(
+            [iso(o["due"]) for o in result["schedules"][0]["outcomes"]],
+            ["2024-11-03T05:30:00Z", "2024-11-03T06:30:00Z"],
+        )
+        with patch("dagrivane.schedule_clock.TZPATH", ()):
+            self.proof(schedule)
+
