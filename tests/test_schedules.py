@@ -494,3 +494,12 @@ class ScheduleStoreTests(unittest.TestCase):
         ):
             self.proof(schedule)
 
+    def test_invalid_inputs_do_not_write_schedule(self):
+        with self.assertRaises(ValueError):
+            self.create(interval(priority=True))
+        self.assertEqual(self.store.list(self.workspace)["items"], [])
+        with self.assertRaises(NotFound):
+            self.store.create(
+                self.workspace, self.workflow["id"], 999, interval(), "bad", now=0
+            )
+
