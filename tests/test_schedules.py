@@ -485,3 +485,12 @@ class ScheduleStoreTests(unittest.TestCase):
         with patch("dagrivane.schedule_clock.TZPATH", ()):
             self.proof(schedule)
 
+    def test_complete_audit_refuses_exceeding_limits(self):
+        schedule = self.create()
+        self.dispatch()
+        with (
+            patch("dagrivane.schedule_evidence.MAX_EVENTS", 1),
+            self.assertRaises(Conflict),
+        ):
+            self.proof(schedule)
+
