@@ -503,3 +503,15 @@ class ScheduleStoreTests(unittest.TestCase):
                 self.workspace, self.workflow["id"], 999, interval(), "bad", now=0
             )
 
+    def test_round_robin_head_prevents_backlog_starvation(self):
+        schedules = [self.create(key=str(i)) for i in range(6)]
+        visited = []
+        for i in range(6):
+            result = self.dispatch(str(i), now=60000, limit=20)
+            self.assertEqual(result["outcome_count"], 20)
+            self.assertEqual(len(result["schedules"]), 1)
+            visited.append(result["schedules"][0]["schedule_id"])
+        self.assertEqual(set(visited), {s["id"] for s in schedules})
+        for schedule in schedules:
+            self.proof(schedule)
+
