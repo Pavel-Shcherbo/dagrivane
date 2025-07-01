@@ -528,3 +528,13 @@ class ScheduleStoreTests(unittest.TestCase):
         self.assertTrue(all(value == results[0] for value in results))
         self.assertEqual(len(self.proof(schedule)["runs"]), 4)
 
+    def test_receipt_round_robin_head_is_not_advanced_by_replay(self):
+        for i in range(3):
+            self.create(key=str(i))
+        first = self.dispatch("one", now=60000, limit=20)
+        self.assertEqual(first, self.dispatch("one", now=60000, limit=20))
+        second = self.dispatch("two", now=60000, limit=20)
+        self.assertNotEqual(
+            first["schedules"][0]["schedule_id"], second["schedules"][0]["schedule_id"]
+        )
+
