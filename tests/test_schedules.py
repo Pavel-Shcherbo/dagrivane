@@ -515,3 +515,16 @@ class ScheduleStoreTests(unittest.TestCase):
         for schedule in schedules:
             self.proof(schedule)
 
+    def test_same_dispatch_key_concurrently_returns_one_identical_receipt(self):
+        schedule = self.create()
+
+        def tick(_):
+            return ScheduleStore(ControlStore(self.path)).dispatch(
+                self.workspace, "same", now=300
+            )
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
+            results = list(pool.map(tick, range(4)))
+        self.assertTrue(all(value == results[0] for value in results))
+        self.assertEqual(len(self.proof(schedule)["runs"]), 4)
+
