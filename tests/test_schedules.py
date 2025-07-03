@@ -538,3 +538,11 @@ class ScheduleStoreTests(unittest.TestCase):
             first["schedules"][0]["schedule_id"], second["schedules"][0]["schedule_id"]
         )
 
+    def test_cancelled_run_releases_overlap_block(self):
+        schedule = self.create(interval(overlap="defer"))
+        first = self.dispatch("one", now=180)["schedules"][0]
+        run = first["outcomes"][0]["run_id"]
+        self.control.cancel(self.workspace, run, now=181)
+        self.assertEqual(self.dispatch("two", now=180)["outcome_count"], 1)
+        self.proof(schedule)
+
