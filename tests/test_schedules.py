@@ -546,3 +546,25 @@ class ScheduleStoreTests(unittest.TestCase):
         self.assertEqual(self.dispatch("two", now=180)["outcome_count"], 1)
         self.proof(schedule)
 
+    def test_dense_cron_clock_agrees_with_independent_utc_scan(self):
+        definition = cron(
+            "*/15 1-3 * * *", "2024-11-03T04:00:00Z", end="2024-11-03T10:00:00Z"
+        )
+        plan = compile_schedule(definition)
+        clock = plan.clock()
+        expected = []
+        for due in range(
+            instant(definition["start_at"]), instant(definition["end_at"]), 60
+        ):
+            local = datetime.fromtimestamp(due, timezone.utc).astimezone(clock.zone)
+            if local.hour in (1, 2, 3) and local.minute % 15 == 0:
+                expected.append(due)
+        actual = [
+            item["due"]
+            for item in preview_schedule(plan.definition, limit=100)["items"]
+        ]
+        self.assertEqual(actual, expected)
+        self.assertEqual(
+            [clock.previous(due) for due in reversed(actual)], list(reversed(actual))
+        )
+
