@@ -568,3 +568,10 @@ class ScheduleStoreTests(unittest.TestCase):
             [clock.previous(due) for due in reversed(actual)], list(reversed(actual))
         )
 
+    def test_last_supported_instant_exhausts_cleanly(self):
+        schedule = self.create(interval(start_at=4133980799))
+        result = self.dispatch(now=4133980799)["schedules"][0]
+        self.assertIsNone(result["next_due"])
+        self.assertEqual(len(result["outcomes"]), 1)
+        self.proof(schedule)
+
