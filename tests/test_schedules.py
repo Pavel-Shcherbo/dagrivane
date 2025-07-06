@@ -575,3 +575,13 @@ class ScheduleStoreTests(unittest.TestCase):
         self.assertEqual(len(result["outcomes"]), 1)
         self.proof(schedule)
 
+    def test_legacy_control_reader_and_schedule_remain_compatible(self):
+        schedule = self.create()
+        legacy = self.control.create_schedule(
+            self.workspace, self.workflow["id"], 1, 60, 120
+        )
+        self.control.tick(now=120)
+        self.dispatch(now=120)
+        self.assertEqual(len(ControlStore(self.path).list_runs(self.workspace)), 2)
+        self.proof(schedule)
+
