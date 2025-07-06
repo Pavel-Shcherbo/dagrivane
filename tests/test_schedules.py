@@ -585,3 +585,10 @@ class ScheduleStoreTests(unittest.TestCase):
         self.assertEqual(len(ControlStore(self.path).list_runs(self.workspace)), 2)
         self.proof(schedule)
 
+    def test_total_budget_and_per_schedule_slice_are_both_bounded(self):
+        schedule = self.create()
+        result = self.dispatch(now=60000, limit=100)
+        self.assertEqual(result["outcome_count"], 20)
+        self.assertTrue(result["due_remaining"])
+        self.proof(schedule)
+
