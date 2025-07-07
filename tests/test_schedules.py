@@ -592,3 +592,12 @@ class ScheduleStoreTests(unittest.TestCase):
         self.assertTrue(result["due_remaining"])
         self.proof(schedule)
 
+    def test_invalid_enabled_database_state_cannot_pass_export(self):
+        schedule = self.create()
+        with self.control.transaction() as db:
+            db.execute(
+                "UPDATE cp_timed_schedules SET enabled=2 WHERE id=?", (schedule["id"],)
+            )
+        with self.assertRaises(Conflict):
+            export_schedule(self.store, self.workspace, schedule["id"])
+
