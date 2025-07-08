@@ -601,3 +601,14 @@ class ScheduleStoreTests(unittest.TestCase):
         with self.assertRaises(Conflict):
             export_schedule(self.store, self.workspace, schedule["id"])
 
+    def test_short_tzif_with_matching_digest_is_rejected_cleanly(self):
+        value = cron("0 0 * * *", "2024-01-01T00:00:00Z")
+        raw = b"TZif"
+        value["trigger"]["timezone"] = {
+            "name": "broken",
+            "tzif": base64.b64encode(raw).decode(),
+            "sha256": hashlib.sha256(raw).hexdigest(),
+        }
+        with self.assertRaises(ValueError):
+            compile_schedule(value)
+
