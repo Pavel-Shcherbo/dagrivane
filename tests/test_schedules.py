@@ -612,3 +612,28 @@ class ScheduleStoreTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             compile_schedule(value)
 
+    def test_foreground_watch_dispatches_and_stops_at_bounded_tick_limit(self):
+        from dagrivane.schedule_watch import watch_schedules
+
+        self.create()
+        events = []
+        summary = watch_schedules(
+            self.store,
+            self.workspace,
+            max_ticks=1,
+            clock=lambda: 300,
+            emit=events.append,
+        )
+        self.assertEqual(summary["ticks_observed"], 1)
+        self.assertEqual(events[0]["receipt"]["outcome_count"], 4)
+        self.assertEqual(events[-1]["kind"], "watch_stopped")
+        again = []
+        watch_schedules(
+            self.store,
+            self.workspace,
+            max_ticks=1,
+            clock=lambda: 300,
+            emit=again.append,
+        )
+        self.assertEqual(events[0]["receipt"], again[0]["receipt"])
+
