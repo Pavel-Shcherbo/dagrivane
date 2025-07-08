@@ -637,3 +637,18 @@ class ScheduleStoreTests(unittest.TestCase):
         )
         self.assertEqual(events[0]["receipt"], again[0]["receipt"])
 
+    def test_watch_emitter_failure_cannot_repeat_committed_dispatch(self):
+        from dagrivane.schedule_watch import watch_schedules
+
+        schedule = self.create()
+
+        def lost(_):
+            raise RuntimeError("output lost")
+
+        with self.assertRaises(RuntimeError):
+            watch_schedules(
+                self.store, self.workspace, max_ticks=1, clock=lambda: 300, emit=lost
+            )
+        watch_schedules(self.store, self.workspace, max_ticks=1, clock=lambda: 300)
+        self.assertEqual(len(self.proof(schedule)["runs"]), 4)
+
