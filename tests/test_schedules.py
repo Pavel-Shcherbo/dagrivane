@@ -652,3 +652,29 @@ class ScheduleStoreTests(unittest.TestCase):
         watch_schedules(self.store, self.workspace, max_ticks=1, clock=lambda: 300)
         self.assertEqual(len(self.proof(schedule)["runs"]), 4)
 
+    def test_watch_clock_regression_and_stop_signal(self):
+        from dagrivane.schedule_watch import watch_schedules
+        import threading
+
+        self.create()
+        stop = threading.Event()
+        stop.set()
+        summary = watch_schedules(
+            self.store, self.workspace, stop=stop, clock=lambda: 300
+        )
+        self.assertEqual(summary["ticks_observed"], 0)
+
+        class NoWait:
+            def is_set(self):
+                return False
+
+            def wait(self, _):
+                return False
+
+        times = iter([300, 299])
+        summary = watch_schedules(
+            self.store, self.workspace, stop=NoWait(), clock=lambda: next(times)
+        )
+        self.assertEqual(summary["reason"], "clock_regressed")
+        self.assertEqual(summary["ticks_observed"], 1)
+
