@@ -678,3 +678,18 @@ class ScheduleStoreTests(unittest.TestCase):
         self.assertEqual(summary["reason"], "clock_regressed")
         self.assertEqual(summary["ticks_observed"], 1)
 
+    def test_watch_invalid_bounds_rejected_before_dispatch(self):
+        from dagrivane.schedule_watch import watch_schedules
+
+        self.create()
+        for fields in [
+            {"every": 0},
+            {"every": True},
+            {"limit": 101},
+            {"max_ticks": 0},
+            {"every": float("nan")},
+        ]:
+            with self.assertRaises(ValueError):
+                watch_schedules(self.store, self.workspace, **fields)
+        self.assertEqual(self.control.list_runs(self.workspace), [])
+
