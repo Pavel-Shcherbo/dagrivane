@@ -693,3 +693,52 @@ class ScheduleStoreTests(unittest.TestCase):
                 watch_schedules(self.store, self.workspace, **fields)
         self.assertEqual(self.control.list_runs(self.workspace), [])
 
+    def test_cli_preview_create_dispatch_export_and_verify(self):
+        definition = self.root / "schedule.json"
+        definition.write_text(json.dumps(interval()))
+        args = [sys.executable, "-m", "dagrivane.schedules", "--db", str(self.path)]
+
+        def cli(*tail, expected=0):
+            result = subprocess.run(
+                args + list(map(str, tail)), capture_output=True, text=True
+            )
+            self.assertEqual(result.returncode, expected, result.stderr)
+            return json.loads(result.stdout) if result.stdout else None
+
+        self.assertEqual(len(cli("preview", definition, "--limit", 2)["items"]), 2)
+        schedule = cli(
+            "create",
+            self.workspace,
+            self.workflow["id"],
+            "--version",
+            1,
+            "--definition",
+            definition,
+            "--request-key",
+            "created",
+            "--now",
+            0,
+        )
+        self.assertEqual(
+            cli("dispatch", self.workspace, "--request-key", "tick", "--now", 300)[
+                "outcome_count"
+            ],
+            4,
+        )
+        output = self.root / "schedule-export.json"
+        cli("export", self.workspace, schedule["id"], "--output", output)
+        self.assertTrue(cli("verify", output)["passed"])
+        watched = subprocess.run(
+            args + ["watch", self.workspace, "--max-ticks", "1"],
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(watched.returncode, 0, watched.stderr)
+        self.assertEqual(
+            json.loads(watched.stdout.splitlines()[-1])["kind"], "watch_stopped"
+        )
+        cli("export", self.workspace, schedule["id"], "--output", output, expected=2)
+
+
+if __name__ == "__main__":
+    unittest.main()
