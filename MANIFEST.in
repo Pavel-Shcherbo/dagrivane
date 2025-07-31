@@ -15,3 +15,5 @@ include examples/http-row-source.json
 include examples/ingestion-control-pages.json
 
 include examples/daily-schedule.json
+
+include examples/orders-schema-migration.json
