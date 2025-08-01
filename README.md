@@ -88,3 +88,7 @@ Durable streams accept ordered event batches or pinned CSV revisions, retain sou
 ## Calendar dispatch
 
 Preview and register retained interval or timezone cron schedules, choose missed-run/overlap policies, and dispatch into the durable queue with restart-safe receipts. An explicit foreground watcher supports automatic dispatch; workers execute queued workflows separately. See the [schedule guide](docs/SCHEDULES.md) and `python3 -m dagrivane.schedules --help`.
+
+## Stream schema evolution
+
+Prepare an explicit typed projection, review its retained checkpoint and quality results, then fork into the next immutable schema version. The transition preserves tombstones, deduplication and catalog ancestry, fences old writers and creates a recoverable publication. See the [stream migration guide](docs/STREAM_MIGRATIONS.md) for commands, HTTP handoff, offline replay and limits.
