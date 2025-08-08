@@ -170,6 +170,9 @@ class HTTPSourceStore:
         now = moment(now)
         with self.ingestion._tx() as db:
             source, _, stream, _ = self._source(db, name)
+            from .stream_migration_seed import require_active
+
+            require_active(db, source["stream"])
             if expected_chain is not None and source["chain"] != expected_chain:
                 raise ValueError("source checkpoint changed; refresh before polling")
             if (
@@ -209,6 +212,9 @@ class HTTPSourceStore:
 
     def _held(self, db, claim, now=None):
         source, config, stream, stream_def = self._source(db, claim["name"])
+        from .stream_migration_seed import require_active
+
+        require_active(db, source["stream"])
         if (
             source["claim"] != claim["token"]
             or source["owner"] != claim["owner"]
