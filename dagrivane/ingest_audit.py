@@ -27,15 +27,19 @@ def audit_in_view(store, db, name, *, limit=1000, catalog=None):
         (name, limit + 1),
     ).fetchall()
     complete = len(rows) <= limit
-    records = {}
-    seen = {}
-    watermark = None
-    position = 0
-    previous_state = fingerprint([])
-    previous_bundle = None
-    previous_artifact = None
+    from .stream_migration_seed import initial_state, load_base, bootstrap_batch, exists
+
+    base = load_base(db, name)
+    records, seen, watermark, position, previous_state, previous_bundle, parent = (
+        initial_state(db, name)
+    )
+    previous_artifact = parent
     publication_gap = False
-    owners = {}
+    owners = (
+        {event_id: "migration-base:" + base["sha256"] for event_id in seen}
+        if base
+        else {}
+    )
     for number, entry in enumerate(rows[:limit], 1):
         try:
             raw_row = db.execute(
@@ -46,7 +50,9 @@ def audit_in_view(store, db, name, *, limit=1000, catalog=None):
             if raw_bytes > 64 * 1024 * 1024:
                 complete = False
                 break
-            batch = batch_definition(raw, definition)
+            batch = bootstrap_batch(raw, definition, base)
+            if batch.get("version") == 2 and number != 1:
+                raise ValueError("migration bootstrap is not the first generation")
             event_count += len(batch["events"])
             if event_count > 100000:
                 complete = False
@@ -176,7 +182,21 @@ def audit_in_view(store, db, name, *, limit=1000, catalog=None):
         ).fetchone()[0]
         actual_seen = {}
         actual_owners = {}
-        if count == len(seen):
+        base_count = (
+            db.execute(
+                "SELECT count(*) FROM migration_seen WHERE stream=?", (name,)
+            ).fetchone()[0]
+            if exists(db)
+            else 0
+        )
+        if count + base_count == len(seen):
+            if base_count:
+                for row in db.execute(
+                    "SELECT event_id,content_sha256 FROM migration_seen WHERE stream=?",
+                    (name,),
+                ):
+                    actual_seen[row["event_id"]] = row["content_sha256"]
+                    actual_owners[row["event_id"]] = "migration-base:" + base["sha256"]
             for row in db.execute(
                 "SELECT event_id,content_sha256,batch_id FROM events WHERE stream=?",
                 (name,),
