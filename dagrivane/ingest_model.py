@@ -105,10 +105,10 @@ def normalized_key(contract, keys, value):
     return raw.decode(), result
 
 
-def batch_definition(raw, definition):
+def batch_definition(raw, definition, *, _value=None):
     if not isinstance(raw, bytes) or len(raw) > MAX_BATCH_BYTES:
         raise ValueError("incremental batch requires at most 4 MiB of JSON bytes")
-    value = parse_json(raw)
+    value = parse_json(raw) if _value is None else _value
     if (
         not isinstance(value, dict)
         or set(value) - {"version", "after", "through", "events", "source_sha256"}
