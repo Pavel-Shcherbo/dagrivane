@@ -150,7 +150,7 @@ class IngestStore:
 
     def _status(self, db, name):
         stream, definition = self._stream(db, name)
-        return {
+        result = {
             "name": name,
             "store_id": self.id,
             "definition": definition,
@@ -169,6 +169,12 @@ class IngestStore:
                 )
             },
         }
+        from .stream_migration_seed import retired
+
+        retirement = retired(db, name)
+        if retirement is not None:
+            result["retired_by_migration"] = retirement
+        return result
 
     def status(self, name):
         with self._tx(False) as db:
@@ -210,7 +216,9 @@ class IngestStore:
             raise ValueError("batch exceeds 4 MiB or is not bytes")
         raw_sha = hashlib.sha256(raw).hexdigest()
         stream, definition = self._stream(db, name)
-        batch = batch_definition(raw, definition)
+        from .stream_migration_seed import decode_stream_batch
+
+        batch, base = decode_stream_batch(db, name, raw, definition)
         batch_id = fingerprint([self.id, name, stream["definition_sha256"], raw_sha])
         prior = db.execute(
             "SELECT batch_id FROM requests WHERE stream=? AND request_key=?",
@@ -227,6 +235,13 @@ class IngestStore:
                 (name, request_key, batch_id),
             )
             return {**json.loads(existing["receipt"]), "reused": True}
+        from .stream_migration_seed import require_active
+
+        require_active(db, name)
+        if batch.get("version") == 2 and stream["generation"] != 0:
+            raise ValueError(
+                "migration bootstrap is only valid at successor generation zero"
+            )
         if batch["after"] != stream["offset"]:
             raise ValueError("batch after offset differs from the committed checkpoint")
         records = self._records(db, name)
@@ -244,6 +259,22 @@ class IngestStore:
                 [name, *chunk],
             ):
                 seen[row["event_id"]] = row["content_sha256"]
+        from .stream_migration_seed import exists
+
+        if exists(db):
+            for start in range(0, len(ids), 200):
+                chunk = ids[start : start + 200]
+                for row in db.execute(
+                    "SELECT event_id,content_sha256 FROM migration_seen WHERE stream=? AND event_id IN ("
+                    + ",".join("?" for _ in chunk)
+                    + ")",
+                    [name, *chunk],
+                ):
+                    if row["event_id"] in seen:
+                        raise ValueError(
+                            "event identity exists in both migration base and live history"
+                        )
+                    seen[row["event_id"]] = row["content_sha256"]
         updated, new_seen, watermark, counts, outcomes, table, checks, state_sha = (
             reduce_events(
                 definition, records, seen, stream["watermark"], batch["events"]
@@ -262,7 +293,11 @@ class IngestStore:
                 [
                     raw_sha,
                     *batch["source_sha256"],
-                    *([previous["bundle_sha256"]] if previous else []),
+                    *(
+                        [previous["bundle_sha256"]]
+                        if previous
+                        else [base["sha256"]] if base else []
+                    ),
                 ]
             )
         )
@@ -458,6 +493,9 @@ class IngestStore:
             db.execute(
                 "UPDATE streams SET target_root=? WHERE name=?", (target_root, name)
             )
+            from .stream_migration_seed import load_base
+
+            base = load_base(db, name) if previous is None else None
             return {
                 "stream": name,
                 "batch_id": row["id"],
@@ -467,7 +505,15 @@ class IngestStore:
                 "definition": definition,
                 "bundle": bytes(row["bundle"]),
                 "bundle_sha256": row["bundle_sha256"],
-                "parents": [json.loads(previous["artifact"])["id"]] if previous else [],
+                "parents": (
+                    [json.loads(previous["artifact"])["id"]]
+                    if previous
+                    else (
+                        [base["origin"]["artifact"]["id"]]
+                        if base and base["origin"]["artifact"]
+                        else []
+                    )
+                ),
                 "request_key": "ingest:"
                 + self.id
                 + ":"
