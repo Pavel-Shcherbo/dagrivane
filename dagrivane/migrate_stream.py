@@ -17,3 +17,8 @@ from .stream_migration import (
 from .stream_migration_seed import verify_base
 
 
+def read(path):
+    with Path(path).open("rb") as stream:
+        return parse_json(stream.read(64 * 1024 * 1024 + 1))
+
+
