@@ -57,3 +57,36 @@ def connector_checkpoint(db, name):
     }
 
 
+def origin_in_view(store, db, name):
+    stream, definition = store._stream(db, name)
+    publications = db.execute(
+        "SELECT b.*,p.status AS publication_status,p.artifact FROM batches b JOIN publications p ON p.stream=b.stream AND p.batch_id=b.id WHERE b.stream=? ORDER BY generation",
+        (name,),
+    ).fetchall()
+    if any(row["publication_status"] != "published" for row in publications):
+        raise ValueError("publish and acknowledge every source batch before migration")
+    history = [
+        {
+            "raw": base64.b64encode(bytes(row["raw"])).decode(),
+            "receipt": json.loads(row["receipt"]),
+            "artifact": json.loads(row["artifact"]),
+        }
+        for row in publications
+    ]
+    artifact = history[-1]["artifact"] if history else None
+    origin = {
+        "store_id": store.id,
+        "stream": name,
+        "definition": definition,
+        "generation": stream["generation"],
+        "offset": stream["offset"],
+        "watermark": stream["watermark"],
+        "state_sha256": stream["state_sha256"],
+        "seen_count": stream["seen_count"],
+        "target_root": stream["target_root"],
+        "artifact": artifact,
+        "connector": connector_checkpoint(db, name),
+    }
+    return origin, history
+
+
