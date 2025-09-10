@@ -90,3 +90,47 @@ def origin_in_view(store, db, name):
     return origin, history
 
 
+def prepare_migration(store, proposal, *, catalog):
+    with store._tx(False) as db:
+        name = proposal.get("source") if isinstance(proposal, dict) else None
+        require_active(db, name)
+        source, definition = store._stream(db, name)
+        plan = compile_projection(definition, proposal)
+        if db.execute(
+            "SELECT name FROM streams WHERE name=?", (plan["successor"],)
+        ).fetchone():
+            raise ValueError("successor stream already exists")
+        if source["target_root"] is not None and source["target_root"] != str(
+            catalog.root
+        ):
+            raise ValueError(
+                "migration catalog differs from the source publication destination"
+            )
+        checked = audit_in_view(store, db, name, catalog=catalog)
+        if not checked["passed"] or not checked["complete"]:
+            raise ValueError(
+                "migration requires a complete passing source replay audit"
+            )
+        origin, history = origin_in_view(store, db, name)
+        parent = load_base(db, name)
+        from .stream_migration_seed import replay_origin
+
+        shell = {"origin": origin, "history": history, "source_base": parent}
+        records, seen = replay_origin(shell)
+        projected, _, _, _ = project_state(definition, plan, records)
+        document = {
+            "format": "dagrivane.stream-migration.v1",
+            "destination_root": str(catalog.root),
+            "origin": origin,
+            "source_base": parent,
+            "history": history,
+            "plan": plan,
+            "records": projected,
+            "seen": seen,
+            "projection": projection_report(definition, plan, records),
+        }
+        document["sha256"] = fingerprint(document)
+        verify_base(document)
+        return document
+
+
