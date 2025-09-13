@@ -134,3 +134,27 @@ def prepare_migration(store, proposal, *, catalog):
         return document
 
 
+def configure_migration_policy(document, catalog):
+    verify_base(document)
+    if str(catalog.root) != document["destination_root"]:
+        raise ValueError("migration policy destination differs from reviewed catalog")
+    definition = document["plan"]["definition"]
+    target = definition["target"]
+    if (
+        document["origin"]["target_root"] is not None
+        and str(catalog.root) != document["origin"]["target_root"]
+    ):
+        raise ValueError(
+            "migration policy catalog differs from the reviewed destination"
+        )
+    catalog.create_workspace(target["workspace"])
+    return catalog.register_policy(
+        target["workspace"],
+        target["dataset"],
+        target["policy_version"],
+        definition["contract"],
+        definition["gates"],
+        allow_breaking=True,
+    )
+
+
