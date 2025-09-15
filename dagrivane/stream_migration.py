@@ -279,3 +279,17 @@ def apply_migration(store, document, *, catalog, request_key):
         return receipt
 
 
+def write_migration(document, path):
+    verify_base(document)
+    path = Path(path)
+    raw = json_bytes(document) + b"\n"
+    if len(raw) > 64 * 1024 * 1024:
+        raise ValueError("serialized migration proof exceeds 64 MiB")
+    descriptor = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+    with os.fdopen(descriptor, "wb") as stream:
+        stream.write(raw)
+    return {
+        "path": str(path),
+        "sha256": document["sha256"],
+        "rows": document["projection"]["rows"],
+    }
