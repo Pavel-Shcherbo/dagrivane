@@ -158,3 +158,124 @@ def configure_migration_policy(document, catalog):
     )
 
 
+def apply_migration(store, document, *, catalog, request_key):
+    token(request_key, "migration request key")
+    verify_base(document)
+    if str(catalog.root) != document["destination_root"]:
+        raise ValueError("migration destination differs from reviewed catalog")
+    plan = document["plan"]
+    target = plan["definition"]["target"]
+    if document["origin"]["store_id"] != store.id:
+        raise ValueError("migration belongs to another ingestion store")
+    policy, _, _ = policy_definition(
+        plan["definition"]["contract"],
+        plan["definition"]["gates"],
+        target["policy_version"],
+    )
+    if catalog.policy(target["workspace"], target["dataset"], target["policy_version"])[
+        "sha256"
+    ] != fingerprint(policy):
+        raise ValueError("target policy differs from the reviewed migration definition")
+    with store._tx() as db:
+        for sql in SCHEMA:
+            db.execute(sql)
+        previous = db.execute(
+            "SELECT * FROM migration_requests WHERE request_key=?", (request_key,)
+        ).fetchone()
+        if previous is not None:
+            if previous["migration_sha256"] != document["sha256"]:
+                raise ValueError(
+                    "migration request key identifies another reviewed plan"
+                )
+            return parse_json(bytes(previous["receipt"]))
+        require_active(db, plan["source"])
+        if db.execute(
+            "SELECT name FROM streams WHERE name=?", (plan["successor"],)
+        ).fetchone():
+            raise ValueError("successor stream already exists")
+        origin, history = origin_in_view(store, db, plan["source"])
+        if (
+            origin != document["origin"]
+            or history != document["history"]
+            or load_base(db, plan["source"]) != document["source_base"]
+        ):
+            raise ValueError(
+                "source checkpoint or publication chain changed after migration review"
+            )
+        if origin["target_root"] is not None and origin["target_root"] != str(
+            catalog.root
+        ):
+            raise ValueError("migration destination changed")
+        checked = audit_in_view(store, db, plan["source"], catalog=catalog)
+        if not checked["passed"] or not checked["complete"]:
+            raise ValueError("source is not a complete verified migration checkpoint")
+        if db.execute("SELECT count(*) FROM streams").fetchone()[0] >= 1000:
+            raise ValueError("ingestion store exceeds 1,000 streams")
+        definition = stream_definition(plan["definition"])
+        db.execute(
+            "INSERT INTO streams VALUES(?,?,?,0,?,?,?,?,?)",
+            (
+                plan["successor"],
+                json_bytes(definition).decode(),
+                fingerprint(definition),
+                origin["offset"],
+                origin["watermark"],
+                document["projection"]["state_sha256"],
+                len(document["seen"]),
+                str(catalog.root),
+            ),
+        )
+        db.execute(
+            "INSERT INTO migration_bases VALUES(?,?,?)",
+            (plan["successor"], json_bytes(document), document["sha256"]),
+        )
+        db.executemany(
+            "INSERT INTO migration_seen VALUES(?,?,?)",
+            [
+                (plan["successor"], event_id, sha)
+                for event_id, sha in sorted(document["seen"].items())
+            ],
+        )
+        db.executemany(
+            "INSERT INTO records VALUES(?,?,?)",
+            [
+                (plan["successor"], key, json_bytes(item).decode())
+                for key, item in sorted(document["records"].items())
+            ],
+        )
+        raw = json_bytes(
+            {
+                "version": 2,
+                "kind": "migration_bootstrap",
+                "base_sha256": document["sha256"],
+                "after": origin["offset"],
+                "through": origin["offset"],
+                "events": [],
+            }
+        )
+        bootstrap = store._ingest(
+            db, plan["successor"], raw, request_key="migration:" + document["sha256"]
+        )
+        db.execute(
+            "INSERT INTO migration_retired VALUES(?,?,?)",
+            (plan["source"], plan["successor"], document["sha256"]),
+        )
+        receipt = {
+            "migration_sha256": document["sha256"],
+            "source": plan["source"],
+            "successor": plan["successor"],
+            "source_generation": origin["generation"],
+            "offset": origin["offset"],
+            "rows": document["projection"]["rows"],
+            "tombstones": document["projection"]["tombstones"],
+            "bootstrap": bootstrap,
+            "source_frozen": True,
+            "catalog_policy_sha256": fingerprint(policy),
+        }
+        db.execute(
+            "INSERT INTO migration_requests VALUES(?,?,?)",
+            (request_key, document["sha256"], json_bytes(receipt)),
+        )
+        return receipt
+
+
