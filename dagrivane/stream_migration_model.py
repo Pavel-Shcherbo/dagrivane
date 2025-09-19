@@ -110,3 +110,32 @@ def compile_projection(source, value):
     return result
 
 
+def lossless_cast(value, before, after):
+    if value is None:
+        return None
+    if before == "string":
+        parsed = convert(value, after, from_csv=after in ("integer", "boolean"))
+        reverse = encode(parsed)
+        if isinstance(reverse, bool):
+            reverse = "true" if reverse else "false"
+        elif not isinstance(reverse, str):
+            reverse = str(reverse)
+        if reverse != value:
+            raise ValueError("cast would discard the source string representation")
+        return parsed
+    if after == "string":
+        converted = encode(value)
+        if isinstance(converted, bool):
+            return "true" if converted else "false"
+        return str(converted)
+    if before == "integer" and after == "decimal":
+        return Decimal(value)
+    if before == "decimal" and after == "integer":
+        if value != value.to_integral_value():
+            raise ValueError(
+                "decimal-to-integer cast would discard a fractional amount"
+            )
+        return convert(int(value), "integer")
+    raise ValueError("unsupported lossless cast: " + before + " to " + after)
+
+
