@@ -139,3 +139,55 @@ def lossless_cast(value, before, after):
     raise ValueError("unsupported lossless cast: " + before + " to " + after)
 
 
+def project_state(source, plan, records):
+    plan = compile_projection(source, plan)
+    target = plan["definition"]
+    old = Contract.compile(source["contract"])
+    new = Contract.compile(target["contract"])
+    output = {}
+    for key, item in sorted(records.items()):
+        source_key = json.loads(key)
+        key_values = {
+            name: source_key[rule["source"]]
+            for name, rule in plan["columns"].items()
+            if name in target["keys"]
+        }
+        target_key, _ = normalized_key(new, target["keys"], key_values)
+        if target_key in output:
+            raise ValueError("projection merged distinct retained keys")
+        row = None
+        if item["row"] is not None:
+            parsed = old.parse_row(item["row"])
+            row = {}
+            for name, rule in plan["columns"].items():
+                if rule["operation"] == "constant":
+                    value = rule["value"]
+                else:
+                    value = parsed[rule["source"]]
+                    if rule["operation"] == "cast":
+                        value = lossless_cast(
+                            value,
+                            old.column(rule["source"]).kind,
+                            new.column(name).kind,
+                        )
+                row[name] = encode(new.column(name).parse(value))
+            if (
+                normalized_key(
+                    new, target["keys"], {name: row[name] for name in target["keys"]}
+                )[0]
+                != target_key
+                or instant(row[target["event_time_column"]]) != item["at"]
+            ):
+                raise ValueError("projection changed a row identity or event timestamp")
+        output[target_key] = {**item, "row": row}
+    table = Table.from_rows(
+        new,
+        [item["row"] for _, item in sorted(output.items()) if item["row"] is not None],
+    )
+    checks = [gate.evaluate(table) for gate in compile_gates(target["gates"], new)]
+    if not all(item["passed"] for item in checks):
+        raise ValueError("projected data failed target quality gates")
+    state_sha = fingerprint([{"key": key, **output[key]} for key in sorted(output)])
+    return output, table, checks, state_sha
+
+
