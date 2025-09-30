@@ -191,3 +191,19 @@ def project_state(source, plan, records):
     return output, table, checks, state_sha
 
 
+def projection_report(source, plan, records):
+    plan = compile_projection(source, plan)
+    output, table, checks, sha = project_state(source, plan, records)
+    return {
+        "compatibility": compatibility(
+            Contract.compile(source["contract"]),
+            Contract.compile(plan["definition"]["contract"]),
+        ),
+        "checks": checks,
+        "rows": len(table.records),
+        "tombstones": sum(item["row"] is None for item in output.values()),
+        "state_sha256": sha,
+        "data_sha256": table.digest(),
+        "dropped_columns": plan["drop_columns"],
+        "scope": "Exact current-state projection; compatibility report does not claim unchanged consumer code",
+    }
