@@ -17,3 +17,12 @@ SCHEMA = [
 ]
 
 
+def exists(db):
+    return (
+        db.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='migration_bases'"
+        ).fetchone()
+        is not None
+    )
+
+
