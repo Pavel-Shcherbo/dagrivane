@@ -26,3 +26,13 @@ def exists(db):
     )
 
 
+def retired(db, name):
+    if not exists(db):
+        return None
+    row = db.execute(
+        "SELECT successor,migration_sha256 FROM migration_retired WHERE stream=?",
+        (name,),
+    ).fetchone()
+    return dict(row) if row else None
+
+
