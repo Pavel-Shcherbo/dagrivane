@@ -36,3 +36,11 @@ def retired(db, name):
     return dict(row) if row else None
 
 
+def require_active(db, name):
+    value = retired(db, name)
+    if value is not None:
+        raise ValueError(
+            "stream is retired by migration; use successor " + value["successor"]
+        )
+
+
