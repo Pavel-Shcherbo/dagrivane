@@ -44,3 +44,19 @@ def require_active(db, name):
         )
 
 
+def load_base(db, name):
+    if not exists(db):
+        return None
+    row = db.execute("SELECT * FROM migration_bases WHERE stream=?", (name,)).fetchone()
+    if row is None:
+        return None
+    document = parse_json(bytes(row["payload"]))
+    if (
+        document.get("sha256") != row["sha256"]
+        or fingerprint({k: v for k, v in document.items() if k != "sha256"})
+        != row["sha256"]
+    ):
+        raise ValueError("migrated base identity changed")
+    return document
+
+
