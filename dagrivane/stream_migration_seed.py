@@ -60,3 +60,22 @@ def load_base(db, name):
     return document
 
 
+def initial_state(db, name):
+    base = load_base(db, name)
+    if base is None:
+        return {}, {}, None, 0, fingerprint([]), None, None
+    verify_base(base)
+    source = base["origin"]
+    records = base["records"]
+    seen = base["seen"]
+    return (
+        records,
+        seen,
+        source["watermark"],
+        source["offset"],
+        base["projection"]["state_sha256"],
+        base["sha256"],
+        source["artifact"]["id"] if source["artifact"] else None,
+    )
+
+
