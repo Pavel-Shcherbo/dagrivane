@@ -79,3 +79,24 @@ def initial_state(db, name):
     )
 
 
+def bootstrap_batch(raw, definition, base, *, _value=None):
+    value = parse_json(raw) if _value is None else _value
+    if isinstance(value, dict) and value.get("version") == 2:
+        if (
+            base is None
+            or set(value)
+            != {"version", "kind", "base_sha256", "after", "through", "events"}
+            or type(value["version"]) is not int
+            or value["kind"] != "migration_bootstrap"
+            or value["base_sha256"] != base["sha256"]
+            or type(value["after"]) is not int
+            or type(value["through"]) is not int
+            or value["after"] != base["origin"]["offset"]
+            or value["through"] != value["after"]
+            or value["events"] != []
+        ):
+            raise ValueError("invalid migration bootstrap batch")
+        return {**value, "source_sha256": [base["sha256"]]}
+    return batch_definition(raw, definition, _value=value)
+
+
