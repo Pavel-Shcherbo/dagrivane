@@ -100,3 +100,13 @@ def bootstrap_batch(raw, definition, base, *, _value=None):
     return batch_definition(raw, definition, _value=value)
 
 
+def decode_stream_batch(db, name, raw, definition):
+    value = parse_json(raw)
+    base = (
+        load_base(db, name)
+        if isinstance(value, dict) and value.get("version") == 2
+        else None
+    )
+    return bootstrap_batch(raw, definition, base, _value=value), base
+
+
