@@ -110,3 +110,120 @@ def decode_stream_batch(db, name, raw, definition):
     return bootstrap_batch(raw, definition, base, _value=value), base
 
 
+def replay_origin(document, depth=0):
+    if depth > 4:
+        raise ValueError("migration lineage exceeds four predecessor migrations")
+    source = document["origin"]
+    definition = stream_definition(source["definition"])
+    records = {}
+    seen = {}
+    watermark = None
+    position = 0
+    state_sha = fingerprint([])
+    previous = None
+    artifact = None
+    parent = document["source_base"]
+    if parent is not None:
+        verify_base(parent, depth + 1)
+        if (
+            parent["plan"]["successor"] != source["stream"]
+            or parent["plan"]["definition"] != definition
+        ):
+            raise ValueError("predecessor base differs from source identity")
+        records = parent["records"]
+        seen = dict(parent["seen"])
+        watermark = parent["origin"]["watermark"]
+        position = parent["origin"]["offset"]
+        state_sha = parent["projection"]["state_sha256"]
+        previous = parent["sha256"]
+        artifact = parent["origin"]["artifact"]
+    history = document["history"]
+    if not isinstance(history, list) or len(history) > 1000:
+        raise ValueError("migration proof exceeds 1,000 source batches")
+    raw_bytes = 0
+    event_count = 0
+    for generation, entry in enumerate(history, 1):
+        raw = base64.b64decode(entry["raw"], validate=True)
+        raw_bytes += len(raw)
+        if raw_bytes > 64 * 1024 * 1024:
+            raise ValueError("migration source history exceeds 64 MiB raw data")
+        batch = bootstrap_batch(raw, definition, parent)
+        if batch.get("version") == 2 and generation != 1:
+            raise ValueError("bootstrap must be the first successor generation")
+        if batch["after"] != position:
+            raise ValueError("migration source checkpoint chain has a gap")
+        event_count += len(batch["events"])
+        if event_count > 100000:
+            raise ValueError("migration proof exceeds 100,000 source events")
+        before = state_sha
+        records, seen, watermark, counts, outcomes, table, checks, state_sha = (
+            reduce_events(definition, records, seen, watermark, batch["events"])
+        )
+        raw_sha = hashlib.sha256(raw).hexdigest()
+        batch_id = fingerprint(
+            [source["store_id"], source["stream"], fingerprint(definition), raw_sha]
+        )
+        sources = list(
+            dict.fromkeys(
+                [raw_sha, *batch["source_sha256"], *([previous] if previous else [])]
+            )
+        )
+        table = Table(table.contract, table.records, tuple(sources))
+        bundle = json_bytes(
+            {
+                "format": "dagrivane.table.v1",
+                "report": {
+                    "passed": True,
+                    "plan_sha256": fingerprint(definition),
+                    "output": table.summary(),
+                    "checks": checks,
+                },
+                "rows": table.json_rows(),
+            }
+        )
+        sha = hashlib.sha256(bundle).hexdigest()
+        expected = {
+            "stream": source["stream"],
+            "batch_id": batch_id,
+            "generation": generation,
+            "after": position,
+            "through": batch["through"],
+            "raw_sha256": raw_sha,
+            "previous_state_sha256": before,
+            "state_sha256": state_sha,
+            "bundle_sha256": sha,
+            "data_sha256": table.digest(),
+            "watermark": watermark,
+            "counts": counts,
+            "outcomes": outcomes,
+            "rows": len(table.records),
+            "tombstones": sum(item["row"] is None for item in records.values()),
+        }
+        if any(entry["receipt"].get(k) != v for k, v in expected.items()):
+            raise ValueError("migration source receipt differs from raw replay")
+        published = entry["artifact"]
+        if (
+            not isinstance(published, dict)
+            or published.get("sha256") != sha
+            or published.get("kind") != "table"
+            or published.get("workspace") != definition["target"]["workspace"]
+            or published.get("name") != definition["target"]["dataset"]
+            or published.get("policy_version") != definition["target"]["policy_version"]
+            or published.get("parents") != ([artifact["id"]] if artifact else [])
+        ):
+            raise ValueError("migration source publication or ancestry differs")
+        artifact = published
+        previous = sha
+        position = batch["through"]
+    if (
+        source["generation"] != len(history)
+        or source["offset"] != position
+        or source["watermark"] != watermark
+        or source["state_sha256"] != state_sha
+        or source["seen_count"] != len(seen)
+        or source["artifact"] != artifact
+    ):
+        raise ValueError("migration source checkpoint differs from replayed history")
+    return records, seen
+
+
