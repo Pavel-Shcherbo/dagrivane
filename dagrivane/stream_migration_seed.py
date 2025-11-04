@@ -227,3 +227,60 @@ def replay_origin(document, depth=0):
     return records, seen
 
 
+def verify_base(document, depth=0):
+    if (
+        not isinstance(document, dict)
+        or set(document)
+        != {
+            "format",
+            "destination_root",
+            "origin",
+            "source_base",
+            "history",
+            "plan",
+            "records",
+            "seen",
+            "projection",
+            "sha256",
+        }
+        or document["format"] != "dagrivane.stream-migration.v1"
+        or fingerprint({k: v for k, v in document.items() if k != "sha256"})
+        != document["sha256"]
+    ):
+        raise ValueError("migration base format/content identity mismatch")
+    destination = document["destination_root"]
+    if (
+        not isinstance(destination, str)
+        or not 1 <= len(destination) <= 4096
+        or "\0" in destination
+        or document["origin"]["target_root"] not in (None, destination)
+    ):
+        raise ValueError("invalid migration destination binding")
+    source = document["origin"]
+    plan = compile_projection(source["definition"], document["plan"])
+    if plan["source"] != source["stream"]:
+        raise ValueError("migration plan source differs from retained origin")
+    records, seen = replay_origin(document, depth)
+    projected, _, _, _ = project_state(source["definition"], plan, records)
+    if (
+        projected != document["records"]
+        or seen != document["seen"]
+        or projection_report(source["definition"], plan, records)
+        != document["projection"]
+    ):
+        raise ValueError(
+            "migration projected state differs from independent reconstruction"
+        )
+    json_bytes(document, 64 * 1024 * 1024)
+    return {
+        "passed": True,
+        "source": plan["source"],
+        "successor": plan["successor"],
+        "source_generation": source["generation"],
+        "offset": source["offset"],
+        "rows": document["projection"]["rows"],
+        "tombstones": document["projection"]["tombstones"],
+        "seen_events": len(seen),
+        "sha256": document["sha256"],
+        "source_authenticated": False,
+    }
