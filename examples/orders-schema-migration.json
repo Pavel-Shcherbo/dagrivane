@@ -1,0 +1,81 @@
+{
+  "version": 1,
+  "source": "orders",
+  "successor": "orders-v2",
+  "definition": {
+    "version": 1,
+    "contract": {
+      "name": "orders",
+      "version": 2,
+      "columns": [
+        {
+          "name": "id",
+          "type": "integer"
+        },
+        {
+          "name": "amount",
+          "type": "decimal",
+          "min": "0"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp"
+        },
+        {
+          "name": "currency",
+          "type": "string",
+          "enum": [
+            "USD"
+          ]
+        }
+      ]
+    },
+    "keys": [
+      "id"
+    ],
+    "event_time_column": "updated_at",
+    "allowed_lateness_seconds": 864000,
+    "gates": [
+      {
+        "id": "ids",
+        "kind": "unique",
+        "columns": [
+          "id"
+        ]
+      },
+      {
+        "id": "budget",
+        "kind": "sum",
+        "columns": [
+          "amount"
+        ],
+        "max": "1000"
+      }
+    ],
+    "target": {
+      "workspace": "ingestion",
+      "dataset": "orders",
+      "policy_version": 2
+    }
+  },
+  "columns": {
+    "id": {
+      "operation": "copy",
+      "source": "id"
+    },
+    "amount": {
+      "operation": "copy",
+      "source": "amount"
+    },
+    "updated_at": {
+      "operation": "copy",
+      "source": "updated_at"
+    },
+    "currency": {
+      "operation": "constant",
+      "value": "USD"
+    }
+  },
+  "drop_columns": [],
+  "reason": "Expand the orders contract with an explicit currency before producer cutover"
+}
