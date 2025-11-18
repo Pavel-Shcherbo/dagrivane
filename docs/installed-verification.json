@@ -1,5 +1,5 @@
 {
-  "wheel_sha256": "c4f459baeb42c059bc990ed4c1aa97e697db6a925c3eebe18ead3f0ee8b575ff",
+  "wheel_sha256": "12f031f8303d05eb6c13f45eb61a1ace887823cc8d2dc0ccd349e505fcfad22e",
   "examples_exported": [
     "daily-schedule.json",
     "dataflow.json",
@@ -10,6 +10,7 @@
     "incremental-orders.csv",
     "incremental-stream.json",
     "ingestion-control-pages.json",
+    "orders-schema-migration.json",
     "orders.csv",
     "pipeline.json",
     "release_typed.py",
@@ -30,5 +31,6 @@
   "incremental_ingestion_and_ordered_catalog_publication_passed": true,
   "durable_operations_http_controls_passed": true,
   "http_extraction_cursor_recovery_and_publication_passed": true,
-  "ingestion_workbench_checkpoints_review_receipts_and_local_publication_passed": true
+  "ingestion_workbench_checkpoints_review_receipts_and_local_publication_passed": true,
+  "stream_schema_cutover_and_offline_replay_passed": true
 }
