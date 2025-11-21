@@ -1,0 +1,19 @@
+{
+  "passed": true,
+  "scope": "One local synthetic 5,000-key schema migration with 1,000 retained tombstones; no throughput SLA",
+  "source_events": 6000,
+  "keys": 5000,
+  "live_rows": 4000,
+  "tombstones": 1000,
+  "inherited_seen_ids": 6000,
+  "retained_offset": 6000,
+  "independent_decimal_total": "120020.00",
+  "independent_key_and_currency_checks": true,
+  "catalog_ancestry_verified": true,
+  "complete_audit_passed": true,
+  "prepare_seconds": 1.0377154169837013,
+  "apply_seconds": 0.7632120830239728,
+  "audit_seconds": 0.6171719999983907,
+  "proof_bytes": 2867890,
+  "retained_directory": "/var/folders/8_/kbqb5qpx3lbbg3zxc48xbhcr0000gn/T/stream-schema-workload-5d4yuu20"
+}
