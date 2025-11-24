@@ -1,0 +1,34 @@
+{
+  "passed": true,
+  "scope": "Clean installed synthetic schema fork, independent exact row/SQLite/catalog checks and replay after source removal; no remote source authentication",
+  "retained_offset": 5,
+  "successor_offset": 6,
+  "successor_generation": 2,
+  "independent_live_keys": [
+    1,
+    3,
+    4
+  ],
+  "independent_decimal_total": "50",
+  "retained_tombstones": 1,
+  "inherited_dedup_ids": 5,
+  "new_event_ids": 1,
+  "old_artifacts_unchanged": true,
+  "catalog_ancestry_verified": true,
+  "source_writes_fenced": true,
+  "repeated_apply_exact_receipt": true,
+  "missing_policy_rejected": true,
+  "create_only_private_plan": true,
+  "offline_verification_after_source_and_catalog_removal": {
+    "passed": true,
+    "source": "orders",
+    "successor": "orders-v2",
+    "source_generation": 2,
+    "offset": 5,
+    "rows": 2,
+    "tombstones": 1,
+    "seen_events": 5,
+    "sha256": "06c3b41de6d6598460f1fd46b0e0b32008e89c30f4de2b66843a78da52b99e7d",
+    "source_authenticated": false
+  }
+}
