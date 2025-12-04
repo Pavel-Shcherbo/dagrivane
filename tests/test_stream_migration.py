@@ -33,3 +33,27 @@ from tests.test_ingest import definition, event, batch
 EXAMPLES = Path(__file__).resolve().parents[1] / "examples"
 
 
+def proposal(source="orders", successor="orders-v2", old=None):
+    old = old or definition()
+    target = copy.deepcopy(old)
+    target["contract"]["version"] += 1
+    target["target"]["policy_version"] += 1
+    target["contract"]["columns"].append(
+        {"name": "currency", "type": "string", "enum": ["USD"]}
+    )
+    mappings = {
+        column["name"]: {"operation": "copy", "source": column["name"]}
+        for column in old["contract"]["columns"]
+    }
+    mappings["currency"] = {"operation": "constant", "value": "USD"}
+    return {
+        "version": 1,
+        "source": source,
+        "successor": successor,
+        "definition": target,
+        "columns": mappings,
+        "drop_columns": [],
+        "reason": "Expand the reviewed orders schema with explicit currency",
+    }
+
+
