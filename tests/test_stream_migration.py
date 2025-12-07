@@ -57,3 +57,12 @@ def proposal(source="orders", successor="orders-v2", old=None):
     }
 
 
+def v2event(number, key=1, amount="10", day=4, operation="upsert", event_id=None):
+    value = event(
+        number, key=key, amount=amount, day=day, operation=operation, event_id=event_id
+    )
+    if value["row"] is not None:
+        value["row"]["currency"] = "USD"
+    return value
+
+
