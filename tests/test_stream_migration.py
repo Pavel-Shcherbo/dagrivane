@@ -66,3 +66,12 @@ def v2event(number, key=1, amount="10", day=4, operation="upsert", event_id=None
     return value
 
 
+def resign(document):
+    document["sha256"] = fingerprint(
+        {k: v for k, v in document.items() if k != "sha256"}
+    )
+    return document
+
+
+class StreamMigrationTests(unittest.TestCase):
+    pass
