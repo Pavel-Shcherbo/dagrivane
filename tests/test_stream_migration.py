@@ -74,4 +74,27 @@ def resign(document):
 
 
 class StreamMigrationTests(unittest.TestCase):
-    pass
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+        self.store = IngestStore(self.root / "ingest.sqlite", create=True)
+        self.store.register("orders", definition())
+        self.catalog = Catalog(self.root / "catalog")
+        configure_target(self.store, "orders", self.catalog)
+        self.original = self.store.ingest(
+            "orders",
+            batch(
+                0,
+                [
+                    event(1, day=2),
+                    event(2, key=2, day=2),
+                    event(3, key=2, day=3, operation="delete"),
+                ],
+            ),
+            request_key="initial",
+        )
+        self.original_artifact = publish_pending(self.store, "orders", self.catalog)[
+            "published"
+        ][0]["artifact"]
+
