@@ -98,3 +98,6 @@ class StreamMigrationTests(unittest.TestCase):
             "published"
         ][0]["artifact"]
 
+    def prepare(self, value=None):
+        return prepare_migration(self.store, value or proposal(), catalog=self.catalog)
+
