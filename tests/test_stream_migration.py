@@ -101,3 +101,10 @@ class StreamMigrationTests(unittest.TestCase):
     def prepare(self, value=None):
         return prepare_migration(self.store, value or proposal(), catalog=self.catalog)
 
+    def apply(self, document=None, key="schema-two"):
+        document = document or self.prepare()
+        configure_migration_policy(document, self.catalog)
+        return apply_migration(
+            self.store, document, catalog=self.catalog, request_key=key
+        )
+
