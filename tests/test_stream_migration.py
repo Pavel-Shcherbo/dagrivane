@@ -108,3 +108,36 @@ class StreamMigrationTests(unittest.TestCase):
             self.store, document, catalog=self.catalog, request_key=key
         )
 
+    def test_exact_state_offset_tombstones_and_publication_lineage(self):
+        old = self.store.rows("orders")
+        document = self.prepare()
+        receipt = self.apply(document)
+        self.assertEqual(self.store.rows("orders"), old)
+        current = self.store.rows("orders-v2")
+        self.assertEqual(current["offset"], 3)
+        self.assertEqual(current["generation"], 1)
+        self.assertEqual(
+            current["rows"],
+            [
+                {
+                    "id": 1,
+                    "amount": "10",
+                    "updated_at": "2020-01-02T12:00:00Z",
+                    "currency": "USD",
+                }
+            ],
+        )
+        self.assertEqual(current["tombstones"], 1)
+        self.assertEqual(receipt["bootstrap"]["after"], receipt["bootstrap"]["through"])
+        artifact = publish_pending(self.store, "orders-v2", self.catalog)["published"][
+            0
+        ]["artifact"]
+        self.assertEqual(artifact["parents"], [self.original_artifact["id"]])
+        self.assertEqual(artifact["policy_version"], 2)
+        self.assertTrue(audit(self.store, "orders-v2", catalog=self.catalog)["passed"])
+        self.assertTrue(
+            self.catalog.verify_artifact("research", self.original_artifact["id"])[
+                "passed"
+            ]
+        )
+
