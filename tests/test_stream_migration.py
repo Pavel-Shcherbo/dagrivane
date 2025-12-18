@@ -164,3 +164,19 @@ class StreamMigrationTests(unittest.TestCase):
         )
         self.assertTrue(audit(self.store, "orders", catalog=self.catalog)["passed"])
 
+    def test_preserved_tombstone_and_watermark_prevent_stale_resurrection(self):
+        self.apply()
+        result = self.store.ingest(
+            "orders-v2",
+            batch(3, [v2event(4, key=2, day=2), v2event(5, key=3, amount="30", day=4)]),
+            request_key="continue",
+        )
+        self.assertEqual(result["counts"], {"applied": 1, "duplicate": 0, "stale": 1})
+        self.assertEqual(
+            [r["id"] for r in self.store.rows("orders-v2")["rows"]], [1, 3]
+        )
+        self.assertEqual(self.store.rows("orders-v2")["tombstones"], 1)
+        self.assertEqual(self.store.status("orders-v2")["seen_events"], 5)
+        publish_pending(self.store, "orders-v2", self.catalog)
+        self.assertTrue(audit(self.store, "orders-v2", catalog=self.catalog)["passed"])
+
