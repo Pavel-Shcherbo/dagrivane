@@ -141,3 +141,26 @@ class StreamMigrationTests(unittest.TestCase):
             ]
         )
 
+    def test_retired_source_blocks_new_writes_but_allows_receipt_recovery(self):
+        self.apply()
+        with self.assertRaisesRegex(ValueError, "retired"):
+            self.store.ingest("orders", batch(3, [event(4, day=4)]), request_key="late")
+        repeated = self.store.ingest(
+            "orders",
+            batch(
+                0,
+                [
+                    event(1, day=2),
+                    event(2, key=2, day=2),
+                    event(3, key=2, day=3, operation="delete"),
+                ],
+            ),
+            request_key="initial",
+        )
+        self.assertTrue(repeated["reused"])
+        self.assertEqual(
+            self.store.status("orders")["retired_by_migration"]["successor"],
+            "orders-v2",
+        )
+        self.assertTrue(audit(self.store, "orders", catalog=self.catalog)["passed"])
+
