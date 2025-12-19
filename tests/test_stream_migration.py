@@ -180,3 +180,13 @@ class StreamMigrationTests(unittest.TestCase):
         publish_pending(self.store, "orders-v2", self.catalog)
         self.assertTrue(audit(self.store, "orders-v2", catalog=self.catalog)["passed"])
 
+    def test_inherited_event_ids_cannot_be_rewritten_under_the_new_contract(self):
+        self.apply()
+        with self.assertRaisesRegex(ValueError, "event ID"):
+            self.store.ingest(
+                "orders-v2",
+                batch(3, [v2event(4, event_id="event-1")]),
+                request_key="duplicate-id",
+            )
+        self.assertEqual(self.store.status("orders-v2")["offset"], 3)
+
