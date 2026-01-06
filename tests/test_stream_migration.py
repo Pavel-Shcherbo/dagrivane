@@ -190,3 +190,17 @@ class StreamMigrationTests(unittest.TestCase):
             )
         self.assertEqual(self.store.status("orders-v2")["offset"], 3)
 
+    def test_apply_retry_after_restart_is_identical(self):
+        document = self.prepare()
+        first = self.apply(document)
+        self.store = IngestStore(self.store.path)
+        self.assertEqual(
+            apply_migration(
+                self.store, document, catalog=self.catalog, request_key="schema-two"
+            ),
+            first,
+        )
+        self.assertEqual(self.store.status("orders-v2")["generation"], 1)
+        with self.assertRaises(ValueError):
+            self.apply(document, key="another-key")
+
