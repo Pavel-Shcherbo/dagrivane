@@ -204,3 +204,18 @@ class StreamMigrationTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.apply(document, key="another-key")
 
+    def test_stale_review_rejects_checkpoint_advance_even_without_row_changes(self):
+        document = self.prepare()
+        configure_migration_policy(document, self.catalog)
+        self.store.ingest(
+            "orders", batch(3, [], through=4), request_key="empty-advance"
+        )
+        publish_pending(self.store, "orders", self.catalog)
+        with self.assertRaisesRegex(ValueError, "changed"):
+            apply_migration(
+                self.store, document, catalog=self.catalog, request_key="stale"
+            )
+        with self.assertRaises(ValueError):
+            self.store.status("orders-v2")
+        self.assertNotIn("retired_by_migration", self.store.status("orders"))
+
