@@ -219,3 +219,9 @@ class StreamMigrationTests(unittest.TestCase):
             self.store.status("orders-v2")
         self.assertNotIn("retired_by_migration", self.store.status("orders"))
 
+    def test_pending_publications_block_review_and_cutover(self):
+        self.store.ingest("orders", batch(3, [event(4, day=4)]), request_key="pending")
+        with self.assertRaises(ValueError):
+            self.prepare()
+        self.assertNotIn("retired_by_migration", self.store.status("orders"))
+
