@@ -225,3 +225,13 @@ class StreamMigrationTests(unittest.TestCase):
             self.prepare()
         self.assertNotIn("retired_by_migration", self.store.status("orders"))
 
+    def test_projection_failure_does_not_create_policy_or_successor(self):
+        value = proposal()
+        value["definition"]["contract"]["columns"][-1]["enum"] = ["EUR"]
+        with self.assertRaises(ValueError):
+            self.prepare(value)
+        with self.assertRaises(ValueError):
+            self.store.status("orders-v2")
+        with self.assertRaises(ValueError):
+            self.catalog.policy("research", "orders", 2)
+
