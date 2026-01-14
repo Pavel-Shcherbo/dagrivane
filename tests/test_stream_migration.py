@@ -241,3 +241,11 @@ class StreamMigrationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "quality gates"):
             self.prepare(value)
 
+    def test_missing_target_policy_blocks_apply_without_freezing_source(self):
+        document = self.prepare()
+        with self.assertRaises(ValueError):
+            apply_migration(
+                self.store, document, catalog=self.catalog, request_key="missing-policy"
+            )
+        self.assertNotIn("retired_by_migration", self.store.status("orders"))
+
