@@ -235,3 +235,9 @@ class StreamMigrationTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.catalog.policy("research", "orders", 2)
 
+    def test_quality_gate_failure_cannot_be_previewed_as_valid(self):
+        value = proposal()
+        value["definition"]["gates"][1]["max"] = "9"
+        with self.assertRaisesRegex(ValueError, "quality gates"):
+            self.prepare(value)
+
