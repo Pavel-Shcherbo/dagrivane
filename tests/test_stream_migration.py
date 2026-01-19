@@ -249,3 +249,15 @@ class StreamMigrationTests(unittest.TestCase):
             )
         self.assertNotIn("retired_by_migration", self.store.status("orders"))
 
+    def test_wrong_catalog_and_wrong_store_are_rejected(self):
+        document = self.prepare()
+        wrong = Catalog(self.root / "wrong")
+        with self.assertRaises(ValueError):
+            configure_migration_policy(document, wrong)
+        another = IngestStore(self.root / "another.sqlite", create=True)
+        configure_migration_policy(document, self.catalog)
+        with self.assertRaisesRegex(ValueError, "another ingestion"):
+            apply_migration(
+                another, document, catalog=self.catalog, request_key="wrong-store"
+            )
+
