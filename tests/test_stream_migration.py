@@ -261,3 +261,24 @@ class StreamMigrationTests(unittest.TestCase):
                 another, document, catalog=self.catalog, request_key="wrong-store"
             )
 
+    def test_atomic_failure_rolls_back_new_base_records_retirement_and_outbox(self):
+        document = self.prepare()
+        configure_migration_policy(document, self.catalog)
+        with (
+            patch.object(
+                self.store, "_ingest", side_effect=RuntimeError("interrupted bootstrap")
+            ),
+            self.assertRaises(RuntimeError),
+        ):
+            apply_migration(
+                self.store, document, catalog=self.catalog, request_key="atomic"
+            )
+        with self.assertRaises(ValueError):
+            self.store.status("orders-v2")
+        self.assertNotIn("retired_by_migration", self.store.status("orders"))
+        self.assertTrue(
+            apply_migration(
+                self.store, document, catalog=self.catalog, request_key="atomic"
+            )["source_frozen"]
+        )
+
