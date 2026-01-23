@@ -282,3 +282,20 @@ class StreamMigrationTests(unittest.TestCase):
             )["source_frozen"]
         )
 
+    def test_concurrent_cutovers_share_one_idempotent_receipt(self):
+        document = self.prepare()
+        configure_migration_policy(document, self.catalog)
+
+        def apply(_):
+            return apply_migration(
+                IngestStore(self.store.path),
+                document,
+                catalog=self.catalog,
+                request_key="concurrent",
+            )
+
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            values = list(pool.map(apply, range(4)))
+        self.assertTrue(all(value == values[0] for value in values))
+        self.assertEqual(self.store.status("orders-v2")["generation"], 1)
+
