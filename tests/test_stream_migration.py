@@ -299,3 +299,14 @@ class StreamMigrationTests(unittest.TestCase):
         self.assertTrue(all(value == values[0] for value in values))
         self.assertEqual(self.store.status("orders-v2")["generation"], 1)
 
+    def test_rehashed_projection_or_dedup_tampering_is_rejected(self):
+        for mutate in [
+            lambda d: d["records"]['{"id":1}']["row"].update(amount="999"),
+            lambda d: d["seen"].pop("event-1"),
+        ]:
+            document = self.prepare()
+            mutate(document)
+            resign(document)
+            with self.assertRaises(ValueError):
+                verify_base(document)
+
