@@ -326,3 +326,14 @@ class StreamMigrationTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             audit(self.store, "orders-v2")
 
+    def test_keys_and_event_time_cannot_be_synthesized(self):
+        for column in ["id", "updated_at"]:
+            value = proposal()
+            value["columns"][column] = {
+                "operation": "constant",
+                "value": 1 if column == "id" else "2020-01-01T00:00:00Z",
+            }
+            value["drop_columns"] = [column]
+            with self.assertRaisesRegex(ValueError, "copy mappings"):
+                compile_projection(definition(), value)
+
