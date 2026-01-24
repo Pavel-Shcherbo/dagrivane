@@ -310,3 +310,19 @@ class StreamMigrationTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 verify_base(document)
 
+    def test_corrupt_base_or_seen_cache_cannot_pass_replay(self):
+        document = self.prepare()
+        self.apply(document)
+        with self.store._tx() as db:
+            db.execute(
+                "DELETE FROM migration_seen WHERE stream='orders-v2' AND event_id='event-1'"
+            )
+        self.assertFalse(audit(self.store, "orders-v2")["passed"])
+        with self.store._tx() as db:
+            db.execute(
+                "UPDATE migration_bases SET sha256=? WHERE stream='orders-v2'",
+                ("0" * 64,),
+            )
+        with self.assertRaises(ValueError):
+            audit(self.store, "orders-v2")
+
