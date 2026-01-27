@@ -337,3 +337,21 @@ class StreamMigrationTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "copy mappings"):
                 compile_projection(definition(), value)
 
+    def test_explicit_drop_and_exact_integral_cast(self):
+        value = proposal()
+        value["definition"]["contract"]["columns"][1]["type"] = "integer"
+        value["columns"]["amount"] = {"operation": "cast", "source": "amount"}
+        # Numeric constraints must use the declared new type as well.
+        value["definition"]["contract"]["columns"][1]["min"] = 0
+        value["definition"]["gates"][1]["max"] = 1000000
+        doc = self.prepare(value)
+        self.apply(doc)
+        self.assertEqual(self.store.rows("orders-v2")["rows"][0]["amount"], 10)
+        self.assertTrue(audit(self.store, "orders-v2")["passed"])
+        with self.assertRaises(ValueError):
+            lossless_cast(Decimal("1.5"), "decimal", "integer")
+        with self.assertRaises(ValueError):
+            lossless_cast("001", "string", "integer")
+        self.assertEqual(lossless_cast("12", "string", "integer"), 12)
+        self.assertEqual(lossless_cast(False, "boolean", "string"), "false")
+
