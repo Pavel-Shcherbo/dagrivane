@@ -355,3 +355,20 @@ class StreamMigrationTests(unittest.TestCase):
         self.assertEqual(lossless_cast("12", "string", "integer"), 12)
         self.assertEqual(lossless_cast(False, "boolean", "string"), "false")
 
+    def test_drop_requires_exact_unused_column_list(self):
+        value = proposal()
+        value["definition"]["contract"]["columns"] = [
+            c
+            for c in value["definition"]["contract"]["columns"]
+            if c["name"] != "amount"
+        ]
+        value["definition"]["gates"] = value["definition"]["gates"][:1]
+        value["columns"].pop("amount")
+        with self.assertRaisesRegex(ValueError, "drop_columns"):
+            self.prepare(value)
+        value["drop_columns"] = ["amount"]
+        document = self.prepare(value)
+        self.assertEqual(document["projection"]["dropped_columns"], ["amount"])
+        self.apply(document)
+        self.assertNotIn("amount", self.store.rows("orders-v2")["rows"][0])
+
