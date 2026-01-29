@@ -372,3 +372,13 @@ class StreamMigrationTests(unittest.TestCase):
         self.apply(document)
         self.assertNotIn("amount", self.store.rows("orders-v2")["rows"][0])
 
+    def test_empty_source_bootstrap_keeps_zero_checkpoint(self):
+        self.store.register("empty", definition())
+        value = proposal("empty", "empty-v2")
+        document = self.prepare(value)
+        self.apply(document, key="empty-migration")
+        status = self.store.status("empty-v2")
+        self.assertEqual(status["offset"], 0)
+        self.assertEqual(status["generation"], 1)
+        self.assertTrue(audit(self.store, "empty-v2")["passed"])
+
