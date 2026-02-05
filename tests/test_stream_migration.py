@@ -382,3 +382,40 @@ class StreamMigrationTests(unittest.TestCase):
         self.assertEqual(status["generation"], 1)
         self.assertTrue(audit(self.store, "empty-v2")["passed"])
 
+    def test_nested_migration_renames_keys_and_replays_full_ancestry(self):
+        self.apply()
+        publish_pending(self.store, "orders-v2", self.catalog)
+        old = self.store.status("orders-v2")["definition"]
+        target = copy.deepcopy(old)
+        target["contract"]["version"] = 3
+        target["target"]["policy_version"] = 3
+        target["contract"]["columns"][0]["name"] = "order_id"
+        target["keys"] = ["order_id"]
+        target["gates"][0]["columns"] = ["order_id"]
+        value = {
+            "version": 1,
+            "source": "orders-v2",
+            "successor": "orders-v3",
+            "definition": target,
+            "columns": {
+                ("order_id" if col["name"] == "id" else col["name"]): {
+                    "operation": "copy",
+                    "source": col["name"],
+                }
+                for col in old["contract"]["columns"]
+            },
+            "drop_columns": [],
+            "reason": "Rename the key while preserving logical identity",
+        }
+        document = self.prepare(value)
+        self.apply(document, key="schema-three")
+        self.assertEqual(self.store.rows("orders-v3")["rows"][0]["order_id"], 1)
+        self.assertEqual(self.store.rows("orders-v3")["tombstones"], 1)
+        artifact = publish_pending(self.store, "orders-v3", self.catalog)["published"][
+            0
+        ]["artifact"]
+        self.assertTrue(
+            self.catalog.verify_artifact("research", artifact["id"])["passed"]
+        )
+        self.assertTrue(audit(self.store, "orders-v3", catalog=self.catalog)["passed"])
+
