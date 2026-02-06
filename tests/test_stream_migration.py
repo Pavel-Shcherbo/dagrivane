@@ -419,3 +419,11 @@ class StreamMigrationTests(unittest.TestCase):
         )
         self.assertTrue(audit(self.store, "orders-v3", catalog=self.catalog)["passed"])
 
+    def http_source(self):
+        source = HTTPSourceStore(self.store)
+        config = json.loads((EXAMPLES / "http-row-source.json").read_text())
+        config["url"] = "http://127.0.0.1:1/orders"
+        config["initial_cursor"] = "checkpoint-three"
+        source.register("api", "orders", config)
+        return source
+
