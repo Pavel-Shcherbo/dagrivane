@@ -427,3 +427,22 @@ class StreamMigrationTests(unittest.TestCase):
         source.register("api", "orders", config)
         return source
 
+    def test_active_http_claim_and_staged_page_block_migration(self):
+        source = self.http_source()
+        claim = source.claim("api", "worker")
+        with self.assertRaisesRegex(ValueError, "HTTP source"):
+            self.prepare()
+        raw = json_bytes({"data": [], "next_cursor": "next", "has_more": False})
+        page = HTTPPage(
+            raw,
+            {
+                "status": 200,
+                "entity_bytes": len(raw),
+                "entity_sha256": hashlib.sha256(raw).hexdigest(),
+            },
+        )
+        source.stage(claim, source.checkpoint(claim), page)
+        source.release(claim)
+        with self.assertRaisesRegex(ValueError, "HTTP source"):
+            self.prepare()
+
