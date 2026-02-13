@@ -446,3 +446,16 @@ class StreamMigrationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "HTTP source"):
             self.prepare()
 
+    def test_expired_http_owner_cannot_fetch_or_heartbeat_after_cutover(self):
+        source = self.http_source()
+        claim = source.claim("api", "worker", now=1)
+        document = self.prepare()
+        self.apply(document)
+        self.assertEqual(
+            document["origin"]["connector"]["cursor"], '"checkpoint-three"'
+        )
+        with self.assertRaisesRegex(ValueError, "retired"):
+            source.claim("api", "new-worker")
+        with self.assertRaisesRegex(ValueError, "retired"):
+            source.heartbeat(claim, now=2)
+
