@@ -459,3 +459,53 @@ class StreamMigrationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "retired"):
             source.heartbeat(claim, now=2)
 
+    def test_successor_http_mapping_resumes_retained_cursor_without_reset(self):
+        source = self.http_source()
+        document = self.prepare()
+        self.apply(document)
+        config = json.loads((EXAMPLES / "http-row-source.json").read_bytes())
+        config["initial_cursor"] = json.loads(document["origin"]["connector"]["cursor"])
+        config["response"]["columns"]["currency"] = "/currency"
+        source.register("api-v2", "orders-v2", config)
+        claim = source.claim("api-v2", "worker-v2")
+        checkpoint = source.checkpoint(claim)
+        self.assertEqual(checkpoint["cursor"], "checkpoint-three")
+        self.assertEqual((checkpoint["offset"], checkpoint["generation"]), (3, 1))
+        raw = json_bytes(
+            {
+                "data": [
+                    {
+                        "id": 3,
+                        "amount": "30",
+                        "updated_at": "2020-01-04T12:00:00Z",
+                        "currency": "USD",
+                        "revision": "http-four",
+                    }
+                ],
+                "next_cursor": "checkpoint-four",
+                "has_more": False,
+            }
+        )
+        page = HTTPPage(
+            raw,
+            {
+                "status": 200,
+                "content_type": "application/json",
+                "entity_bytes": len(raw),
+                "entity_sha256": hashlib.sha256(raw).hexdigest(),
+            },
+        )
+        page_id = source.stage(claim, checkpoint, page)
+        result = source.apply(claim, page_id)
+        self.assertEqual((result["offset_after"], result["generation"]), (4, 2))
+        self.assertTrue(source.apply(claim, page_id)["reused"])
+        source.release(claim)
+        rows = self.store.rows("orders-v2")
+        self.assertEqual([row["id"] for row in rows["rows"]], [1, 3])
+        self.assertEqual(rows["tombstones"], 1)
+        publish_pending(self.store, "orders-v2", self.catalog)
+        from dagrivane.http_audit import audit_source
+
+        self.assertTrue(audit_source(source, "api-v2")["passed"])
+        self.assertTrue(audit(self.store, "orders-v2", catalog=self.catalog)["passed"])
+
