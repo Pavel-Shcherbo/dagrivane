@@ -509,3 +509,18 @@ class StreamMigrationTests(unittest.TestCase):
         self.assertTrue(audit_source(source, "api-v2")["passed"])
         self.assertTrue(audit(self.store, "orders-v2", catalog=self.catalog)["passed"])
 
+    def test_bootstrap_cannot_be_submitted_to_an_unmigrated_stream(self):
+        raw = json_bytes(
+            {
+                "version": 2,
+                "kind": "migration_bootstrap",
+                "base_sha256": "0" * 64,
+                "after": 3,
+                "through": 3,
+                "events": [],
+            }
+        )
+        with self.assertRaisesRegex(ValueError, "bootstrap"):
+            self.store.ingest("orders", raw, request_key="forged-bootstrap")
+        self.assertEqual(self.store.status("orders")["generation"], 1)
+
