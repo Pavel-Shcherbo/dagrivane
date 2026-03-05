@@ -524,3 +524,17 @@ class StreamMigrationTests(unittest.TestCase):
             self.store.ingest("orders", raw, request_key="forged-bootstrap")
         self.assertEqual(self.store.status("orders")["generation"], 1)
 
+    def test_proof_export_offline_after_source_and_catalog_removed(self):
+        document = self.prepare()
+        path = self.root / "migration.json"
+        write_migration(document, path)
+        with self.assertRaises(FileExistsError):
+            write_migration(document, path)
+        import shutil
+
+        shutil.rmtree(self.catalog.root)
+        self.store.path.unlink()
+        proof = verify_base(parse_json(path.read_bytes()))
+        self.assertTrue(proof["passed"])
+        self.assertFalse(proof["source_authenticated"])
+
