@@ -538,3 +538,45 @@ class StreamMigrationTests(unittest.TestCase):
         self.assertTrue(proof["passed"])
         self.assertFalse(proof["source_authenticated"])
 
+    def test_cli_prepare_policy_apply_verify(self):
+        value = self.root / "proposal.json"
+        value.write_bytes(json_bytes(proposal()))
+        plan = self.root / "migration.json"
+        args = [
+            sys.executable,
+            "-m",
+            "dagrivane.migrate_stream",
+            "--database",
+            str(self.store.path),
+        ]
+
+        def cli(*tail, expected=0):
+            result = subprocess.run(
+                args + list(map(str, tail)), capture_output=True, text=True
+            )
+            self.assertEqual(result.returncode, expected, result.stderr)
+            return json.loads(result.stdout) if result.stdout else None
+
+        cli("prepare", value, "--catalog", self.catalog.root, "--output", plan)
+        cli("policy", plan, "--catalog", self.catalog.root)
+        first = cli(
+            "apply", plan, "--catalog", self.catalog.root, "--request-key", "cli"
+        )
+        self.assertEqual(
+            first,
+            cli("apply", plan, "--catalog", self.catalog.root, "--request-key", "cli"),
+        )
+        self.assertTrue(cli("verify", plan)["passed"])
+        cli(
+            "prepare",
+            value,
+            "--catalog",
+            self.catalog.root,
+            "--output",
+            plan,
+            expected=2,
+        )
+
+
+if __name__ == "__main__":
+    unittest.main()
