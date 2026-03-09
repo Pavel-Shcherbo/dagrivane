@@ -33,6 +33,10 @@ Validates command graphs before execution, runs dependency-ordered tasks, persis
 
 The **Run queue** screen registers reviewed workflow versions, saves idempotent submissions and executes selected runs through the fenced local worker. Inspect retained task output and events, cancel a queued or running job, retry as a linked new run and export the current inspection. Each execution copies its pinned inputs into a fresh directory. See the [workbench operations guide](docs/OPERATIONS_WORKBENCH.md) for the three control scenarios and evidence boundaries.
 
+## Saved schedules
+
+The **Schedules** screen previews retained timezone rules, pins a workflow version, saves interval/cron schedules, pauses or resumes with generation checks and queues due jobs at an explicit decision clock. It recovers lost responses with durable receipts and exports replayable decision evidence. See the [calendar workbench guide](docs/CALENDAR_WORKBENCH.md) for execution, limits and verification.
+
 ## Typed data pipelines
 
 Run `python3 -m dagrivane.dataflow examples/dataflow.json` for schema-checked CSV processing, or export a fresh example directory and run `typed-pipeline.json` through the normal graph executor. The browser's **Execution** selector includes the typed data pipeline and a quality-failure control.
