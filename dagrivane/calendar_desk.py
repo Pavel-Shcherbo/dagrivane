@@ -17,3 +17,12 @@ from .schedule_store import ScheduleStore, record
 MAX_RESPONSE = 16 * 1024 * 1024
 
 
+def fields(value, required, optional=()):
+    if (
+        not isinstance(value, dict)
+        or not set(required) <= set(value)
+        or set(value) - set(required) - set(optional)
+    ):
+        raise ValueError("calendar request has missing or unsupported fields")
+
+
