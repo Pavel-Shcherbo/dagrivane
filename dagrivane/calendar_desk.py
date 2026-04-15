@@ -26,3 +26,12 @@ def fields(value, required, optional=()):
         raise ValueError("calendar request has missing or unsupported fields")
 
 
+def identity(value, label):
+    try:
+        if not isinstance(value, str) or str(uuid.UUID(value)) != value:
+            raise ValueError()
+    except (ValueError, AttributeError):
+        raise ValueError(label + " requires a canonical UUID") from None
+    return value
+
+
