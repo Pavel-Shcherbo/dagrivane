@@ -35,3 +35,9 @@ def identity(value, label):
     return value
 
 
+def page_size(value):
+    if type(value) is not int or not 1 <= value <= 100:
+        raise ValueError("calendar page size must be 1–100")
+    return value
+
+
