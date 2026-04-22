@@ -41,3 +41,13 @@ def page_size(value):
     return value
 
 
+def bounded(value):
+    if len(json.dumps(value, allow_nan=False).encode()) > MAX_RESPONSE:
+        raise ValueError(
+            "calendar response exceeds 16 MiB; use the CLI for large evidence"
+        )
+    return value
+
+
+class BoundControl(ControlStore):
+    pass
