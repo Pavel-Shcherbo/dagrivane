@@ -50,4 +50,6 @@ def bounded(value):
 
 
 class BoundControl(ControlStore):
-    pass
+    def __init__(self, control, db):
+        self.path, self.db = control.path, db
+
