@@ -53,3 +53,7 @@ class BoundControl(ControlStore):
     def __init__(self, control, db):
         self.path, self.db = control.path, db
 
+    @contextmanager
+    def transaction(self):
+        yield self.db
+
