@@ -57,3 +57,10 @@ class BoundControl(ControlStore):
     def transaction(self):
         yield self.db
 
+    @contextmanager
+    def reading(self):
+        yield self.db
+
+
+class BoundSchedules(ScheduleStore):
+    pass
