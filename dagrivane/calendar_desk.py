@@ -63,4 +63,9 @@ class BoundControl(ControlStore):
 
 
 class BoundSchedules(ScheduleStore):
+    def __init__(self, control):
+        self.control = control
+
+
+class CalendarDesk:
     pass
