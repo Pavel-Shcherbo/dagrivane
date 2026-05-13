@@ -68,4 +68,7 @@ class BoundSchedules(ScheduleStore):
 
 
 class CalendarDesk:
-    pass
+    def __init__(self, root):
+        self.root = Path(root)
+        self.database = self.root / "control.sqlite"
+
