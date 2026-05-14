@@ -72,3 +72,14 @@ class CalendarDesk:
         self.root = Path(root)
         self.database = self.root / "control.sqlite"
 
+    def control(self):
+        if not self.database.is_file():
+            raise ValueError("initialize a workspace before managing schedules")
+        control = ControlStore(self.database)
+        ScheduleStore(control)
+        with control.transaction() as db:
+            db.execute(
+                "CREATE TABLE IF NOT EXISTS wb_calendar_receipts(workspace_id TEXT NOT NULL REFERENCES cp_workspaces(id),request_key TEXT NOT NULL,request_sha256 TEXT NOT NULL,result BLOB NOT NULL,result_sha256 TEXT NOT NULL,created INTEGER NOT NULL,PRIMARY KEY(workspace_id,request_key))"
+            )
+        return control
+
