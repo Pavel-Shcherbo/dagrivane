@@ -83,3 +83,15 @@ class CalendarDesk:
             )
         return control
 
+    @staticmethod
+    def checked_version(control, workspace, workflow, version):
+        row = control.workflow(workspace, workflow, version)
+        if (
+            digest(
+                {"specification": row["specification"], "directory": row["directory"]}
+            )
+            != row["fingerprint"]
+        ):
+            raise ValueError("saved workflow content differs from its pinned identity")
+        return row
+
