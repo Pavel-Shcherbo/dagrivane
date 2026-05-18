@@ -95,3 +95,16 @@ class CalendarDesk:
             raise ValueError("saved workflow content differs from its pinned identity")
         return row
 
+    @staticmethod
+    def template(now):
+        return {
+            "version": 1,
+            "name": "Orders every five minutes",
+            "trigger": {"kind": "interval", "seconds": 300},
+            "start_at": iso((now // 60 + 1) * 60),
+            "end_at": None,
+            "misfire": {"policy": "coalesce", "max_lateness_seconds": 86400},
+            "overlap": "defer",
+            "priority": 0,
+        }
+
