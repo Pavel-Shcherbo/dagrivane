@@ -108,3 +108,10 @@ class CalendarDesk:
             "priority": 0,
         }
 
+    @staticmethod
+    def receipt(row):
+        result = json.loads(bytes(row["result"]))
+        if digest(result) != row["result_sha256"]:
+            raise ValueError("saved calendar response identity changed")
+        return bounded(result)
+
