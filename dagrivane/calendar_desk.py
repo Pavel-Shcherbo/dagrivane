@@ -201,3 +201,134 @@ class CalendarDesk:
             )
             return result
 
+    def read(self, control, schedules, params):
+        action = params["action"]
+        base = ("mode", "action")
+        if action == "overview":
+            fields(params, base, ("after", "limit"))
+            after = params.get("after", "")
+            if after:
+                identity(after, "workspace cursor")
+            elif not isinstance(after, str):
+                raise ValueError("workspace cursor must be text")
+            limit = page_size(params.get("limit", 100))
+            rows = control.db.execute(
+                "SELECT * FROM cp_workspaces WHERE id>? ORDER BY id LIMIT ?",
+                (after, limit + 1),
+            ).fetchall()
+            now = instant(int(time.time()))
+            return {
+                "initialized": True,
+                "workspaces": [dict(row) for row in rows[:limit]],
+                "has_more": len(rows) > limit,
+                "next_cursor": rows[limit - 1]["id"] if len(rows) > limit else None,
+                "now": now,
+                "template": self.template(now),
+            }
+        workspace = identity(params.get("workspace"), "workspace")
+        control.workspace(control.db, workspace)
+        if action == "workspace":
+            fields(params, (*base, "workspace"))
+            return dict(control.workspace(control.db, workspace))
+        if action == "workflows":
+            fields(params, (*base, "workspace"), ("after", "limit"))
+            after = params.get("after", "")
+            if after:
+                identity(after, "workflow cursor")
+            elif not isinstance(after, str):
+                raise ValueError("workflow cursor must be text")
+            limit = page_size(params.get("limit", 100))
+            rows = control.db.execute(
+                "SELECT w.id,w.name,MAX(v.version) AS version FROM cp_workflows w JOIN cp_versions v ON v.workflow_id=w.id WHERE w.workspace_id=? AND w.id>? GROUP BY w.id ORDER BY w.id LIMIT ?",
+                (workspace, after, limit + 1),
+            ).fetchall()
+            return {
+                "items": [dict(row) for row in rows[:limit]],
+                "has_more": len(rows) > limit,
+                "next_cursor": rows[limit - 1]["id"] if len(rows) > limit else None,
+            }
+        if action == "version":
+            fields(params, (*base, "workspace", "workflow", "version"))
+            row = self.checked_version(
+                control,
+                workspace,
+                identity(params["workflow"], "workflow"),
+                params["version"],
+            )
+            return {
+                "workflow": row["workflow_id"],
+                "name": row["name"],
+                "version": row["version"],
+                "fingerprint": row["fingerprint"],
+                "specification": row["specification"],
+                "directory": row["directory"],
+            }
+        if action == "schedules":
+            fields(params, (*base, "workspace"), ("after", "limit"))
+            return schedules.list(
+                workspace,
+                after=params.get("after", ""),
+                limit=page_size(params.get("limit", 100)),
+            )
+        if action == "receipt":
+            fields(params, (*base, "workspace", "request_key"))
+            request_key = text(params["request_key"], "calendar request key", 200)
+            row = control.db.execute(
+                "SELECT * FROM wb_calendar_receipts WHERE workspace_id=? AND request_key=?",
+                (workspace, request_key),
+            ).fetchone()
+            if row is None:
+                raise ValueError("calendar response not found in this workspace")
+            return self.receipt(row)
+        if action == "run":
+            fields(params, (*base, "workspace", "schedule", "run"))
+            schedule = identity(params["schedule"], "schedule")
+            schedules.row(control.db, workspace, schedule)
+            run = identity(params["run"], "run")
+            if (
+                control.db.execute(
+                    "SELECT run_id FROM cp_timed_occurrences WHERE schedule_id=? AND run_id=?",
+                    (schedule, run),
+                ).fetchone()
+                is None
+            ):
+                raise ValueError("run does not belong to this schedule")
+            return control.get_run(workspace, run)
+        fields(
+            params,
+            (*base, "workspace", "schedule"),
+            ("event_after", "due_after", "limit"),
+        )
+        schedule = identity(params["schedule"], "schedule")
+        value = schedules.inspect(workspace, schedule)
+        limit = page_size(params.get("limit", 25))
+        events = schedules.events(
+            workspace, schedule, after=params.get("event_after", 0), limit=limit
+        )
+        occurrences = schedules.occurrences(
+            workspace, schedule, after=params.get("due_after", -1), limit=limit
+        )
+        try:
+            proof = verify_schedule_evidence(
+                export_schedule(schedules, workspace, schedule)
+            )
+            audit = {**proof, "error": None}
+        except (ValueError, ControlError) as error:
+            audit = {"passed": False, "complete": False, "error": str(error)}
+        preview = (
+            preview_schedule(value["definition"], after=value["next_due"], limit=8)
+            if value["next_due"] is not None
+            else {"items": [], "has_more": False, "next_cursor": None}
+        )
+        return {
+            "schedule": value,
+            "workflow": self.checked_version(
+                control, workspace, value["workflow_id"], value["version"]
+            ),
+            "events": events,
+            "occurrences": occurrences,
+            "preview": preview,
+            "audit": audit,
+            "observed_at": instant(int(time.time())),
+        }
+
