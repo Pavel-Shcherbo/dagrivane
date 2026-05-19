@@ -115,3 +115,89 @@ class CalendarDesk:
             raise ValueError("saved calendar response identity changed")
         return bounded(result)
 
+    def dispatch(self, params):
+        if not isinstance(params, dict):
+            raise ValueError("calendar request requires an object")
+        if params.get("mode") != "calendar":
+            raise ValueError("calendar request requires mode calendar")
+        action = params.get("action")
+        if action == "initialize":
+            fields(params, ("mode", "action"))
+            operations = Operations(self.root)
+            initialized = operations.initialize()
+            return {
+                "workspace_id": initialized["workspace"]["id"],
+                "workflow_id": initialized["workflow"]["id"],
+            }
+        if action == "preview":
+            fields(params, ("mode", "action", "definition"), ("after", "limit"))
+            return bounded(
+                preview_schedule(
+                    params["definition"],
+                    after=params.get("after"),
+                    limit=params.get("limit", 8),
+                )
+            )
+        if action == "overview" and not self.database.is_file():
+            fields(params, ("mode", "action"), ("after", "limit"))
+            now = instant(int(time.time()))
+            return {
+                "initialized": False,
+                "workspaces": [],
+                "has_more": False,
+                "next_cursor": None,
+                "now": now,
+                "template": self.template(now),
+            }
+        control = self.control()
+        read_actions = (
+            "overview",
+            "workspace",
+            "workflows",
+            "version",
+            "schedules",
+            "view",
+            "run",
+            "receipt",
+        )
+        if action in read_actions:
+            with control.reading() as db:
+                db.execute("BEGIN")
+                bound = BoundControl(control, db)
+                return bounded(self.read(bound, BoundSchedules(bound), params))
+        workspace = identity(params.get("workspace"), "workspace")
+        request_key = text(params.get("request_key"), "calendar request key", 200)
+        request_sha = digest(params)
+        with control.transaction() as db:
+            control.workspace(db, workspace)
+            prior = db.execute(
+                "SELECT * FROM wb_calendar_receipts WHERE workspace_id=? AND request_key=?",
+                (workspace, request_key),
+            ).fetchone()
+            if prior:
+                if prior["request_sha256"] != request_sha:
+                    raise ValueError("calendar request key identifies different inputs")
+                return self.receipt(prior)
+            count, size = db.execute(
+                "SELECT count(*),COALESCE(sum(length(result)),0) FROM wb_calendar_receipts"
+            ).fetchone()
+            if count >= 10000:
+                raise ValueError("calendar desk reached 10,000 retained responses")
+            bound = BoundControl(control, db)
+            result = bounded(self.operate(bound, BoundSchedules(bound), params))
+            raw = canonical(result).encode()
+            if size + len(raw) > 256 * 1024 * 1024:
+                raise ValueError("retained calendar responses exceed 256 MiB")
+            db.execute(
+                "INSERT INTO wb_calendar_receipts VALUES(?,?,?,?,?,?)",
+                (
+                    workspace,
+                    request_key,
+                    request_sha,
+                    raw,
+                    digest(result),
+                    int(time.time()),
+                ),
+            )
+            return result
+
