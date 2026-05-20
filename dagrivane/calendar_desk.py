@@ -332,3 +332,83 @@ class CalendarDesk:
             "observed_at": instant(int(time.time())),
         }
 
+    @staticmethod
+    def operate(control, schedules, params):
+        base = ("mode", "action", "workspace", "request_key")
+        action = params["action"]
+        workspace = params["workspace"]
+        if action == "create":
+            fields(
+                params,
+                (
+                    *base,
+                    "workflow",
+                    "version",
+                    "workflow_sha256",
+                    "definition",
+                    "preview_sha256",
+                    "now",
+                ),
+            )
+            workflow = identity(params["workflow"], "workflow")
+            version = CalendarDesk.checked_version(
+                control, workspace, workflow, params["version"]
+            )
+            if version["fingerprint"] != params["workflow_sha256"]:
+                raise ValueError("workflow version differs from the reviewed selection")
+            plan = compile_schedule(params["definition"])
+            if plan.sha256 != params["preview_sha256"]:
+                raise ValueError(
+                    "schedule definition differs from the reviewed preview"
+                )
+            return schedules.create(
+                workspace,
+                workflow,
+                params["version"],
+                plan.definition,
+                params["request_key"],
+                now=params["now"],
+            )
+        if action == "set-enabled":
+            fields(
+                params, (*base, "schedule", "enabled", "generation", "reason", "now")
+            )
+            return schedules.set_enabled(
+                workspace,
+                identity(params["schedule"], "schedule"),
+                params["enabled"],
+                params["generation"],
+                params["reason"],
+                now=params["now"],
+            )
+        if action == "dispatch":
+            fields(params, (*base, "now", "limit"))
+            now = instant(params["now"])
+            for row in control.db.execute(
+                "SELECT DISTINCT workflow_id,version FROM cp_timed_schedules WHERE workspace_id=? AND enabled=1 AND next_due<=?",
+                (workspace, now),
+            ):
+                CalendarDesk.checked_version(
+                    control, workspace, row["workflow_id"], row["version"]
+                )
+            return schedules.dispatch(
+                workspace,
+                "calendar:" + params["request_key"],
+                now=params["now"],
+                limit=page_size(params["limit"]),
+            )
+        if action == "export":
+            fields(params, (*base, "schedule"))
+            document = export_schedule(
+                schedules, workspace, identity(params["schedule"], "schedule")
+            )
+            return {
+                "content": canonical(document) + "\n",
+                "schedule": {
+                    "id": document["schedule"]["id"],
+                    "generation": document["schedule"]["generation"],
+                },
+            }
+        raise ValueError("unknown calendar action")
+
+
