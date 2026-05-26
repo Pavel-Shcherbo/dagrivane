@@ -5,6 +5,7 @@ import json
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlsplit
+from .catalog_contracts import parse_json
 
 
 def serve(evaluate, example, default_port, *, on_start=None, source_route=None):
@@ -68,7 +69,15 @@ def serve(evaluate, example, default_port, *, on_start=None, source_route=None):
                 self.respond(200, {"status": "ok"})
             elif path == "/api/example":
                 self.respond(200, example())
-            elif path in {"/", "/index.html", "/app.js", "/style.css"}:
+            elif path in {
+                "/",
+                "/index.html",
+                "/app.js",
+                "/style.css",
+                "/calendar.html",
+                "/calendar.js",
+                "/calendar.css",
+            }:
                 name = "index.html" if path == "/" else path[1:]
                 mime = {
                     "html": "text/html",
@@ -111,12 +120,19 @@ def serve(evaluate, example, default_port, *, on_start=None, source_route=None):
                 ):
                     raise ValueError("Content-Type must be application/json")
                 self.connection.settimeout(5)
-                params = json.loads(self.rfile.read(length))
+                params = parse_json(self.rfile.read(length))
                 if not isinstance(params, dict):
                     raise ValueError("Expected a JSON object")
                 result = evaluate(params)
                 self.respond(200, result)
-            except (ValueError, KeyError, TypeError, OSError, TimeoutError) as error:
+            except (
+                ValueError,
+                KeyError,
+                TypeError,
+                OSError,
+                TimeoutError,
+                RecursionError,
+            ) as error:
                 self.respond(400, {"error": str(error)})
 
     with ThreadingHTTPServer(("127.0.0.1", args.port), Handler) as server:
