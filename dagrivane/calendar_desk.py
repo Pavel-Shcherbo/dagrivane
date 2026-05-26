@@ -412,3 +412,8 @@ class CalendarDesk:
         raise ValueError("unknown calendar action")
 
 
+def evaluate_calendar(params, root):
+    try:
+        return CalendarDesk(root).dispatch(params)
+    except (ControlError, sqlite3.Error) as error:
+        raise ValueError(str(error)) from error
