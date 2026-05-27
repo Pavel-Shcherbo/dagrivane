@@ -1,0 +1,216 @@
+.calendar-desk .workspace {
+  min-width: 0;
+}
+.calendar-desk .sidebar label {
+  display: grid;
+  gap: 8px;
+  margin-top: 24px;
+}
+.calendar-desk .sidebar footer {
+  position: static;
+  margin-top: 32px;
+}
+.calendar-desk .sidebar button {
+  margin-top: 12px;
+}
+.calendar-desk [aria-current="page"] {
+  background: var(--raised);
+}
+.calendar-desk #workspace-id {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  margin-top: 12px;
+}
+.calendar-desk #calendar-status {
+  min-height: 24px;
+  color: var(--secondary);
+  margin-bottom: 12px;
+}
+.calendar-desk .calendar-section {
+  padding: 24px;
+  margin-bottom: 24px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  min-width: 0;
+}
+.calendar-desk .calendar-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px 24px;
+}
+.calendar-desk .calendar-form label {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  min-width: 0;
+}
+.calendar-desk .wide {
+  grid-column: 1 / -1;
+}
+.calendar-desk input,
+.calendar-desk select {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--line);
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+}
+.calendar-desk .field-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: end;
+}
+.calendar-desk .dispatch-form {
+  grid-template-columns: minmax(200px, 2fr) minmax(120px, 1fr);
+}
+.calendar-desk .dispatch-form .field-actions {
+  grid-column: 1 / -1;
+}
+.calendar-desk .calendar-layout {
+  display: grid;
+  grid-template-columns: minmax(200px, 1fr) minmax(0, 3fr);
+  gap: 24px;
+  align-items: start;
+}
+.calendar-desk #schedule-list {
+  display: grid;
+  gap: 8px;
+}
+.calendar-desk #schedule-list button {
+  display: grid;
+  gap: 8px;
+  text-align: left;
+  width: 100%;
+  overflow-wrap: anywhere;
+}
+.calendar-desk #schedule-list button[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--raised);
+}
+.calendar-desk #schedule-list small {
+  font-size: 12px;
+}
+.calendar-desk .calendar-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+.calendar-desk table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.calendar-desk th,
+.calendar-desk td {
+  text-align: left;
+  padding: 12px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+  white-space: nowrap;
+}
+.calendar-desk th {
+  font-weight: 500;
+  color: var(--secondary);
+}
+.calendar-desk .section-heading {
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.calendar-desk .section-heading h2 {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.calendar-desk #schedule-meta,
+.calendar-desk #preview-pin,
+.calendar-desk #workflow-pin {
+  overflow-wrap: anywhere;
+}
+.calendar-desk .enabled-form {
+  margin: 24px 0;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+}
+.calendar-desk summary {
+  cursor: pointer;
+  font-weight: 500;
+  padding: 4px 0;
+}
+.calendar-desk details[open] > summary {
+  margin-bottom: 20px;
+}
+.calendar-desk pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  overflow: auto;
+  max-height: 400px;
+  padding: 16px;
+  background: var(--page);
+  font-size: 12px;
+}
+.calendar-desk .pending-operation {
+  padding: 16px 24px;
+  border-left: 4px solid var(--accent);
+  background: var(--surface);
+  margin-bottom: 24px;
+}
+.calendar-desk #schedule-history details {
+  margin-top: 24px;
+}
+.calendar-desk #decision-events {
+  padding-left: 24px;
+}
+.calendar-desk #decision-events li {
+  margin-bottom: 16px;
+  overflow-wrap: anywhere;
+}
+.calendar-desk #decision-events small {
+  display: block;
+  color: var(--secondary);
+}
+.calendar-desk #more-events,
+.calendar-desk #more-occurrences,
+.calendar-desk #more-schedules {
+  margin-top: 16px;
+}
+.calendar-desk #dispatch-summary {
+  margin-top: 20px;
+}
+.calendar-desk .audit-error {
+  color: var(--negative);
+}
+@media (max-width: 1100px) {
+  .calendar-desk .calendar-layout {
+    grid-template-columns: 1fr;
+  }
+  .calendar-desk #schedule-list {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+}
+@media (max-width: 700px) {
+  .calendar-desk .sidebar {
+    position: static;
+    width: auto;
+  }
+  .calendar-desk .sidebar footer {
+    display: none;
+  }
+  .calendar-desk .calendar-section {
+    padding: 16px;
+  }
+  .calendar-desk .calendar-form,
+  .calendar-desk .dispatch-form,
+  .calendar-desk .enabled-form {
+    grid-template-columns: 1fr;
+  }
+  .calendar-desk h1 {
+    overflow-wrap: anywhere;
+  }
+}
