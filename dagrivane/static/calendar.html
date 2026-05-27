@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Workflow schedules · Dagrivane</title>
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="/calendar.css" />
+    <script src="/calendar.js" defer></script>
+  </head>
+  <body class="calendar-desk">
+    <div class="shell">
+      <aside class="sidebar">
+        <a class="brand" href="/">Dagrivane</a>
+        <p class="caption">Workflow execution and release gates</p>
+        <nav aria-label="Workspace">
+          <a href="/#queue">Run queue</a
+          ><a href="/calendar.html" aria-current="page">Schedules</a
+          ><a href="/#ingestion">Ingestion</a>
+        </nav>
+        <label>Workspace<select id="workspace"></select></label>
+        <button id="more-workspaces" hidden>Load more workspaces</button>
+        <p id="workspace-id" class="muted"></p>
+        <footer>Retained local schedules<br />Explicit dispatch clock</footer>
+      </aside>
+      <main class="workspace">
+        <div class="topline">
+          <span>Workflow schedules</span><span>Local control plane</span>
+        </div>
+        <div id="calendar-error" class="error" role="alert" hidden></div>
+        <p id="calendar-status" role="status" aria-live="polite"></p>
+        <section id="pending-operation" class="pending-operation" hidden>
+          <p id="pending-description"></p>
+          <button id="recover-operation">Recover saved response</button>
+        </section>
+        <header class="pagehead">
+          <div>
+            <h1>Workflow schedules</h1>
+            <p>
+              Retained clocks, pinned workflow versions and recorded queue
+              decisions
+            </p>
+          </div>
+          <button id="refresh-calendar">Refresh</button>
+        </header>
+        <section id="initialize-section" class="calendar-section" hidden>
+          <h2>Create the local order workspace</h2>
+          <p>
+            Register the reviewed order pipeline before adding a schedule.
+            Existing CLI workspaces in this control store are also available.
+          </p>
+          <button id="initialize-calendar" class="primary">
+            Initialize order workflow
+          </button>
+        </section>
+        <div id="workspace-content" hidden>
+          <section class="calendar-section dispatch-panel">
+            <h2>Queue due runs</h2>
+            <p>
+              Evaluate due schedules in the selected workspace at this declared
+              clock. Queueing does not execute commands.
+            </p>
+            <form id="dispatch-form" class="calendar-form dispatch-form">
+              <label
+                >Decision clock, UTC<input id="decision-clock" required
+              /></label>
+              <label
+                >Maximum slot outcomes<input
+                  id="dispatch-limit"
+                  type="number"
+                  min="1"
+                  max="100"
+                  value="20"
+                  required
+              /></label>
+              <div class="field-actions">
+                <button id="current-clock" type="button">
+                  Use current time</button
+                ><button class="primary" type="submit" data-write>
+                  Queue due runs
+                </button>
+              </div>
+            </form>
+            <div id="dispatch-result" hidden>
+              <p id="dispatch-summary"></p>
+              <pre id="dispatch-json"></pre>
+            </div>
+          </section>
+          <div class="calendar-layout">
+            <section class="calendar-section saved-schedules">
+              <h2>Saved schedules</h2>
+              <div id="schedule-list"></div>
+              <button id="more-schedules" hidden>Load more schedules</button>
+            </section>
+            <section id="schedule-detail" class="calendar-section" hidden>
+              <div class="section-heading">
+                <h2 id="schedule-name"></h2>
+                <button id="export-schedule" data-write>
+                  Export replay evidence
+                </button>
+              </div>
+              <p id="schedule-meta" class="muted"></p>
+              <p id="schedule-audit"></p>
+              <div
+                class="calendar-scroll"
+                tabindex="0"
+                aria-label="Next retained calendar slots"
+              >
+                <table id="retained-slots">
+                  <thead>
+                    <tr>
+                      <th>UTC slot</th>
+                      <th>Local clock</th>
+                      <th>Fold</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+              <p id="slots-caption" class="muted"></p>
+              <form id="enabled-form" class="calendar-form enabled-form">
+                <label
+                  >Pause or resume reason<input
+                    id="enabled-reason"
+                    maxlength="500"
+                    value="Operator schedule review"
+                    required /></label
+                ><button id="toggle-enabled" type="submit" data-write>
+                  Pause schedule
+                </button>
+              </form>
+              <details>
+                <summary>Retained definition and workflow</summary>
+                <pre id="saved-definition"></pre>
+              </details>
+            </section>
+          </div>
+          <details class="calendar-section" id="new-schedule">
+            <summary>New schedule</summary>
+            <form id="schedule-form" class="calendar-form">
+              <label
+                >Schedule name<input
+                  id="new-name"
+                  value="Orders every five minutes"
+                  maxlength="160"
+                  required
+              /></label>
+              <label>Workflow<select id="workflow"></select></label>
+              <label
+                >Workflow version<input
+                  id="workflow-version"
+                  type="number"
+                  min="1"
+                  value="1"
+                  required
+              /></label>
+              <div class="field-actions">
+                <button id="more-workflows" type="button" hidden>
+                  Load more workflows
+                </button>
+              </div>
+              <p id="workflow-pin" class="wide muted"></p>
+              <label
+                >Trigger<select id="trigger-kind">
+                  <option value="interval">Interval</option>
+                  <option value="cron">Cron in a retained timezone</option>
+                </select></label
+              >
+              <label id="interval-field"
+                >Interval, seconds<input
+                  id="interval-seconds"
+                  type="number"
+                  value="300"
+                  min="60"
+                  max="2678400"
+              /></label>
+              <div id="cron-fields" class="calendar-form wide" hidden>
+                <label
+                  >Cron expression<input
+                    id="cron-expression"
+                    value="30 9 * * 1-5" /></label
+                ><label
+                  >IANA timezone<input id="timezone" value="America/New_York"
+                /></label>
+                <label
+                  >Repeated local minute<select id="fold">
+                    <option value="first">First occurrence</option>
+                    <option value="second">Second occurrence</option>
+                    <option value="both">Both occurrences</option>
+                  </select></label
+                >
+                <label
+                  >Day fields match<select id="day-match">
+                    <option value="and">Day of month and weekday</option>
+                    <option value="or">Day of month or weekday</option>
+                  </select></label
+                >
+                <p class="wide muted">
+                  Nonexistent local minutes are skipped. Fold 0 is the first
+                  local occurrence; fold 1 is the repeated occurrence.
+                </p>
+              </div>
+              <label
+                >Starts, ISO time with timezone<input
+                  id="starts-at"
+                  required /></label
+              ><label
+                >Ends, ISO time with timezone (optional)<input id="ends-at"
+              /></label>
+              <label
+                >Missed slots<select id="misfire">
+                  <option value="coalesce">
+                    Queue the latest eligible slot
+                  </option>
+                  <option value="catch_up">Catch up each eligible slot</option>
+                  <option value="skip">
+                    Skip slots beyond the lateness bound
+                  </option>
+                </select></label
+              >
+              <label
+                >Maximum lateness, seconds (blank means unlimited)<input
+                  id="max-lateness"
+                  type="number"
+                  min="0"
+                  max="2678400"
+                  value="86400"
+              /></label>
+              <label
+                >Overlapping runs<select id="overlap">
+                  <option value="defer">Defer while a run is active</option>
+                  <option value="skip">Record a skipped slot</option>
+                  <option value="allow">Allow overlapping queue entries</option>
+                </select></label
+              >
+              <label
+                >Priority<input
+                  id="priority"
+                  type="number"
+                  min="-100"
+                  max="100"
+                  value="0"
+              /></label>
+              <div class="wide field-actions">
+                <button id="preview-schedule" type="button">
+                  Preview retained clock</button
+                ><button
+                  id="create-schedule"
+                  type="submit"
+                  class="primary"
+                  data-write
+                  disabled
+                >
+                  Create schedule from preview
+                </button>
+              </div>
+            </form>
+            <div id="new-preview" hidden>
+              <h3>Reviewed slots</h3>
+              <p id="preview-pin" class="muted"></p>
+              <div class="calendar-scroll">
+                <table id="preview-slots">
+                  <thead>
+                    <tr>
+                      <th>UTC slot</th>
+                      <th>Local clock</th>
+                      <th>Fold</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+          </details>
+          <section class="calendar-section" id="schedule-history" hidden>
+            <h2>Decisions and queued runs</h2>
+            <p class="muted">
+              Slot outcomes and the recorded decision chain come from one saved
+              view. Worker status is inspected separately.
+            </p>
+            <div
+              class="calendar-scroll"
+              tabindex="0"
+              aria-label="Scheduled slot outcomes"
+            >
+              <table id="slot-outcomes">
+                <thead>
+                  <tr>
+                    <th>Due, UTC</th>
+                    <th>Outcome</th>
+                    <th>Run</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+            <button id="more-occurrences" hidden>Load more outcomes</button>
+            <details id="decision-history">
+              <summary>Decision history</summary>
+              <ol id="decision-events"></ol>
+              <button id="more-events" hidden>Load more decisions</button>
+            </details>
+            <details id="run-inspection" hidden>
+              <summary>Saved run inspection</summary>
+              <pre id="run-json"></pre>
+            </details>
+            <p>
+              <a href="/#queue">Open workflow operations</a> to execute reviewed
+              order runs, or use the scoped CLI worker for your registered
+              workflows.
+            </p>
+          </section>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>
