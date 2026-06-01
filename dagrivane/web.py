@@ -6,6 +6,7 @@ from shutil import copy2
 from .engine import run
 from .release_web import evaluate_release
 from .operations_web import evaluate_operations
+from .calendar_desk import evaluate_calendar
 from .httpapp import serve
 from .ingestion_web import evaluate_ingestion, start_origin, source_route
 from .resources import examples_directory, state_directory
@@ -16,6 +17,8 @@ def example():
 
 
 def evaluate(params):
+    if params.get("mode") == "calendar":
+        return evaluate_calendar(params, state_directory("dagrivane") / "operations")
     if params.get("mode") == "ingestion":
         return evaluate_ingestion(params)
     if params.get("mode") == "control":
