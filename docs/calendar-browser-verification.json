@@ -1,0 +1,72 @@
+{
+  "passed": true,
+  "scope": "Local browser recovery and separately reconciled worker effects; not full product acceptance",
+  "workspace": "aca31961-9a03-4f6e-a70a-e09f9a8e05c1",
+  "schedule": "1ab96bc3-4098-4a42-8738-71c1e0293e3b",
+  "download_generation": 35,
+  "final_generation": 35,
+  "final_enabled": false,
+  "download_replay": {
+    "passed": true,
+    "complete": true,
+    "schedule_id": "1ab96bc3-4098-4a42-8738-71c1e0293e3b",
+    "plan_sha256": "b580632b166b563cb00bee77cc0ff818834e2aaf7b29d6ea586e455e58a5cd13",
+    "events_checked": 35,
+    "occurrences_checked": 2,
+    "run_references_checked": 2,
+    "execution_verified": false,
+    "source_authenticated": false,
+    "scope": "Retained clock, decision-chain and queue-reference consistency; not independent proof of worker effects or authenticated production history"
+  },
+  "runs_independently_checked": [
+    {
+      "due": 1730611800,
+      "run_id": "8a937d42-19df-4ee5-af2a-05db3215bf7b",
+      "status": "succeeded",
+      "artifact_sha256": "e701267b9ea025e4c17aca903a5810cbffec1c442ff4f0146f8308f0a5de981e"
+    },
+    {
+      "due": 1730615400,
+      "run_id": "d91a9e3a-4212-40c6-8d65-5172267528bb",
+      "status": "succeeded",
+      "artifact_sha256": "e701267b9ea025e4c17aca903a5810cbffec1c442ff4f0146f8308f0a5de981e"
+    }
+  ],
+  "source_orders": 4,
+  "source_total_usd": "112.00",
+  "controls": {
+    "folded_hour_two_distinct_utc_slots": true,
+    "lost_pause_response_recovered_without_duplicate": true,
+    "stale_generation_rejected": true,
+    "late_preview_invalidated": true,
+    "precommit_create_retried_with_original_identity": true,
+    "late_view_does_not_replace_selection": true,
+    "changed_generation_resets_paged_history": true,
+    "download_preserves_server_json_number_bytes": true,
+    "unexpected_page_errors": []
+  },
+  "visual_review": {
+    "batches": 3,
+    "desktop": [
+      1440,
+      1000
+    ],
+    "mobile": [
+      390,
+      844
+    ],
+    "document_overflow": false,
+    "inspected": true
+  },
+  "expected_console_failures": [
+    "lost committed pause response",
+    "stale generation HTTP 400",
+    "create aborted before commit",
+    "absent receipt HTTP 400"
+  ],
+  "artifacts": {
+    "calendar-desktop.png": "2da46b073975a989bfaeb83f485c2721d33082e5aa8a5fc9823658c7b66bb266",
+    "calendar-mobile.png": "91a48de0d7444149000f3d7af8674575c4652cc3a0c4966cc2c2f966f5376e41",
+    "calendar-browser-example-evidence.json": "2a6f5864d23318741ea30dacb0e5ef240b7a9482ee645d0731c1b930b81bffa5"
+  }
+}
