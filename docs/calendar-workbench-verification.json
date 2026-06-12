@@ -1,0 +1,34 @@
+{
+  "passed": true,
+  "scope": "Clean installed local calendar API and separately executed reviewed worker; schedule replay alone does not establish worker effects or historical source authenticity",
+  "scoped_version": 1,
+  "paused_cursor_preserved": true,
+  "stale_generation_rejected": true,
+  "exact_dispatch_and_export_receipt_recovery": true,
+  "overlap_deferred_until_first_worker_finished": true,
+  "independent_occurrence_statuses": [
+    [
+      1793800800,
+      "succeeded"
+    ],
+    [
+      1793801100,
+      "queued"
+    ]
+  ],
+  "independent_orders": 4,
+  "independent_decimal_total": "112.00",
+  "paged_occurrences_verified": true,
+  "offline_replay_after_control_database_removal": {
+    "passed": true,
+    "complete": true,
+    "schedule_id": "ae754311-e16b-4fac-bba3-5740541854dc",
+    "plan_sha256": "d514e7b9d40e4468e0243177de6f233430eaa0f00c90fee535b9d076cde03465",
+    "events_checked": 5,
+    "occurrences_checked": 2,
+    "run_references_checked": 2,
+    "execution_verified": false,
+    "source_authenticated": false,
+    "scope": "Retained clock, decision-chain and queue-reference consistency; not independent proof of worker effects or authenticated production history"
+  }
+}
