@@ -1,5 +1,5 @@
 {
-  "wheel_sha256": "12f031f8303d05eb6c13f45eb61a1ace887823cc8d2dc0ccd349e505fcfad22e",
+  "wheel_sha256": "56c4d444db16cf24fc8182147253391f04836d000e4f3c887f7eb3360091cc15",
   "examples_exported": [
     "daily-schedule.json",
     "dataflow.json",
@@ -26,11 +26,12 @@
   "typed_dataflow_cli_passed": true,
   "typed_workbench_success_and_failure_passed": true,
   "retained_calendar_dispatch_and_worker_effects_passed": true,
+  "saved_calendar_workbench_and_response_recovery_passed": true,
+  "stream_schema_cutover_and_offline_replay_passed": true,
   "artifact_release_cli_and_offline_export_passed": true,
   "release_http_healthy_and_blocked_passed": true,
   "incremental_ingestion_and_ordered_catalog_publication_passed": true,
   "durable_operations_http_controls_passed": true,
   "http_extraction_cursor_recovery_and_publication_passed": true,
-  "ingestion_workbench_checkpoints_review_receipts_and_local_publication_passed": true,
-  "stream_schema_cutover_and_offline_replay_passed": true
+  "ingestion_workbench_checkpoints_review_receipts_and_local_publication_passed": true
 }
