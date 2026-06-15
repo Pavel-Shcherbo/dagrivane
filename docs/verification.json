@@ -1,11 +1,12 @@
 {
-  "unit_tests": 256,
+  "unit_tests": 277,
   "unit_passed": true,
   "cli_passed": true,
   "source_hashes": {
     "dagrivane/__init__.py": "0c93489487cfc00fe872dae46f2a84bd106d103ca5f477d54d6249f29509a4d1",
     "dagrivane/__main__.py": "2f4670f2d8a426acb76c032ef233964ce9b7db17ebc80168120e0abdacf1f581",
     "dagrivane/artifacts.py": "cbf7dbecd2a2e0e0dcc264217bbf73d3b1d586ab775c522b56dcbc0ab601593a",
+    "dagrivane/calendar_desk.py": "d87a4a45065d23ab8bbf2b8fdf49c5ff76525d628c2df2a15e9ce70a42302c28",
     "dagrivane/catalog.py": "f690d3c6bbea26d232cf81161daa0136a2e01b354722601952e017f612901810",
     "dagrivane/catalog_cli.py": "330984c0c9650fd546a849d0bf079c75d1576674dbbe708c06bd4bcc4a0a2374",
     "dagrivane/catalog_contracts.py": "5ccbd898ae20e9be192c12166f30b24737a34896f12bab430b0e6ba09b5022d0",
@@ -20,7 +21,7 @@
     "dagrivane/http_runner.py": "744c769148f4251925815b116b14508e8235f0a643d02051310d752386b0f07f",
     "dagrivane/http_source.py": "91ec8dc7a288f4b17fcad496fb0bcdc2b3eb8a7ce27a698055ac4fed84493c49",
     "dagrivane/http_store.py": "27b92e0c274de2c6e7956f20785c4b6c804ebc10f03d529c4f18dd7b9221a26f",
-    "dagrivane/httpapp.py": "ae0f2494cfaab368f68b476282c4ee22265d8ffc4232e237a923fac54baca5e4",
+    "dagrivane/httpapp.py": "adc7199364aac55d68bc8b4652870c94538f2e92ed2e1fdd8106aacf70abd730",
     "dagrivane/ingest_audit.py": "a79065b96059428408ba6a0e345de0f788eb73645b543d5e82f40d120e8b7bd2",
     "dagrivane/ingest_cli.py": "1a241d2d6cd67baf96b74e070e83e599755000a2041955d6d70729be5430f6a1",
     "dagrivane/ingest_model.py": "ea9b03c5a7a9a7dcc819a959ec7e4554565f0185063870ef47cb8b5ffc31fd42",
@@ -50,14 +51,17 @@
     "dagrivane/schedule_watch.py": "403cbf9662084f259e12e9d0c0882d1d24c5c595e123dd5d3cdc6d591ffb8373",
     "dagrivane/schedules.py": "91b6f30ecc52c61c1de92092e1a883d8e63287924d2da93fc0626f07965ca71d",
     "dagrivane/static/app.js": "cf9ab857ac01ba481f0afc16a2e1d9820463b1c963d99dc7a1ed358471d65a1d",
-    "dagrivane/static/index.html": "ab1f2d833f9010f987ed640975b779ed7cfc3970feaebf7c0fdb394c1b0e16a7",
+    "dagrivane/static/calendar.css": "c32fe448989ee47b231baa13752be4234b226131f00304d9303bbaf9cb7ea592",
+    "dagrivane/static/calendar.html": "eb15b012fa22f7762d6b337c937ec52accf102b99f18933a2f96a2ec6ea04371",
+    "dagrivane/static/calendar.js": "66755ddd79d202710ccdb72e1fcba0ff656e1999a8f8dbb12845e7e016aa5740",
+    "dagrivane/static/index.html": "1bbbcae44b5c4984d69cef5d2e68c955f85daee938a302e43664016e59b687c2",
     "dagrivane/static/style.css": "0d843b3902813edeae6fd2e9dae00edf1784229575bde7d4309c0ad4caf906e7",
     "dagrivane/stream_migration.py": "d8343d41c78711547aae173ac7e6c92bf2ee2411c1431c79c6672b48697bafaf",
     "dagrivane/stream_migration_model.py": "1301028c069f0dbc6a4551839ba255c1b941478b6cb0e8ef7cd16c5ecb09bc67",
     "dagrivane/stream_migration_seed.py": "0f58084dada173a42770c92c18156e7053b3a39a9901da14d64346da94277b13",
     "dagrivane/tables.py": "02acfa242e9a809195fd75b0716ba6eecdece0152beb1d6519528ed9da66872c",
     "dagrivane/transforms.py": "9c30749e28f135915d8c03de9909b90d9433df52d2b8b42423dbe7efb3b23cac",
-    "dagrivane/web.py": "0407aa3d1e400e1dbfbf7ab13b3d351cbdf0407539d333e709d37c5ba63e3904",
+    "dagrivane/web.py": "201b93a7c4a8ebfc2ebc09183f01233f8f405d55725806e35d9331491b55017c",
     "dagrivane/worker.py": "b83f0ec179cbdb0d8d7341054d2048bacbe89304eb59bf0d23eda5101dd11f15"
   }
 }
