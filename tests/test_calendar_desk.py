@@ -29,4 +29,15 @@ from tests.test_schedules import interval, cron
 
 
 class CalendarDeskTests(unittest.TestCase):
-    pass
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name) / "operations"
+        self.desk = CalendarDesk(self.root)
+        self.counter = 0
+        meta = self.op("initialize")
+        self.workspace, self.workflow = meta["workspace_id"], meta["workflow_id"]
+        self.version = self.op(
+            "version", workspace=self.workspace, workflow=self.workflow, version=1
+        )
+
