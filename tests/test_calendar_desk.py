@@ -41,3 +41,6 @@ class CalendarDeskTests(unittest.TestCase):
             "version", workspace=self.workspace, workflow=self.workflow, version=1
         )
 
+    def op(self, action, **fields):
+        return self.desk.dispatch({"mode": "calendar", "action": action, **fields})
+
