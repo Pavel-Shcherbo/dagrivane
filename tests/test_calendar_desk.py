@@ -44,3 +44,12 @@ class CalendarDeskTests(unittest.TestCase):
     def op(self, action, **fields):
         return self.desk.dispatch({"mode": "calendar", "action": action, **fields})
 
+    def write(self, action, request_key=None, **fields):
+        self.counter += 1
+        return self.op(
+            action,
+            workspace=self.workspace,
+            request_key=request_key or "request-" + str(self.counter),
+            **fields,
+        )
+
