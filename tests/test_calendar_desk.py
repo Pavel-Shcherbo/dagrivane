@@ -53,3 +53,16 @@ class CalendarDeskTests(unittest.TestCase):
             **fields,
         )
 
+    def create(self, definition=None, **fields):
+        value = self.op("preview", definition=definition or interval())
+        return self.write(
+            "create",
+            workflow=self.workflow,
+            version=1,
+            workflow_sha256=self.version["fingerprint"],
+            preview_sha256=value["plan_sha256"],
+            definition=value["definition"],
+            now=100,
+            **fields,
+        )
+
