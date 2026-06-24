@@ -66,3 +66,6 @@ class CalendarDeskTests(unittest.TestCase):
             **fields,
         )
 
+    def view(self, schedule, **fields):
+        return self.op("view", workspace=self.workspace, schedule=schedule, **fields)
+
