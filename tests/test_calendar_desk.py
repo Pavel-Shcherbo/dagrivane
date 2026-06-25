@@ -82,3 +82,22 @@ class CalendarDeskTests(unittest.TestCase):
         self.assertEqual(self.op("initialize")["workspace_id"], self.workspace)
         self.assertEqual(len(ControlStore(self.desk.database).list_workspaces()), 1)
 
+    def test_creation_uses_exact_preview_and_pinned_workflow(self):
+        value = self.op("preview", definition=interval())
+        for field in ("preview_sha256", "workflow_sha256"):
+            args = {
+                "workflow": self.workflow,
+                "version": 1,
+                "workflow_sha256": self.version["fingerprint"],
+                "preview_sha256": value["plan_sha256"],
+                "definition": value["definition"],
+                "now": 100,
+            }
+            args[field] = "0" * 64
+            with self.assertRaises(ValueError):
+                self.write("create", **args)
+        self.assertEqual(self.op("schedules", workspace=self.workspace)["items"], [])
+        created = self.create()
+        self.assertEqual(created["definition"], value["definition"])
+        self.assertEqual(created["plan_sha256"], value["plan_sha256"])
+
