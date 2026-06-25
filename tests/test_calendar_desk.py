@@ -69,3 +69,16 @@ class CalendarDeskTests(unittest.TestCase):
     def view(self, schedule, **fields):
         return self.op("view", workspace=self.workspace, schedule=schedule, **fields)
 
+    def test_overview_and_preview_do_not_create_an_absent_database(self):
+        missing = CalendarDesk(Path(self.temp.name) / "missing")
+        self.assertFalse(
+            missing.dispatch({"mode": "calendar", "action": "overview"})["initialized"]
+        )
+        result = missing.dispatch(
+            {"mode": "calendar", "action": "preview", "definition": interval()}
+        )
+        self.assertEqual(result["items"][0]["due"], 120)
+        self.assertFalse(missing.database.exists())
+        self.assertEqual(self.op("initialize")["workspace_id"], self.workspace)
+        self.assertEqual(len(ControlStore(self.desk.database).list_workspaces()), 1)
+
