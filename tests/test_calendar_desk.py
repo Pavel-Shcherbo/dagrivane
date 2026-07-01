@@ -101,3 +101,18 @@ class CalendarDeskTests(unittest.TestCase):
         self.assertEqual(created["definition"], value["definition"])
         self.assertEqual(created["plan_sha256"], value["plan_sha256"])
 
+    def test_changed_definition_cannot_reuse_old_clock_preview(self):
+        value = self.op("preview", definition=interval())
+        changed = copy.deepcopy(value["definition"])
+        changed["trigger"]["seconds"] = 120
+        with self.assertRaisesRegex(ValueError, "reviewed preview"):
+            self.write(
+                "create",
+                workflow=self.workflow,
+                version=1,
+                workflow_sha256=self.version["fingerprint"],
+                preview_sha256=value["plan_sha256"],
+                definition=changed,
+                now=100,
+            )
+
