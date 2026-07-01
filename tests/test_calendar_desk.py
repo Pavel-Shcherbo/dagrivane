@@ -116,3 +116,27 @@ class CalendarDeskTests(unittest.TestCase):
                 now=100,
             )
 
+    def test_retained_fold_preview_survives_host_timezone_source_removal(self):
+        value = self.op(
+            "preview",
+            definition=cron(
+                "30 1 * * *", "2024-11-03T00:00:00Z", end="2024-11-04T00:00:00Z"
+            ),
+        )
+        self.assertEqual(
+            [item["utc"] for item in value["items"]],
+            ["2024-11-03T05:30:00Z", "2024-11-03T06:30:00Z"],
+        )
+        self.assertEqual([item["fold"] for item in value["items"]], [0, 1])
+        with patch("dagrivane.schedule_clock.TZPATH", ()):
+            created = self.write(
+                "create",
+                workflow=self.workflow,
+                version=1,
+                workflow_sha256=self.version["fingerprint"],
+                preview_sha256=value["plan_sha256"],
+                definition=value["definition"],
+                now=100,
+            )
+            self.assertTrue(self.view(created["id"])["audit"]["passed"])
+
