@@ -188,3 +188,38 @@ class CalendarDeskTests(unittest.TestCase):
         self.assertEqual(self.view(created["id"])["schedule"]["generation"], 3)
         self.assertEqual(self.view(created["id"])["schedule"]["next_due"], 120)
 
+    def test_concurrent_pause_retries_keep_one_event_and_one_response(self):
+        created = self.create()
+
+        def pause(_):
+            return CalendarDesk(self.root).dispatch(
+                {
+                    "mode": "calendar",
+                    "action": "set-enabled",
+                    "workspace": self.workspace,
+                    "schedule": created["id"],
+                    "request_key": "parallel",
+                    "enabled": False,
+                    "generation": 1,
+                    "reason": "Parallel retry",
+                    "now": 110,
+                }
+            )
+
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            values = list(pool.map(pause, range(4)))
+        self.assertTrue(all(value == values[0] for value in values))
+        with closing(sqlite3.connect(self.desk.database)) as db:
+            self.assertEqual(
+                db.execute(
+                    "SELECT count(*) FROM cp_timed_events WHERE kind='enabled_changed'"
+                ).fetchone()[0],
+                1,
+            )
+            self.assertEqual(
+                db.execute(
+                    "SELECT count(*) FROM wb_calendar_receipts WHERE request_key='parallel'"
+                ).fetchone()[0],
+                1,
+            )
+
