@@ -223,3 +223,33 @@ class CalendarDeskTests(unittest.TestCase):
                 1,
             )
 
+    def test_dispatch_cursor_queue_and_response_commit_together(self):
+        created = self.create()
+        original = self.desk.operate
+
+        def interrupted(*args):
+            original(*args)
+            raise RuntimeError("response write interrupted")
+
+        with patch.object(self.desk, "operate", side_effect=interrupted):
+            with self.assertRaises(RuntimeError):
+                self.write("dispatch", request_key="dispatch", now=240, limit=3)
+        with closing(sqlite3.connect(self.desk.database)) as db:
+            self.assertEqual(
+                db.execute("SELECT count(*) FROM cp_runs").fetchone()[0], 0
+            )
+            self.assertEqual(
+                db.execute("SELECT count(*) FROM cp_timed_occurrences").fetchone()[0], 0
+            )
+            self.assertEqual(
+                db.execute("SELECT count(*) FROM cp_timed_receipts").fetchone()[0], 0
+            )
+        self.assertEqual(self.view(created["id"])["schedule"]["next_due"], 120)
+        result = self.write("dispatch", request_key="dispatch", now=240, limit=3)
+        self.assertEqual(result["outcome_count"], 3)
+        self.assertEqual(
+            result, self.write("dispatch", request_key="dispatch", now=240, limit=3)
+        )
+        with self.assertRaisesRegex(ValueError, "different inputs"):
+            self.write("dispatch", request_key="dispatch", now=300, limit=3)
+
