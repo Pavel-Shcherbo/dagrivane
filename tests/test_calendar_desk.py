@@ -140,3 +140,51 @@ class CalendarDeskTests(unittest.TestCase):
             )
             self.assertTrue(self.view(created["id"])["audit"]["passed"])
 
+    def test_pause_resume_generation_fence_and_exact_receipt_recovery(self):
+        created = self.create()
+        paused = self.write(
+            "set-enabled",
+            request_key="pause",
+            schedule=created["id"],
+            enabled=False,
+            generation=1,
+            reason="Maintenance",
+            now=110,
+        )
+        self.assertEqual(paused["generation"], 2)
+        self.desk = CalendarDesk(self.root)
+        self.assertEqual(
+            paused,
+            self.write(
+                "set-enabled",
+                request_key="pause",
+                schedule=created["id"],
+                enabled=False,
+                generation=1,
+                reason="Maintenance",
+                now=110,
+            ),
+        )
+        self.assertEqual(
+            paused, self.op("receipt", workspace=self.workspace, request_key="pause")
+        )
+        with self.assertRaises(Conflict):
+            self.write(
+                "set-enabled",
+                schedule=created["id"],
+                enabled=True,
+                generation=1,
+                reason="Stale screen",
+                now=111,
+            )
+        self.write(
+            "set-enabled",
+            schedule=created["id"],
+            enabled=True,
+            generation=2,
+            reason="Resume",
+            now=112,
+        )
+        self.assertEqual(self.view(created["id"])["schedule"]["generation"], 3)
+        self.assertEqual(self.view(created["id"])["schedule"]["next_due"], 120)
+
