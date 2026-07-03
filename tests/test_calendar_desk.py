@@ -253,3 +253,19 @@ class CalendarDeskTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "different inputs"):
             self.write("dispatch", request_key="dispatch", now=300, limit=3)
 
+    def test_response_size_failure_rolls_back_pause_and_event(self):
+        created = self.create()
+        with patch("dagrivane.calendar_desk.MAX_RESPONSE", 1):
+            with self.assertRaises(ValueError):
+                self.write(
+                    "set-enabled",
+                    schedule=created["id"],
+                    enabled=False,
+                    generation=1,
+                    reason="Budget",
+                    now=110,
+                )
+        value = self.view(created["id"])
+        self.assertTrue(value["schedule"]["enabled"])
+        self.assertEqual(len(value["events"]["items"]), 1)
+
