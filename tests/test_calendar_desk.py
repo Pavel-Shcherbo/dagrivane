@@ -289,3 +289,23 @@ class CalendarDeskTests(unittest.TestCase):
         self.assertTrue(first["audit"]["passed"])
         self.assertEqual(first["schedule"], second["schedule"])
 
+    def test_tampered_receipt_and_decision_history_are_not_green(self):
+        created = self.create(request_key="saved-create")
+        with closing(sqlite3.connect(self.desk.database)) as db, db:
+            db.execute(
+                "UPDATE wb_calendar_receipts SET result=? WHERE request_key='saved-create'",
+                (b"{}",),
+            )
+        with self.assertRaisesRegex(ValueError, "response identity"):
+            self.op("receipt", workspace=self.workspace, request_key="saved-create")
+        with closing(sqlite3.connect(self.desk.database)) as db, db:
+            db.execute(
+                "UPDATE cp_timed_events SET sha256=? WHERE schedule_id=?",
+                ("0" * 64, created["id"]),
+            )
+        value = self.view(created["id"])
+        self.assertFalse(value["audit"]["passed"])
+        self.assertIsNotNone(value["audit"]["error"])
+        with self.assertRaises(ValueError):
+            self.write("export", schedule=created["id"])
+
