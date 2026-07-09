@@ -269,3 +269,23 @@ class CalendarDeskTests(unittest.TestCase):
         self.assertTrue(value["schedule"]["enabled"])
         self.assertEqual(len(value["events"]["items"]), 1)
 
+    def test_schedule_outcomes_and_events_have_explicit_page_cursors(self):
+        created = self.create()
+        self.write("dispatch", now=300, limit=4)
+        first = self.view(created["id"], limit=2)
+        second = self.view(
+            created["id"], limit=2, due_after=first["occurrences"]["next_cursor"]
+        )
+        self.assertEqual(
+            [
+                item["due"]
+                for item in first["occurrences"]["items"]
+                + second["occurrences"]["items"]
+            ],
+            [120, 180, 240, 300],
+        )
+        self.assertTrue(first["occurrences"]["has_more"])
+        self.assertFalse(second["occurrences"]["has_more"])
+        self.assertTrue(first["audit"]["passed"])
+        self.assertEqual(first["schedule"], second["schedule"])
+
