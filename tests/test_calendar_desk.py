@@ -309,3 +309,14 @@ class CalendarDeskTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.write("export", schedule=created["id"])
 
+    def test_large_audit_refusal_keeps_paged_inspection_available(self):
+        created = self.create()
+        self.write("dispatch", now=180, limit=2)
+        with patch("dagrivane.schedule_evidence.MAX_OCCURRENCES", 1):
+            value = self.view(created["id"], limit=1)
+            self.assertFalse(value["audit"]["passed"])
+            self.assertEqual(len(value["occurrences"]["items"]), 1)
+            self.assertTrue(value["occurrences"]["has_more"])
+            with self.assertRaises(Conflict):
+                self.write("export", schedule=created["id"])
+
