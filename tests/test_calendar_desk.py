@@ -320,3 +320,18 @@ class CalendarDeskTests(unittest.TestCase):
             with self.assertRaises(Conflict):
                 self.write("export", schedule=created["id"])
 
+    def test_workspace_schedule_workflow_and_run_bindings_are_scoped(self):
+        created = self.create()
+        other = ControlStore(self.desk.database).create_workspace("Other")["id"]
+        with self.assertRaises(ControlError):
+            self.op("view", workspace=other, schedule=created["id"])
+        with self.assertRaises(ControlError):
+            self.op("version", workspace=other, workflow=self.workflow, version=1)
+        with self.assertRaises(ValueError):
+            self.op("receipt", workspace=other, request_key="request-1")
+        self.write("dispatch", now=120, limit=1)
+        run = self.view(created["id"])["occurrences"]["items"][0]["run_id"]
+        second = self.create()
+        with self.assertRaisesRegex(ValueError, "does not belong"):
+            self.op("run", workspace=self.workspace, schedule=second["id"], run=run)
+
