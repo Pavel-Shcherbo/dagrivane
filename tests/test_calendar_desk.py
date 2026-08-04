@@ -335,3 +335,45 @@ class CalendarDeskTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "does not belong"):
             self.op("run", workspace=self.workspace, schedule=second["id"], run=run)
 
+    def test_independent_run_effects_and_offline_export_after_store_removal(self):
+        created = self.create()
+        self.write("dispatch", now=120, limit=1)
+        run = self.view(created["id"])["occurrences"]["items"][0]["run_id"]
+        self.assertEqual(
+            self.op("run", workspace=self.workspace, schedule=created["id"], run=run)[
+                "status"
+            ],
+            "queued",
+        )
+        Operations(self.root).work(run)
+        inspected = self.op(
+            "run", workspace=self.workspace, schedule=created["id"], run=run
+        )
+        self.assertEqual(inspected["status"], "succeeded")
+        raw = json.loads(
+            (
+                self.root / "worker/workspaces" / run / ".local/typed-summary.json"
+            ).read_bytes()
+        )
+        with (examples_directory() / "orders.csv").open(newline="") as stream:
+            source = list(csv.DictReader(stream))
+        total = sum((Decimal(row["amount"]) for row in source), Decimal(0))
+        self.assertEqual(
+            raw["rows"],
+            [{"currency": "USD", "orders": len(source), "revenue": str(total)}],
+        )
+        evidence = self.write("export", request_key="export", schedule=created["id"])
+        self.assertEqual(
+            evidence, self.write("export", request_key="export", schedule=created["id"])
+        )
+        self.desk.database.unlink()
+        # The browser parses and serializes the outer response; the document stays text.
+        transported = json.loads(json.dumps(evidence))
+        document = json.loads(transported["content"])
+        self.assertIsInstance(document["runs"][0]["created"], float)
+        self.assertEqual(evidence["schedule"]["id"], document["schedule"]["id"])
+        proof = verify_schedule_evidence(document)
+        self.assertTrue(proof["passed"])
+        self.assertFalse(proof["execution_verified"])
+        self.assertFalse(proof["source_authenticated"])
+
