@@ -393,3 +393,33 @@ class CalendarDeskTests(unittest.TestCase):
         self.assertEqual(flows["items"][0]["id"], self.workflow)
         self.assertFalse(flows["has_more"])
 
+    def test_coherent_view_does_not_mix_a_concurrent_pause_into_old_history(self):
+        from dagrivane.calendar_desk import export_schedule
+
+        created = self.create()
+        with ThreadPoolExecutor(max_workers=1) as pool:
+
+            def interleaved(*args):
+                evidence = export_schedule(*args)
+                future = pool.submit(
+                    self.write,
+                    "set-enabled",
+                    schedule=created["id"],
+                    enabled=False,
+                    generation=1,
+                    reason="Concurrent writer",
+                    now=110,
+                )
+                self.assertEqual(future.result(timeout=5)["generation"], 2)
+                return evidence
+
+            with patch(
+                "dagrivane.calendar_desk.export_schedule", side_effect=interleaved
+            ):
+                snapshot = self.view(created["id"])
+        self.assertTrue(snapshot["schedule"]["enabled"])
+        self.assertEqual(snapshot["schedule"]["generation"], 1)
+        self.assertEqual(len(snapshot["events"]["items"]), 1)
+        self.assertTrue(snapshot["audit"]["passed"])
+        self.assertFalse(self.view(created["id"])["schedule"]["enabled"])
+
