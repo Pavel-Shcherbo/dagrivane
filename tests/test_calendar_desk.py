@@ -377,3 +377,19 @@ class CalendarDeskTests(unittest.TestCase):
         self.assertFalse(proof["execution_verified"])
         self.assertFalse(proof["source_authenticated"])
 
+    def test_workspace_and_workflow_pages_are_complete_with_fixed_contents(self):
+        control = ControlStore(self.desk.database)
+        for name in ("One", "Two"):
+            control.create_workspace(name)
+        first = self.op("overview", limit=2)
+        second = self.op("overview", limit=2, after=first["next_cursor"])
+        ids = [item["id"] for item in first["workspaces"] + second["workspaces"]]
+        self.assertEqual(len(ids), 3)
+        self.assertEqual(len(set(ids)), 3)
+        self.assertEqual(
+            self.op("workspace", workspace=self.workspace)["id"], self.workspace
+        )
+        flows = self.op("workflows", workspace=self.workspace, limit=1)
+        self.assertEqual(flows["items"][0]["id"], self.workflow)
+        self.assertFalse(flows["has_more"])
+
