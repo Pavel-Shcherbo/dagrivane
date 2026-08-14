@@ -423,3 +423,28 @@ class CalendarDeskTests(unittest.TestCase):
         self.assertTrue(snapshot["audit"]["passed"])
         self.assertFalse(self.view(created["id"])["schedule"]["enabled"])
 
+    def test_changed_workflow_cache_cannot_be_reviewed_or_dispatched(self):
+        created = self.create()
+        with closing(sqlite3.connect(self.desk.database)) as db, db:
+            db.execute(
+                "UPDATE cp_versions SET specification=? WHERE workflow_id=? AND version=1",
+                (json.dumps({"tasks": []}), self.workflow),
+            )
+        with self.assertRaisesRegex(ValueError, "pinned identity"):
+            self.op(
+                "version", workspace=self.workspace, workflow=self.workflow, version=1
+            )
+        with self.assertRaisesRegex(ValueError, "pinned identity"):
+            self.write("dispatch", now=120, limit=1)
+        with closing(sqlite3.connect(self.desk.database)) as db:
+            self.assertEqual(
+                db.execute("SELECT count(*) FROM cp_runs").fetchone()[0], 0
+            )
+            self.assertEqual(
+                db.execute(
+                    "SELECT next_due FROM cp_timed_schedules WHERE id=?",
+                    (created["id"],),
+                ).fetchone()[0],
+                120,
+            )
+
