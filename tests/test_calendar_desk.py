@@ -448,3 +448,28 @@ class CalendarDeskTests(unittest.TestCase):
                 120,
             )
 
+    def test_unknown_fields_clocks_and_types_do_not_create_jobs(self):
+        for value in (
+            {"action": "overview"},
+            {
+                "mode": "calendar",
+                "action": "preview",
+                "definition": interval(),
+                "path": "/tmp/no",
+            },
+            {"mode": "calendar", "action": "schedules", "workspace": "bad"},
+        ):
+            with self.assertRaises(ValueError):
+                self.desk.dispatch(value)
+        self.create()
+        for clock in (True, -1, "2026-01-01T00:00:00"):
+            with self.assertRaises(ValueError):
+                self.write("dispatch", now=clock, limit=1)
+        with closing(sqlite3.connect(self.desk.database)) as db:
+            self.assertEqual(
+                db.execute("SELECT count(*) FROM cp_runs").fetchone()[0], 0
+            )
+
+
+class CalendarHTTPTests(unittest.TestCase):
+    pass
