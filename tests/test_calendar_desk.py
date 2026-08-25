@@ -472,4 +472,21 @@ class CalendarDeskTests(unittest.TestCase):
 
 
 class CalendarHTTPTests(unittest.TestCase):
-    pass
+    @classmethod
+    def setUpClass(cls):
+        cls.temp = tempfile.TemporaryDirectory()
+        env = os.environ.copy()
+        env["DAGRIVANE_STATE_DIR"] = cls.temp.name
+        cls.process = subprocess.Popen(
+            [sys.executable, "-m", "dagrivane.web", "--port", "0"],
+            env=env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        ready, _, _ = select.select([cls.process.stdout], [], [], 8)
+        if not ready:
+            cls.process.terminate()
+            raise RuntimeError("calendar host did not start")
+        cls.port = int(cls.process.stdout.readline().strip().rsplit(":", 1)[1])
+
