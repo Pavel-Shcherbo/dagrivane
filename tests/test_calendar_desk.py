@@ -496,3 +496,28 @@ class CalendarHTTPTests(unittest.TestCase):
         cls.process.communicate(timeout=5)
         cls.temp.cleanup()
 
+    def request(
+        self,
+        params=None,
+        *,
+        headers=None,
+        path="/api/evaluate",
+        method="POST",
+        raw=None,
+    ):
+        connection = http.client.HTTPConnection("127.0.0.1", self.port, timeout=10)
+        self.addCleanup(connection.close)
+        head = {"Content-Type": "application/json", "X-Local-Request": "1"}
+        if headers:
+            head.update(headers)
+        connection.request(
+            method, path, raw if raw is not None else json.dumps(params), head
+        )
+        response = connection.getresponse()
+        body = response.read()
+        return response.status, (
+            json.loads(body)
+            if response.getheader("Content-Type", "").startswith("application/json")
+            else body
+        )
+
