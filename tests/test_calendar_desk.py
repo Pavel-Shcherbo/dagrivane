@@ -521,3 +521,36 @@ class CalendarHTTPTests(unittest.TestCase):
             else body
         )
 
+    def test_actual_http_initialization_preview_and_queue_dispatch(self):
+        def op(action, **fields):
+            code, value = self.request({"mode": "calendar", "action": action, **fields})
+            self.assertEqual(code, 200, value)
+            return value
+
+        meta = op("initialize")
+        workspace, workflow = meta["workspace_id"], meta["workflow_id"]
+        version = op("version", workspace=workspace, workflow=workflow, version=1)
+        preview = op("preview", definition=interval())
+        schedule = op(
+            "create",
+            workspace=workspace,
+            workflow=workflow,
+            version=1,
+            workflow_sha256=version["fingerprint"],
+            preview_sha256=preview["plan_sha256"],
+            definition=preview["definition"],
+            request_key="http-create",
+            now=100,
+        )
+        result = op(
+            "dispatch",
+            workspace=workspace,
+            request_key="http-dispatch",
+            now=120,
+            limit=1,
+        )
+        self.assertEqual(result["outcome_count"], 1)
+        self.assertTrue(
+            op("view", workspace=workspace, schedule=schedule["id"])["audit"]["passed"]
+        )
+
