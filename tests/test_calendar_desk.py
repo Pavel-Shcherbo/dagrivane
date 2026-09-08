@@ -554,3 +554,16 @@ class CalendarHTTPTests(unittest.TestCase):
             op("view", workspace=workspace, schedule=schedule["id"])["audit"]["passed"]
         )
 
+    def test_foreign_hosts_origins_and_missing_local_header_are_rejected(self):
+        for headers in (
+            {"Host": "outside.example"},
+            {"Origin": "https://outside.example"},
+            {"X-Local-Request": "0"},
+        ):
+            self.assertEqual(
+                self.request(
+                    {"mode": "calendar", "action": "overview"}, headers=headers
+                )[0],
+                403,
+            )
+
