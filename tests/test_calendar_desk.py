@@ -567,3 +567,15 @@ class CalendarHTTPTests(unittest.TestCase):
                 403,
             )
 
+    def test_duplicate_fields_nonfinite_json_and_payload_size_are_rejected(self):
+        for raw in (
+            '{"mode":"calendar","action":"overview","action":"initialize"}',
+            '{"mode":"calendar","action":NaN}',
+            "[]",
+        ):
+            self.assertEqual(self.request(raw=raw)[0], 400)
+        self.assertEqual(
+            self.request(raw="{}", headers={"Content-Length": str(1024 * 1024 + 1)})[0],
+            400,
+        )
+
