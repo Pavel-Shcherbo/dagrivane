@@ -579,3 +579,14 @@ class CalendarHTTPTests(unittest.TestCase):
             400,
         )
 
+    def test_calendar_assets_and_existing_workbench_routes_remain_available(self):
+        for path in ("/calendar.html", "/calendar.js", "/calendar.css", "/", "/app.js"):
+            code, value = self.request(path=path, method="GET")
+            self.assertEqual(code, 200)
+            self.assertTrue(value)
+        code, value = self.request({"mode": "control", "action": "overview"})
+        self.assertEqual(code, 200)
+
+
+if __name__ == "__main__":
+    unittest.main()
