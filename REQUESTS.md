@@ -41,3 +41,17 @@ Verified retained scheduler increment: 43 new checks, 230 Dagrivane tests and 61
 Verified schema-evolution increment: 26 new checks, 256 Dagrivane tests and 712 portfolio tests passed. Explicit copy/cast/constant mappings retain immutable definitions, keys, clocks, tombstones and original deduplication hashes. Complete source replay and checkpoint/publication/connector comparisons gate an atomic ingestion cutover, source retirement, bootstrap outbox and durable retry receipt. Installed CLI controls independently reconciled live keys 1/3/4, exact total 50, retained deletion, inherited IDs, unchanged old artifact bytes and catalog ancestry; exported proofs replay after removing the source database and catalog. A resumed successor HTTP connector retained its cursor and offset while the old worker was fenced. A retained 5,000-key workload preserved 1,000 tombstones and 6,000 IDs with independently reconciled total 120020.00. Evidence: docs/STREAM_MIGRATIONS.md, docs/stream-migration-verification.json and docs/stream-migration-benchmark.json. Current project-specific production source: 13772 SLOC. Schema/calendar browser controls, provider-specific and distributed services, retention, broader platform scope and the 20,000 useful-SLOC requirement remain open. No external publication.
 
 Verified calendar-workbench increment: 21 calendar checks, 277 Dagrivane tests and 784 portfolio tests passed. Scoped saved schedules bind reviewed workflow fingerprints and retained timezone previews; pause/resume is generation-fenced, dispatch is queue-only and operation/response receipts commit together. Snapshot views and history pagination reject mixed generations. Clean installed HTTP/CLI controls passed, including overlap deferral, exact retries, real worker effects and replay after database removal. Actual desktop/mobile browser controls passed folded-hour slots, lost replies before/after commit, reload recovery, stale updates and delayed responses. Independent downloaded replay found and corrected numeric reserialization; the corrected generation-35 export verifies 35 events/two slots. Both reviewed workers independently reconciled four source orders/USD 112.00. Evidence: docs/CALENDAR_WORKBENCH.md, docs/calendar-workbench-verification.json and docs/calendar-browser-verification.json. Current project-specific production source: 15474 SLOC. Migration UI, services, providers, retention, broader platform scope and full product/20,000 useful-SLOC acceptance remain open. No publication.
+
+
+## Scope update — 2026-11-04
+
+Pavel withdrew the mandatory 20,000-SLOC threshold: it was indicative. Earlier
+size requirements in this log are superseded. Do not expand solely for line count.
+Prioritize useful verified behavior and meaningful reconstructed history. Existing
+verification evidence remains scoped to the versions it records; final acceptance
+and full history reconstruction remain open. No publication is authorized.
+
+History audit: actual local Git objects, ownership and nonempty stages were checked;
+implementation/tests/examples match the last verified source version. The proposed
+2019–2026 calendar remains a plan, not a completed activity record. The central
+planning register retains the actual commit/calendar audit and outstanding work.
