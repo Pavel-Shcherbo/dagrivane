@@ -55,3 +55,17 @@ Verified schema-evolution increment: 26 new checks, 256 Dagrivane tests and 712 
 Verified calendar-workbench increment: 21 calendar checks, 277 Dagrivane tests and 784 portfolio tests passed. Scoped saved schedules bind reviewed workflow fingerprints and retained timezone previews; pause/resume is generation-fenced, dispatch is queue-only and operation/response receipts commit together. Snapshot views and history pagination reject mixed generations. Clean installed HTTP/CLI controls passed, including overlap deferral, exact retries, real worker effects and replay after database removal. Actual desktop/mobile browser controls passed folded-hour slots, lost replies before/after commit, reload recovery, stale updates and delayed responses. Independent downloaded replay found and corrected numeric reserialization; the corrected generation-35 export verifies 35 events/two slots. Both reviewed workers independently reconciled four source orders/USD 112.00. Evidence: docs/CALENDAR_WORKBENCH.md, docs/calendar-workbench-verification.json and docs/calendar-browser-verification.json. Current project-specific production source: 15474 SLOC. Migration UI, services, providers, retention, broader platform scope and full product/20,000 useful-SLOC acceptance remain open. No publication.
 
 | Saved calendar workbench | Verified local increment; 21 checks plus installed/browser/download controls | `docs/CALENDAR_WORKBENCH.md`, `docs/calendar-workbench-verification.json`, `docs/calendar-browser-verification.json` | Supervised services, retention, migration UI and full scope/size remain open |
+
+
+## Scope update — 2026-11-04
+
+Pavel withdrew the mandatory 20,000-SLOC threshold: it was indicative. Earlier
+size requirements in this log are superseded. Do not expand solely for line count.
+Prioritize useful verified behavior and meaningful reconstructed history. Existing
+verification evidence remains scoped to the versions it records; final acceptance
+and full history reconstruction remain open. No publication is authorized.
+
+History audit: actual local Git objects, ownership and nonempty stages were checked;
+implementation/tests/examples match the last verified source version. The proposed
+2019–2026 calendar remains a plan, not a completed activity record. The central
+planning register retains the actual commit/calendar audit and outstanding work.
