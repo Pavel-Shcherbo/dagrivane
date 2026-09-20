@@ -69,3 +69,13 @@ History audit: actual local Git objects, ownership and nonempty stages were chec
 implementation/tests/examples match the last verified source version. The proposed
 2019–2026 calendar remains a plan, not a completed activity record. The central
 planning register retains the actual commit/calendar audit and outstanding work.
+
+## Reconstructed history review — 2026-11-04
+
+A separate disclosed local review history has been built from actual source
+changes. Its final runtime matches the verified implementation; independently
+restored copies passed the portfolio's 869 unit tests and three CLI controls.
+Dates are illustrative labels; intermediate stages are not individually qualified
+releases. Calendar/object/final-tree evidence and packaging status are maintained
+in the central planning register (P-047). Original main history is retained.
+Publication and final portfolio acceptance remain pending; no upload is authorized.
