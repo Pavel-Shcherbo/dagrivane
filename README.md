@@ -7,11 +7,16 @@ Inspect local command workflows and verify data release gates.
 From a source checkout with Python 3.10 or later:
 
 ```sh
-python3 -m dagrivane.web
+python3 -m venv .venv
+. .venv/bin/activate
+python -m pip install .
+python -m dagrivane.web
 ```
 
+The build uses setuptools; the application itself has no third-party runtime dependencies.
+
 Open http://127.0.0.1:8411. No third-party runtime packages are required.
-The workbench is a local development application, not a hosted multi-user service.
+The workbench is a local development application, not a hosted multi-user service. Process-execution controls are qualified on macOS arm64; Windows descendant termination is not qualified.
 Bundled examples are included in the wheel. Runtime state is stored outside the installed package.
 
 ## Workbench preview
