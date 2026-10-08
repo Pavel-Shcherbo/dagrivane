@@ -1,5 +1,16 @@
 # Tasks
 
+## Current local qualification — 2026-11-04
+
+Implemented scope: workflow/lease recovery, typed data and quality gates, retained HTTP checkpoints, schema forks, pinned releases and saved calendar dispatch. Full project suites passed on CPython
+3.10–3.14: 278 tests per version. Clean wheel installation and CLI/API controls
+passed on 3.10 and 3.14. [Current evidence](docs/VERIFICATION.md) supersedes old
+size requirements and historical test totals below. Final package identities are maintained in the central review register;
+no publication is authorized. Future provider/hosted/distributed
+features in the original roadmap remain optional backlog.
+
+---
+
 Updated: 2026-11-04. Actual status only; historical roadmap rows remain proposed.
 
 | Task | Status | Evidence | Remaining work |
@@ -79,3 +90,12 @@ Dates are illustrative labels; intermediate stages are not individually qualifie
 releases. Calendar/object/final-tree evidence and packaging status are maintained
 in the central planning register (P-047). Original main history is retained.
 Publication and final portfolio acceptance remain pending; no upload is authorized.
+
+## Supported-Python final check — 2026-11-04
+
+A real Python 3.10 run exposed an empty-query parsing incompatibility in the
+reviewed HTTP source. The absent query now explicitly maps to no parameters;
+nonempty queries keep strict duplicate/field/framing validation. A real HTTP
+regression checks first-page success and malformed cursor rejection without
+provider effects. All 25 source-desk checks passed on Python 3.10 and 3.14.
+Full Python 3.10–3.14 qualification is in progress; no publication performed.
