@@ -119,8 +119,15 @@ def source_route(path):
     profile = parsed.path[len(prefix) :]
     try:
         require_profile(profile)
-        query = parse_qs(
-            parsed.query, keep_blank_values=True, strict_parsing=True, max_num_fields=2
+        query = (
+            parse_qs(
+                parsed.query,
+                keep_blank_values=True,
+                strict_parsing=True,
+                max_num_fields=2,
+            )
+            if parsed.query
+            else {}
         )
         if set(query) - {"cursor"} or any(
             len(values) != 1 for values in query.values()
