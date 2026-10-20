@@ -22,7 +22,7 @@
   "offline_replay_after_control_database_removal": {
     "passed": true,
     "complete": true,
-    "schedule_id": "ae754311-e16b-4fac-bba3-5740541854dc",
+    "schedule_id": "e37a17f8-e18c-4f21-8ca9-5a9019ea32b2",
     "plan_sha256": "d514e7b9d40e4468e0243177de6f233430eaa0f00c90fee535b9d076cde03465",
     "events_checked": 5,
     "occurrences_checked": 2,
