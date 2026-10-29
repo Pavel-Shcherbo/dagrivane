@@ -29,13 +29,13 @@
   "two_ordered_local_publications": true,
   "second_artifact": {
     "seq": 2,
-    "id": "3edce285c56a47c4a718ac691efbfe80",
+    "id": "87a24ec6448f4c59abe362a8e3768eb5",
     "workspace": "ingestion-workbench",
     "name": "healthy",
     "kind": "table",
-    "sha256": "3b1b21be2e67c6ef10ee84519e0b88e32d6f5cc5cb539345eb301d539a48a9e9",
+    "sha256": "948acd02a5ac52b3e63acb773b952b4cbb821eefdda0831506e14b8cb51319e2",
     "bytes": 1066,
-    "run_id": "ingest:2de62562b31f491b9b4e15d4837725a5:72172bf2e4cc:2",
+    "run_id": "ingest:bd69c004fdef4c0db70d37113f82486c:72172bf2e4cc:2",
     "revision": null,
     "policy_name": "healthy",
     "policy_version": 1,
@@ -87,19 +87,19 @@
         "data_sha256": "41c031b48c8352aab2c8443ada92eff621278be8e5b0917b06e8251a2a2b88e5",
         "rows": 2,
         "source_sha256": [
-          "56c3cf366b0759c466f181b08580cf73b96251a2fe0066e93cf24d22958d714e",
+          "09a19792be2cc9fc9601f01389bceaaba8847a3db0043ffb0c66671e4441c03e",
           "1f01389ecd9a4a5b407d60bebf6e63b51603d36c581f0300c025bf8ec3f9bcd6",
-          "fd79944a42006337c8393c55103c40a8596c8e48482617a052ebdc4e34593f16",
+          "6bdb5f157a63880a023082dc98c2f5fe6f5377aab57e94bca5fe611de7b53671",
           "239ebd1b80751f9425d1bfec708727db16d8763e48036562aa714b29e64001aa"
         ]
       }
     },
-    "created_at": "2026-11-04T09:21:54.731590+00:00",
+    "created_at": "2026-11-04T15:54:48.250274+00:00",
     "parents": [
-      "87fe1f7783674445af5988d129b343de"
+      "7f748714fee84012a79ab1b00a8c7871"
     ]
   },
-  "bundle_sha256": "3b1b21be2e67c6ef10ee84519e0b88e32d6f5cc5cb539345eb301d539a48a9e9",
+  "bundle_sha256": "948acd02a5ac52b3e63acb773b952b4cbb821eefdda0831506e14b8cb51319e2",
   "stale_view_rejected": true,
   "blocked_page_original_sha256": "7c9cd823d7377a689f5f20b7e936023a161a2a87f4bfa44b136887424e92ceb0",
   "corrected_page_retained_original_bytes": true,
