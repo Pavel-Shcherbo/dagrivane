@@ -1,0 +1,43 @@
+{
+  "passed": true,
+  "runtime": "Python 3.14.6 (main, Jun 10 2026, 10:03:53) [Clang 21.0.0 (clang-2100.0.123.102)]",
+  "scope": "Clean wheel installation and public entry points, not full portfolio acceptance",
+  "project": "dagrivane",
+  "checks": {
+    "wheel_sha256": "fe56031272a261f0a1c3c8b84ab4f99d9673a335688154732598f5db20b6f913",
+    "examples_exported": [
+      "daily-schedule.json",
+      "dataflow.json",
+      "http-change-source.json",
+      "http-row-source.json",
+      "http_orders_server.py",
+      "incremental-changes.json",
+      "incremental-orders.csv",
+      "incremental-stream.json",
+      "ingestion-control-pages.json",
+      "orders-schema-migration.json",
+      "orders.csv",
+      "pipeline.json",
+      "release_typed.py",
+      "summary_app.py",
+      "tasks.py",
+      "typed-pipeline.json"
+    ],
+    "existing_destination_preserved": true,
+    "installed_import": true,
+    "cli_passed": true,
+    "workbench_http_passed": true,
+    "state_outside_package": true,
+    "typed_dataflow_cli_passed": true,
+    "typed_workbench_success_and_failure_passed": true,
+    "retained_calendar_dispatch_and_worker_effects_passed": true,
+    "saved_calendar_workbench_and_response_recovery_passed": true,
+    "stream_schema_cutover_and_offline_replay_passed": true,
+    "artifact_release_cli_and_offline_export_passed": true,
+    "release_http_healthy_and_blocked_passed": true,
+    "incremental_ingestion_and_ordered_catalog_publication_passed": true,
+    "durable_operations_http_controls_passed": true,
+    "http_extraction_cursor_recovery_and_publication_passed": true,
+    "ingestion_workbench_checkpoints_review_receipts_and_local_publication_passed": true
+  }
+}
