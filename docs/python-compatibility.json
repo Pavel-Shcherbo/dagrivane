@@ -1,0 +1,37 @@
+{
+  "passed": true,
+  "scope": "Actual project unit/integration suites on macOS arm64; supported-minor checks, not future-version or other-OS qualification",
+  "versions": {
+    "3.10": {
+      "runtime": "Python 3.10.22 (main, Oct  9 2026, 15:10:41) [Clang 22.1.3 ]",
+      "unit_tests": 278,
+      "passed": true,
+      "log_sha256": "89b9eb75c51da22006d45a5aae0480f54298027ef5a47eb75c5202cfbfd8eda7"
+    },
+    "3.11": {
+      "runtime": "Python 3.11.18 (main, Oct 26 2026, 13:58:42) [Clang 23.1.3 ]",
+      "unit_tests": 278,
+      "passed": true,
+      "log_sha256": "be5c1c27cc2f0d80e9799192370baeb861651359b02668f2dca10b562037f67a"
+    },
+    "3.12": {
+      "runtime": "Python 3.12.9 (v3.12.9:fdb81425a9a, Feb  4 2025, 12:21:36) [Clang 13.0.0 (clang-1300.0.29.30)]",
+      "unit_tests": 278,
+      "passed": true,
+      "log_sha256": "259c3bfc7fc57ee7612d9f1545d0dece474919eca06446f12fdc5afc93b15515"
+    },
+    "3.13": {
+      "runtime": "Python 3.13.18 (main, Oct 26 2026, 13:59:02) [Clang 23.1.3 ]",
+      "unit_tests": 278,
+      "passed": true,
+      "log_sha256": "aa1230df2ec557945f61ae3219766e874127ca741067d0c0b418b3122b9b57de"
+    },
+    "3.14": {
+      "runtime": "Python 3.14.6 (main, Jun 10 2026, 10:03:53) [Clang 21.0.0 (clang-2100.0.123.102)]",
+      "unit_tests": 278,
+      "passed": true,
+      "log_sha256": "25ef34b7a49b52c71967c0ed2c0ed39020ade92c62ada080e6bf06a7ade5f8d1"
+    }
+  },
+  "total_test_executions": 1390
+}
