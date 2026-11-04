@@ -9,6 +9,16 @@ description = "Inspect local command workflows and verify data release gates."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = []
+authors = [{name = "Pavel Shcherbo"}]
+license = {file = "LICENSE"}
+keywords = ["data-pipelines", "workflow", "data-quality", "sqlite"]
+
+[project.urls]
+Homepage = "https://github.com/Pavel-Shcherbo/dagrivane"
+Repository = "https://github.com/Pavel-Shcherbo/dagrivane"
+Documentation = "https://github.com/Pavel-Shcherbo/dagrivane/blob/main/docs/README.md"
+Issues = "https://github.com/Pavel-Shcherbo/dagrivane/issues"
+Discussions = "https://github.com/Pavel-Shcherbo/dagrivane/discussions"
 
 [tool.setuptools]
 packages = ["dagrivane"]

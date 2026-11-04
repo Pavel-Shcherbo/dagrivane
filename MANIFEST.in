@@ -1,3 +1,4 @@
+include LICENSE
 include _build.py
 include examples/orders.csv
 include examples/pipeline.json

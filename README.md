@@ -108,6 +108,16 @@ This exports the reviewed examples to a new directory without overwriting an exi
 [Weekly roadmap](docs/proposed-weekly-roadmap.csv) is a planning scenario.
 [Tasks](TASKS.md) and [request register](REQUESTS.md) track actual status.
 
+## Questions and updates
+
+Ask setup questions or describe a use case in [project Discussions](https://github.com/Pavel-Shcherbo/dagrivane/discussions/categories/q-a). Include the command you ran, your Python/operating-system version and a small synthetic example. For a reproducible defect, use the [issue templates](https://github.com/Pavel-Shcherbo/dagrivane/issues/new/choose).
+
+Follow [Pavel Shcherbo](https://github.com/Pavel-Shcherbo) for work across these tools. To follow only published versions of this project, use **Watch → Custom → Releases** on GitHub.
+
+## License
+
+[MIT](LICENSE), copyright 2026 Pavel Shcherbo.
+
 ## History note
 
 This repository was assembled starting in November 2026. Earlier Git timestamps,
