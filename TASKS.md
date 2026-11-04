@@ -1,5 +1,10 @@
 # Tasks
 
+## Workbench port validation — 2026-11-05
+
+Source: Pavel requested useful Issues, pull requests and reviews. Reproduced an out-of-range `--port 65536` traceback. Prepared an argparse range check, subprocess regressions for invalid values and a real HTTP startup control for `--port 0`. All 281 current tests passed on CPython 3.14.6; PR publication is prepared. Review will be an explicitly identified author self-review, not independent approval. Issue date choice is awaiting Pavel; no historical calendar credit is promised.
+
+
 ## Final acceptance review — 2026-11-04
 
 Pavel explicitly requested skipping PR and review events and completing the final project/profile review. The previous historical-event blocker is withdrawn from acceptance. No new PR or review was created.
