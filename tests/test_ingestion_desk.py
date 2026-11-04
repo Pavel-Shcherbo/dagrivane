@@ -158,6 +158,17 @@ class IngestionDeskTests(unittest.TestCase):
         self.assertEqual(view["source"]["offset"], view["data"]["offset"])
         self.assertEqual(view["source"]["generation"], view["stream"]["generation"])
 
+    def test_source_accepts_absent_query_but_rejects_malformed_cursor_fields(self):
+        self.initialize()
+        status, body = self.http("GET", "/api/ingestion-source/healthy")
+        self.assertEqual(status, 200)
+        self.assertEqual(len(body["events"]), 2)
+        self.assertEqual(self.view()["provider"]["requests"], 1)
+        for query in ("cursor", "cursor=a&cursor=b", "other=a", "cursor=a&"):
+            status, _ = self.http("GET", "/api/ingestion-source/healthy?" + query)
+            self.assertEqual(status, 400, query)
+        self.assertEqual(self.view()["provider"]["requests"], 1)
+
     def test_two_real_pages_one_at_a_time_then_idle_without_new_generations(self):
         self.initialize()
         first = self.action("poll")
