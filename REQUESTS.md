@@ -1,5 +1,10 @@
 # Request register
 
+## Community launch preparation — 2026-11-05
+
+Source: Pavel requested a detailed achievement/follower plan and practical progress, then explicitly delegated license selection. MIT selected and added with package author/project links. Project Discussions are enabled for real setup questions and use cases; README links questions, issue templates and release updates. No external promotional messages, paid actions or fabricated audience activity performed. MIT text is embedded in the wheel; clean installation and CLI/example controls passed outside the checkout on CPython 3.14.6. Publication and community readback evidence are retained in the central growth register; follower/star growth is not claimed.
+
+
 ## README screenshots — 2026-11-05
 
 Source: Pavel requested screenshots in the project README. Added an immediately visible workbench screenshot and an expandable gallery with three additional views, including mobile. Existing real local-control captures are reused without alteration; captions identify synthetic data and deliberately failing controls. All four relative image targets and guide links are verified. Native GitHub rendering and publication evidence are retained in the central request register. Runtime code and tests are unchanged.
