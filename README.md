@@ -1,8 +1,36 @@
 # Dagrivane
 
 Inspect local command workflows and verify data release gates.
-[Quick start](#run-the-workbench) · [Guides](docs/README.md) · [Architecture](docs/ARCHITECTURE.md) · [Verification](docs/VERIFICATION.md) · [Contributing](CONTRIBUTING.md)
+[Quick start](#run-the-workbench) · [Screenshots](#screenshots) · [Guides](docs/README.md) · [Architecture](docs/ARCHITECTURE.md) · [Verification](docs/VERIFICATION.md) · [Contributing](CONTRIBUTING.md)
 
+## Screenshots
+
+![Saved workflow runs, task outcomes and pinned workflow versions](docs/operations-desktop.png)
+
+Inspect retained runs and task output from the bundled local orders workflow. [Guide](docs/OPERATIONS_WORKBENCH.md).
+
+<details>
+<summary>More screenshots: schedules, ingestion and mobile</summary>
+
+### Workflow schedules
+
+![Saved timezone schedules with retained queue decisions](docs/calendar-desktop.png)
+
+Review timezone-aware schedules and the decisions that queued work. [Guide](docs/CALENDAR_WORKBENCH.md).
+
+### Source to dataset
+
+![Retained HTTP pages, accepted data and catalog publication](docs/ingestion-desktop-final.png)
+
+Inspect accepted rows, source checkpoints and publication evidence from a synthetic HTTP feed. [Guide](docs/INGESTION_WORKBENCH.md).
+
+### Mobile run inspection
+
+<img src="docs/operations-mobile.png" alt="Mobile view of retained runs and cancellation controls" width="390">
+
+Inspect a saved run and its task states on a narrow screen. [Guide](docs/OPERATIONS_WORKBENCH.md).
+
+</details>
 
 ## Run the workbench
 
@@ -21,15 +49,6 @@ Open http://127.0.0.1:8411. No third-party runtime packages are required.
 Use `--port 0` to choose a free local port, or an explicit port from 1 to 65535. Invalid values are reported as command-line usage errors.
 The workbench is a local development application, not a hosted multi-user service. Process-execution controls are qualified on macOS arm64; Windows descendant termination is not qualified.
 Bundled examples are included in the wheel. Runtime state is stored outside the installed package.
-
-## Workbench preview
-
-<details>
-<summary>Open the workbench screenshot</summary>
-
-![Saved workflow operations](docs/operations-desktop.png)
-
-</details>
 
 ## Command line
 
@@ -69,7 +88,6 @@ The [artifact guide](docs/ARTIFACTS.md) covers immutable policies, dataset versi
 ## Boundaries
 
 Task execution within each workflow run is local and sequential. Commands are trusted local programs, not sandboxed workloads. Captured output is not a secret store. A process crash may leave external effects with an unknown outcome; the runner refuses to silently retry a task marked running. The durable control plane supports versioned workflow registration, idempotent submission, worker leases, cancellation, event cursors and pinned interval schedules through the operator CLI. Tasks within each run remain sequential. Remote executors, connector SDKs, CI promotion and authenticated multi-user operation remain planned.
-
 
 ## Durable execution
 

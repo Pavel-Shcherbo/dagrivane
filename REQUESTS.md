@@ -1,5 +1,10 @@
 # Request register
 
+## README screenshots — 2026-11-05
+
+Source: Pavel requested screenshots in the project README. Added an immediately visible workbench screenshot and an expandable gallery with three additional views, including mobile. Existing real local-control captures are reused without alteration; captions identify synthetic data and deliberately failing controls. All four relative image targets and guide links are verified. Native GitHub rendering and publication evidence are retained in the central request register. Runtime code and tests are unchanged.
+
+
 ## Workbench port validation — 2026-11-05
 
 Source: Pavel requested old-dated Issues and actual current-dated PR/reviews. Implemented and verified: invalid port values report a usage error with exit 2; automatic port zero remains runnable. All 281 current tests passed on CPython 3.14.6 / macOS arm64, including a real ephemeral-port HTTP startup regression.
