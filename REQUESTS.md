@@ -1,5 +1,17 @@
 # Request register
 
+## Public repository status — 2026-11-04
+
+Published with Pavel's explicit authorization at https://github.com/Pavel-Shcherbo/dagrivane.
+The initial remote main matched qualified snapshot e8410a9087fcda219f0ad9da0b1746bf6c74971c.
+The implemented local scope is qualified as recorded in docs/VERIFICATION.md.
+This status supersedes earlier publication holds in the historical register below.
+Earlier dates are a disclosed reconstruction; this publication record uses its actual date.
+GitHub contribution-calendar rendering is checked separately and is not implied by a push.
+No remaining local delivery blocker; future scope remains backlog.
+
+---
+
 ## Current local qualification — 2026-11-04
 
 Implemented scope: workflow/lease recovery, typed data and quality gates, retained HTTP checkpoints, schema forks, pinned releases and saved calendar dispatch. Full project suites passed on CPython
