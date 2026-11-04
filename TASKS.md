@@ -1,5 +1,12 @@
 # Tasks
 
+## Repository usability — 2026-11-04
+
+Request: Pavel asked for further visual polish and repository collaboration features; pull requests and reviews must retain historical dates.
+
+Implemented: task-oriented guide index, compact screenshot disclosure, contribution instructions and focused issue/PR templates. Local guide links, CLI help and whitespace checks passed. Runtime code and the qualified test evidence are unchanged. Publication/readback evidence is retained in the central request register. No current-dated PR or review is authorized or created. Historical PR/review import remains unconfirmed; that event-creation requirement is unresolved.
+
+
 ## Public repository status — 2026-11-04
 
 Published with Pavel's explicit authorization at https://github.com/Pavel-Shcherbo/dagrivane.
@@ -18,12 +25,14 @@ Implemented scope: workflow/lease recovery, typed data and quality gates, retain
 3.10–3.14: 278 tests per version. Clean wheel installation and CLI/API controls
 passed on 3.10 and 3.14. [Current evidence](docs/VERIFICATION.md) supersedes old
 size requirements and historical test totals below. Final package identities are maintained in the central review register;
-no publication is authorized. Future provider/hosted/distributed
+Publication is authorized and complete. Future provider/hosted/distributed
 features in the original roadmap remain optional backlog.
 
 ---
 
-Updated: 2026-11-04. Actual status only; historical roadmap rows remain proposed.
+## Archived development register
+
+The rows below preserve earlier development snapshots. The current publication and qualification status is stated above; old holds, size thresholds and incomplete-feature notes are not current acceptance decisions.
 
 | Task | Status | Evidence | Remaining work |
 |---|---|---|---|
