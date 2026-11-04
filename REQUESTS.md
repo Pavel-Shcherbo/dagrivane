@@ -1,5 +1,15 @@
 # Request register
 
+## Workbench port validation — 2026-11-05
+
+Source: Pavel requested old-dated Issues and actual current-dated PR/reviews. Implemented and verified: invalid port values report a usage error with exit 2; automatic port zero remains runnable. All 281 current tests passed on CPython 3.14.6 / macOS arm64, including a real ephemeral-port HTTP startup regression.
+
+- [Issue #3](https://github.com/Pavel-Shcherbo/dagrivane/issues/3) is explicitly disclosed reconstruction dated 2019-02-04; historical calendar credit is not claimed.
+- [PR #2](https://github.com/Pavel-Shcherbo/dagrivane/pull/2) contains the implementation, documentation and regressions.
+- [Author self-review](https://github.com/Pavel-Shcherbo/dagrivane/pull/2#pullrequestreview-5775872879) records the inspected boundaries and actual test result; no independent approval is claimed.
+
+Implementation and scoped verification are complete; PR/issue lifecycle is recorded on GitHub. Future platform features remain backlog.
+
 ## Final acceptance review — 2026-11-04
 
 Pavel explicitly requested skipping PR and review events and completing the final project/profile review. The previous historical-event blocker is withdrawn from acceptance. No new PR or review was created.

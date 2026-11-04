@@ -18,6 +18,7 @@ python -m dagrivane.web
 The build uses setuptools; the application itself has no third-party runtime dependencies.
 
 Open http://127.0.0.1:8411. No third-party runtime packages are required.
+Use `--port 0` to choose a free local port, or an explicit port from 1 to 65535. Invalid values are reported as command-line usage errors.
 The workbench is a local development application, not a hosted multi-user service. Process-execution controls are qualified on macOS arm64; Windows descendant termination is not qualified.
 Bundled examples are included in the wheel. Runtime state is stored outside the installed package.
 

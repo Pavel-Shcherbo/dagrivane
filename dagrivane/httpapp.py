@@ -8,9 +8,19 @@ from urllib.parse import urlsplit
 from .catalog_contracts import parse_json
 
 
+def _port_number(value):
+    try:
+        port = int(value)
+    except ValueError as error:
+        raise argparse.ArgumentTypeError("port must be an integer from 0 to 65535") from error
+    if not 0 <= port <= 65535:
+        raise argparse.ArgumentTypeError("port must be an integer from 0 to 65535")
+    return port
+
+
 def serve(evaluate, example, default_port, *, on_start=None, source_route=None):
     parser = argparse.ArgumentParser(description="Start the local workbench")
-    parser.add_argument("--port", type=int, default=default_port)
+    parser.add_argument("--port", type=_port_number, default=default_port)
     args = parser.parse_args()
     static = Path(__file__).parent / "static"
 

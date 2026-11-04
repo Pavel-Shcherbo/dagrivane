@@ -12,7 +12,7 @@ python -m dagrivane --help
 python -m unittest discover -s tests -v
 ```
 
-Run commands from the repository root. The complete current suite contains 278 tests; [qualification](docs/VERIFICATION.md) records the platforms actually exercised. Passing on one local interpreter does not establish support for another operating system.
+Run commands from the repository root. The complete current suite contains 281 tests; [qualification](docs/VERIFICATION.md) records the platforms actually exercised. Passing on one local interpreter does not establish support for another operating system.
 
 ## Make a reviewable change
 

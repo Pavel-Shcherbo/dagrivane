@@ -1,3 +1,11 @@
+# Port-validation increment — 2026-11-05
+
+The workbench now reports invalid `--port` values as usage errors (exit 2) rather than socket-binding tracebacks. Zero remains supported for automatic local port allocation. Three subprocess regressions cover out-of-range values, non-numeric input and an actual HTTP request to a server started with `--port 0`.
+
+The complete current suite passed 281 tests on CPython 3.14.6 / macOS arm64. The older Python-version matrix below qualifies the previous source snapshot; it is not a claim that the new increment was rerun across every interpreter. No UI assets changed.
+
+---
+
 # Verified local delivery
 
 This summary records the final local qualification on 2026-11-04. It covers
